@@ -1,7 +1,7 @@
 (executables
  ((names (main))
-   (libraries (fialyzer))))
+  (libraries (fialyzer))))
 
 (install
  ((section bin)
-   (files ((main.exe as fialyzer)))))
+  (files ((main.exe as fialyzer)))))

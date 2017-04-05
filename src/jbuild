@@ -1,5 +1,3 @@
 (library
  ((name fialyzer)
   (public_name fialyzer)))
-
-(jbuild_version 1)
