@@ -1,0 +1,1 @@
+let () = Fialyzer.Main.main ()
