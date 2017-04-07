@@ -1,1 +1,14 @@
 version: 2
+jobs:
+  build:
+    working_directory: /fialyzer
+    docker:
+      - image: ocaml/opam:alpine-3.5_ocaml-4.03.0
+    steps:
+      - checkout
+      - run:
+          name: Install Opam Dependencies
+          command: opam update && opam install jbuilder
+      - run:
+          name: Build
+          command: make
