@@ -7,8 +7,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install Opam Dependencies
-          command: opam update && opam install jbuilder
+          name: Install System Deps
+          command: sudo apk add --update m4 make
       - run:
-          name: Build
-          command: . /home/opam/.opam/opam-init/init.sh && make
+          name: Install
+          command: eval $(opam config env) && opam repo add remote-default https://opam.ocaml.org && opam pin add -y fialyzer .
