@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    working_directory: /fialyzer
+    working_directory: ~/fialyzer # use /fialyzer for local circleci cli
     docker:
       - image: ocaml/opam:alpine-3.5_ocaml-4.03.0
     steps:
@@ -11,4 +11,4 @@ jobs:
           command: opam update && opam install jbuilder
       - run:
           name: Build
-          command: make
+          command: . /home/opam/.opam/opam-init/init.sh && make
