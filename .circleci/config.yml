@@ -7,6 +7,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: submodule update
+          command: git submodule init && git submodule update
+      - run:
           name: Install System Deps
           command: sudo apk add --update m4 make
       - run:
