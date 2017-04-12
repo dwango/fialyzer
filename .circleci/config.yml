@@ -11,4 +11,4 @@ jobs:
           command: sudo apk add --update m4 make
       - run:
           name: Install
-          command: eval $(opam config env) && opam repo add remote-default https://opam.ocaml.org && opam pin add -y fialyzer .
+          command: eval $(opam config env) && opam repo add remote-default https://opam.ocaml.org && cd obeam && opam pin add -y obeam . && cd ../ && opam pin add -y fialyzer .
