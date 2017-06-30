@@ -1,3 +1,5 @@
+(jbuild_version 1)
+
 (library
  ((name fialyzer)
   (public_name fialyzer)))
