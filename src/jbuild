@@ -2,4 +2,5 @@
 
 (library
  ((name fialyzer)
-  (public_name fialyzer)))
+  (public_name fialyzer)
+  (libraries (obeam))))

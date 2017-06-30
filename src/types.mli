@@ -15,7 +15,7 @@ type expr =
 and pattern =
     | PatVar of string * expr
     | PatStruct of string list * expr
-and typ =
+type typ =
     | TyVar of string
     | TyStruct of typ list
     | Fun of typ list * typ
@@ -24,7 +24,7 @@ and typ =
     | Any
     | None
     | Integer
-    | Atom
+    | TyAtom
     | TyConstant of constant
 and constraint_ =
     | Subtype of typ * typ
