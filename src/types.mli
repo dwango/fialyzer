@@ -24,7 +24,7 @@ type typ =
     | Any
     | None
     | Integer
-    | Atom
+    | TyAtom
     | TyConstant of constant
 and constraint_ =
     | Subtype of typ * typ
