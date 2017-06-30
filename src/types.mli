@@ -1,48 +1,33 @@
-(* will be replaced with obeam *)
-
-module Value : sig
-  type t =
+type constant =
     | Int of int
     | Float of float
     | Atom of string
-end
 
-module rec Expr : sig
-  type t =
-    | Val of Value.t
+type expr =
+    | Val of constant
     | Var of string
-    | Struct of t list
-    | App of t * t list
-    | Abs of string list * t
-    | Let of string * t * t
-    | Letrec of (string * t) list * t
-    | Case of t * (Pattern.t * t) list
-end
-
-and Pattern : sig
-  type t =
-    | Var of string * Expr.t
-    | Struct of string list * Expr.t
-end
-
-module rec Type : sig
-  type t =
-    | Var of string
-    | Struct of t list
-    | Fun of t list * t
-    | Union of t * t
-    | Constraint of t * Constraint.t
+    | Struct of expr list
+    | App of expr * expr list
+    | Abs of string list * expr
+    | Let of string * expr * expr
+    | Letrec of (string * expr) list * expr
+    | Case of expr * (pattern * expr) list
+and pattern =
+    | PatVar of string * expr
+    | PatStruct of string list * expr
+and typ =
+    | TyVar of string
+    | TyStruct of typ list
+    | Fun of typ list * typ
+    | Union of typ * typ
+    | Constraint of typ * constraint_
     | Any
     | None
     | Integer
     | Atom
-    | Val of Value.t
-end
-
-and Constraint : sig
-  type t =
-    | Subtype of Type.t * Type.t
-    | Conj of t list
-    | Disj of t list
+    | TyConstant of constant
+and constraint_ =
+    | Subtype of typ * typ
+    | Conj of constraint_ list
+    | Disj of constraint_ list
     | Empty
-end
