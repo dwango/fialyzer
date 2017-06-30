@@ -10,7 +10,7 @@ build: [
   ["jbuilder" "build" "--only-packages" "fialyzer" "--root" "." "-j" jobs "@install"]
 ]
 depends: [
-  "jbuilder" {build & >= "1.0+beta6"}
+  "jbuilder" {build & >= "1.0+beta10"}
   "batteries"
   "obeam"
 ]
