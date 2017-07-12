@@ -1,0 +1,13 @@
+########################################################################
+# Phony targets are scoped, so you probably want to declare them first.
+#
+
+.PHONY: all clean
+
+########################################################################
+# Subdirectories.
+# You may want to include some subdirectories in this project.
+# If so, define the subdirectory targets and uncomment this section.
+#
+
+.SUBDIRS: src
