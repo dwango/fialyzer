@@ -1,6 +1,7 @@
 (executables
  ((names (main))
-  (libraries (fialyzer))))
+  (libraries (fialyzer bitstring obeam))
+  (preprocess (pps (ppx_sexp_conv)))))
 
 (install
  ((section bin)

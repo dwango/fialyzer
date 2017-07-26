@@ -2,6 +2,7 @@ type constant =
     | Int of int
     | Float of float
     | Atom of string
+[@@deriving sexp]
 
 type expr =
     | Val of constant
@@ -12,9 +13,12 @@ type expr =
     | Let of string * expr * expr
     | Letrec of (string * expr) list * expr
     | Case of expr * (pattern * expr) list
+[@@deriving sexp]
 and pattern =
     | PatVar of string * expr
     | PatStruct of string list * expr
+[@@deriving sexp]
+
 type typ =
     | TyVar of string
     | TyStruct of typ list
@@ -26,8 +30,10 @@ type typ =
     | Integer
     | TyAtom
     | TyConstant of constant
+[@@deriving sexp]
 and constraint_ =
     | Subtype of typ * typ
     | Conj of constraint_ list
     | Disj of constraint_ list
     | Empty
+[@@deriving sexp]
