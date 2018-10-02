@@ -43,7 +43,7 @@ let () =
      let sf = Simple_term_format.of_etf etf in
      let absform = Abstract_format.expr_of_sf sf in
      let expr = Fialyzer.FromErlang.expr_of_erlang_expr absform in
-     [%sexp_of: Fialyzer.Types.expr] expr |> Sexplib.Sexp.to_string |> Printf.printf "%s\n"
+     [%sexp_of: Fialyzer.Types.expr] expr |> Sexplib0.Sexp.to_string |> Printf.printf "%s\n"
   | Error (msg, rest) ->
      Printf.printf "Failed to parse chunk: %s\n" msg;
      Bitstring.hexdump_bitstring stdout rest
