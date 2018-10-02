@@ -7,10 +7,10 @@ bug-reports: "https://github.com/fialyzer/fialyzer/issues"
 dev-repo: "git+https://github.com/fialyzer/fialyzer.git"
 license: "Apache-2.0"
 build: [
-  ["jbuilder" "build" "-p" name "-j" jobs]
+  ["dune" "build" "-p" name "-j" jobs]
 ]
 depends: [
-  "jbuilder" {build & >= "1.0+beta11"}
+  "dune" {build}
   "batteries"
   "obeam"
   "bitstring"
