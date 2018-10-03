@@ -11,7 +11,6 @@ build: [
 ]
 depends: [
   "dune" {build}
-  "batteries"
   "obeam"
   "bitstring"
   "ppx_sexp_conv" {build}
