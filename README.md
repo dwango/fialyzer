@@ -9,7 +9,7 @@ Prerequisite
 ------------
 
 - OCaml
-- jbuilder
+- dune
 
 Build
 -----
