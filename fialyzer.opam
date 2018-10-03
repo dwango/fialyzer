@@ -2,9 +2,9 @@ opam-version: "1.2"
 name: "fialyzer"
 maintainer: ["amutake <amutake.s@mail.com>" "yutopp <yutopp@gmail.com>"]
 authors: ["amutake <amutake.s@gmail.com>" "yutopp <yutopp@gmail.com>"]
-homepage: "https://github.com/fialyzer/fialyzer"
-bug-reports: "https://github.com/fialyzer/fialyzer/issues"
-dev-repo: "git+https://github.com/fialyzer/fialyzer.git"
+homepage: "https://github.com/dwango/fialyzer"
+bug-reports: "https://github.com/dwango/fialyzer/issues"
+dev-repo: "git+https://github.com/dwango/fialyzer.git"
 license: "Apache-2.0"
 build: [
   ["dune" "build" "-p" name "-j" jobs]
