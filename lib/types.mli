@@ -3,7 +3,7 @@ type constant =
     | Int of int
     | Float of float
     | Atom of string
-[@@deriving sexp]
+[@@deriving show]
 
 type expr =
     | Val of constant
@@ -14,11 +14,11 @@ type expr =
     | Let of string * expr * expr
     | Letrec of (string * expr) list * expr
     | Case of expr * (pattern * expr) list
-[@@deriving sexp]
+[@@deriving show]
 and pattern =
     | PatVar of string * expr
     | PatStruct of string list * expr
-[@@deriving sexp]
+[@@deriving show]
 
 type typ =
     | TyVar of string
@@ -31,10 +31,10 @@ type typ =
     | Integer
     | TyAtom
     | TyConstant of constant
-[@@deriving sexp]
+[@@deriving show]
 and constraint_ =
     | Subtype of typ * typ
     | Conj of constraint_ list
     | Disj of constraint_ list
     | Empty
-[@@deriving sexp]
+[@@deriving show]
