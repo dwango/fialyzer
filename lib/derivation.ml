@@ -1,5 +1,4 @@
 open Base
-open Fialyzer
 
 let new_var =
   let i = ref 0 in
