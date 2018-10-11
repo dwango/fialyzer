@@ -1,4 +1,5 @@
 open Base
+open Types
 
 let new_var =
   let i = ref 0 in
@@ -20,13 +21,18 @@ let rec derive context = function
      let open Result in
      derive context f >>= fun (tyf, cf) ->
      derive context arg1 >>= fun (ty1, c1) ->
-     begin match tyf with
-     | Types.Fun([ty_arg1], ty) ->
-        let beta = new_var() in
-        Ok(Types.TyVar beta, Types.Conj [cf; c1])
-     | _ ->
-        Error "expected function type"
-     end
+     let alpha1 = new_var() in
+     let alpha = new_var() in
+     let beta = new_var() in
+     let constraints = [
+         Eq (tyf, Fun ([TyVar alpha1], TyVar alpha));
+         Subtype (TyVar beta, TyVar alpha);
+         Subtype (ty1, TyVar alpha1);
+         cf;
+         c1;
+       ]
+     in
+     Ok(TyVar beta, Conj constraints)
   | Types.Abs ([v], e) ->
      let open Result in
      let ty_v = new_var () in
