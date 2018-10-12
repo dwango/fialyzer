@@ -1,7 +1,7 @@
 (library
  (name fialyzer)
  (public_name fialyzer)
- (libraries obeam)
+ (libraries obeam base)
  (preprocess (pps ppx_deriving.std)))
 
 (env

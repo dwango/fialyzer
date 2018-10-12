@@ -33,6 +33,7 @@ type typ =
     | TyConstant of constant
 [@@deriving show]
 and constraint_ =
+    | Eq of typ * typ
     | Subtype of typ * typ
     | Conj of constraint_ list
     | Disj of constraint_ list
