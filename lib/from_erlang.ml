@@ -1,3 +1,4 @@
+open Base
 open Types
 open Obeam
 
@@ -20,9 +21,9 @@ let rec expr_of_exprs = function
 
 let rec expr_of_erlang_expr = function
   | F.ExprBody erlangs ->
-     expr_of_exprs (List.map expr_of_erlang_expr erlangs)
+     expr_of_exprs (List.map ~f:expr_of_erlang_expr erlangs)
   | ExprBinOp (_line_t, op, e1, e2) ->
-     App(Var op, List.map expr_of_erlang_expr [e1; e2])
+     App(Var op, List.map ~f:expr_of_erlang_expr [e1; e2])
   | ExprVar (_line_t, v) -> Var v
   | ExprLit literal -> Val (const_of_literal literal)
      
