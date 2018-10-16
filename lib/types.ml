@@ -2,6 +2,7 @@ type constant =
     | Int of int
     | Float of float
     | Atom of string
+    | String of string
 [@@deriving show]
 
 type expr =

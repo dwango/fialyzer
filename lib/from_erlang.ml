@@ -9,8 +9,7 @@ let unit : expr = Val (Int 0)
 let const_of_literal = function
   | F.LitAtom (_line_t, name) -> Atom name
   | LitInteger (_line_t, i) -> Int i
-  | LitString (_line_t, f) ->
-     failwith "unsupported literal LitString"
+  | LitString (_line_t, s) -> String s
          
 (* [e1; e2; ...] という式の列を let _ = e1 in let _ = e2 ... in という１つの式にする *)
 let rec expr_of_exprs = function
