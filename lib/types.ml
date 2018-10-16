@@ -22,12 +22,12 @@ and pattern =
 type typ =
     | TyVar of string
     | TyStruct of typ list
-    | Fun of typ list * typ
-    | Union of typ * typ
-    | Constraint of typ * constraint_
-    | Any
-    | None
-    | Integer
+    | TyFun of typ list * typ
+    | TyUnion of typ * typ
+    | TyConstraint of typ * constraint_
+    | TyAny
+    | TyNone
+    | TyInteger
     | TyAtom
     | TyConstant of constant
 [@@deriving show]
