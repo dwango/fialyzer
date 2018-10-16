@@ -1,5 +1,5 @@
 open Base
-open Types
+open Ast_intf
 open Obeam
 
 module F = Abstract_format

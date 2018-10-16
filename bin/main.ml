@@ -45,7 +45,7 @@ let () =
      Printf.printf "code: %s" (Abstract_format.show code);
      begin match Fialyzer.From_erlang.code_to_expr code with
      | Ok m ->
-        Printf.printf "code: %s" (Fialyzer.Types.show_expr m)
+        Printf.printf "code: %s" (Fialyzer.Ast_intf.show_expr m)
      | Error exn ->
         raise exn
      end
