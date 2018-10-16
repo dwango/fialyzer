@@ -64,3 +64,15 @@ let code_to_module (F.AbstractCode form) =
   | _ ->
      failwith "except for module decl, it is out of support"
 
+let module_to_expr m =
+  let funs =
+    m.functions |> List.map ~f:(fun (_spec, name, args, body) ->
+                              (name, Abs (args, body)))
+  in
+  Letrec(funs, unit)
+  |> Result.return
+
+let code_to_expr code =
+  let open Result in
+  code_to_module code >>= fun m ->
+  module_to_expr m
