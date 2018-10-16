@@ -38,3 +38,15 @@ and constraint_ =
     | Disj of constraint_ list
     | Empty
 [@@deriving show]
+
+type spec_fun = typ list * typ
+[@@deriving show]
+type decl_fun = spec_fun option * string * string list * expr
+[@@deriving show]
+type module_ = {
+    file : string;
+    name : string;
+    export : (string * int) list;
+    functions : decl_fun list;
+  }
+[@@deriving show]
