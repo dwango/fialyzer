@@ -42,7 +42,7 @@ let () =
   | Ok etf ->
      let sf = Simple_term_format.of_etf etf in
      let absform = Abstract_format.expr_of_sf sf in
-     let expr = Fialyzer.FromErlang.expr_of_erlang_expr absform in
+     let expr = Fialyzer.From_erlang.expr_of_erlang_expr absform in
      [%show: Fialyzer.Types.expr] expr |> Printf.printf "%s\n"
   | Error (msg, rest) ->
      Printf.printf "Failed to parse chunk: %s\n" msg;
