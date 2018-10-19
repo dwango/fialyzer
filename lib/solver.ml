@@ -26,6 +26,12 @@ let rec type_subst ((x : ty_var) , (ty1 : typ)): typ -> typ = function
 and type_subst_to_constraint (x, ty1) = function
   | _ ->
      failwith "not implemented "
+
+let solve_eq sol ty1 ty2 =
+  match (ty1, ty2) with
+  | (ty1, ty2) when Caml.Pervasives.(=) ty1 ty2 -> Ok sol
+  | _ ->
+     Ok sol (*TODO : see TAPL https://dwango.slack.com/messages/CD453S78B/ *)
 let solve_sub sol ty1 ty2 = Ok sol (*TODO*)
 
 let rec solve sol = function
