@@ -1,5 +1,5 @@
 open Base
-open Types
+open Ast_intf
 
 type ty_var = string
 type sol = (ty_var, typ, String.comparator_witness) Map.t
