@@ -14,7 +14,7 @@ Prerequisite
 Build
 -----
 
-```
+```shell
 # If you prefer to use per-package environment, do:
 $ opam switch create fialyzer ocaml-base-compiler.4.07.1
 $ eval $(opam env)
