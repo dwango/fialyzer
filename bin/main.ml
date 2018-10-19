@@ -41,9 +41,14 @@ let () =
   match beam_to_etf beam_buf with
   | Ok etf ->
      let sf = Simple_term_format.of_etf etf in
-     let absform = Abstract_format.expr_of_sf sf in
-     let expr = Fialyzer.From_erlang.expr_of_erlang_expr absform in
-     [%show: Fialyzer.Types.expr] expr |> Printf.printf "%s\n"
+     let code = Abstract_format.of_sf sf in
+     Printf.printf "code: %s" (Abstract_format.show code);
+     begin match Fialyzer.From_erlang.code_to_expr code with
+     | Ok m ->
+        Printf.printf "code: %s" (Fialyzer.Ast_intf.show_expr m)
+     | Error exn ->
+        raise exn
+     end
   | Error (msg, rest) ->
      Printf.printf "Failed to parse chunk: %s\n" msg;
      Bitstring.hexdump_bitstring stdout rest
