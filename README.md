@@ -16,7 +16,7 @@ Build
 
 ```shell
 # If you prefer to use per-package environment, do:
-$ opam switch create fialyzer ocaml-base-compiler.4.07.1
+$ opam switch create fialyzer ocaml-base-compiler.4.07.0
 $ eval $(opam env)
 
 # Clone repo:
