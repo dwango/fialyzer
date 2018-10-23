@@ -4,6 +4,9 @@ INSTALL_ARGS := $(if $(PREFIX),--prefix $(PREFIX),)
 default:
 	dune build @install
 
+test:
+	dune runtest test
+
 install:
 	dune install $(INSTALL_ARGS)
 
@@ -15,4 +18,4 @@ reinstall: uninstall reinstall
 clean:
 	rm -rf _build
 
-.PHONY: default install uninstall reinstall clean
+.PHONY: default install test uninstall reinstall clean

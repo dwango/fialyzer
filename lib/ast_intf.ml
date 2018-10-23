@@ -1,9 +1,15 @@
+let sexp_of_int = Base.sexp_of_int
+let sexp_of_float = Base.sexp_of_float
+let sexp_of_string = Base.sexp_of_string
+let sexp_of_list = Base.sexp_of_list
+let sexp_of_option = Base.sexp_of_option
+
 type constant =
     | Int of int
     | Float of float
     | Atom of string
     | String of string
-[@@deriving show]
+[@@deriving show, sexp_of]
 
 type expr =
     | Val of constant
@@ -14,11 +20,11 @@ type expr =
     | Let of string * expr * expr
     | Letrec of (string * expr) list * expr
     | Case of expr * (pattern * expr) list
-[@@deriving show]
+[@@deriving show, sexp_of]
 and pattern =
     | PatVar of string * expr
     | PatStruct of string list * expr
-[@@deriving show]
+[@@deriving show, sexp_of]
 
 type typ =
     | TyVar of string
@@ -31,23 +37,23 @@ type typ =
     | TyInteger
     | TyAtom
     | TyConstant of constant
-[@@deriving show]
+[@@deriving show, sexp_of]
 and constraint_ =
     | Eq of typ * typ
     | Subtype of typ * typ
     | Conj of constraint_ list
     | Disj of constraint_ list
     | Empty
-[@@deriving show]
+[@@deriving show, sexp_of]
 
 type spec_fun = typ list * typ
-[@@deriving show]
+[@@deriving show, sexp_of]
 type decl_fun = spec_fun option * string * string list * expr
-[@@deriving show]
+[@@deriving show, sexp_of]
 type module_ = {
     file : string;
     name : string;
     export : (string * int) list;
     functions : decl_fun list;
   }
-[@@deriving show]
+[@@deriving show, sexp_of]

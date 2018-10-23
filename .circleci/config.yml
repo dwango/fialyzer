@@ -15,3 +15,6 @@ jobs:
       - run:
           name: Install
           command: eval $(opam config env) && opam repo add remote-default https://opam.ocaml.org && opam pin add -y obeam obeam && opam pin add -y fialyzer .
+      - run:
+          name: Test
+          command: eval $(opam config env) && make test

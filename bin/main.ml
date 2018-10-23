@@ -43,9 +43,9 @@ let () =
      let sf = Simple_term_format.of_etf etf in
      let code = Abstract_format.of_sf sf in
      Printf.printf "code: %s" (Abstract_format.show code);
-     begin match Fialyzer.From_erlang.code_to_expr code with
+     begin match From_erlang.code_to_expr code with
      | Ok m ->
-        Printf.printf "code: %s" (Fialyzer.Ast_intf.show_expr m)
+        Printf.printf "code: %s" (Ast_intf.show_expr m)
      | Error exn ->
         raise exn
      end
