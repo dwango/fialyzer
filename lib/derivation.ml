@@ -1,4 +1,5 @@
 open Base
+open Common
 open Ast_intf
 open Result
 
@@ -59,13 +60,10 @@ let rec derive context = function
          ~init:context
          new_tyvars in
      let constraints_result =
-       List.fold_left
-         ~f:(fun constraints_result (v, f, tyvar) ->
-               constraints_result >>= fun constraints ->
-               derive added_context f >>= fun (ty, c) ->
-               Ok (Eq (tyvar, ty) :: c :: constraints))
-         ~init:(Ok [])
-         new_tyvars in
+       (result_map_m ~f:(fun (_, f, tyvar) -> derive added_context f
+       >>| fun (ty, c) -> (ty, c, tyvar)) new_tyvars)
+       >>| fun vs -> (List.rev_map ~f:(fun (ty, c, tyvar) -> [Eq (tyvar, ty); c]) vs) |> List.concat
+     in
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, Conj (c :: constraints))
