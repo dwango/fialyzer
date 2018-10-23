@@ -1,12 +1,9 @@
 open Base
 open Ast_intf
 
-type type_var = string
+module TypeVar = String
 
-type t =
-  (type_var, typ, String.comparator_witness) Map.t
-
-let sexp_of_t : t -> Sexp.t = Map.sexp_of_m__t (module String) sexp_of_typ
+type t = typ Map.M(TypeVar).t
 
 let empty : t = Map.empty (module String)
 let find = Map.find
