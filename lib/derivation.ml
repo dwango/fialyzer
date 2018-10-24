@@ -3,14 +3,7 @@ open Common
 open Ast_intf
 open Result
 
-let tyvar_count = ref 0
-
-let new_tyvar () =
-  Int.incr tyvar_count;
-  TyVar (Printf.sprintf "%s%02d" "v" !tyvar_count)
-
-let reset_tyvar_count () =
-  tyvar_count := 0
+let new_tyvar () = TyVar (Type_variable.create())
 
 let rec derive context = function
   | Val c ->

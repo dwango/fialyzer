@@ -30,7 +30,7 @@ let string_of_expr expr =
   [%sexp_of: expr] expr |> Sexplib.Sexp.to_string_hum ~indent:2
 
 type typ =
-    | TyVar of string
+    | TyVar of Type_variable.t
     | TyStruct of typ list
     | TyFun of typ list * typ
     | TyUnion of typ * typ
