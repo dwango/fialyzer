@@ -60,9 +60,10 @@ let rec derive context = function
          ~init:context
          new_tyvars in
      let constraints_result =
-       (result_map_m ~f:(fun (_, f, tyvar) -> derive added_context f
-       >>| fun (ty, c) -> (ty, c, tyvar)) new_tyvars)
-       >>| fun vs -> (List.rev_map ~f:(fun (ty, c, tyvar) -> [Eq (tyvar, ty); c]) vs) |> List.concat
+       new_tyvars
+       |> result_map_m ~f:(fun (_, f, tyvar) -> derive added_context f >>| fun(ty, c) -> (ty, c, tyvar))
+       >>| List.map ~f:(fun (ty, c, tyvar) -> [Eq (tyvar, ty); c])
+       >>| List.concat
      in
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
