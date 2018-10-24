@@ -4,7 +4,7 @@ open Derivation
 
 let%expect_test "derivation" =
   let print context term =
-    reset_tyvar_count ();
+    Type_variable.reset_count ();
     Expect_test_helpers_kernel.print_s
       [%sexp ((derive context term) : (typ * constraint_, string) Result.t)] in
 
@@ -20,34 +20,33 @@ let%expect_test "derivation" =
   print Context.empty (Abs (["x"], Var "x"));
   [%expect {|
     (Ok (
-      (TyVar v02)
-      (Eq (TyVar v02) (TyConstraint (TyFun ((TyVar v01)) (TyVar v01)) Empty)))) |}];
+      (TyVar b) (Eq (TyVar b) (TyConstraint (TyFun ((TyVar a)) (TyVar a)) Empty)))) |}];
 
   print Context.empty (Abs (["x"; "y"; "z"], Var "x"));
   [%expect {|
     (Ok (
-      (TyVar v04)
+      (TyVar d)
       (Eq
-        (TyVar v04)
+        (TyVar d)
         (TyConstraint
           (TyFun
-            ((TyVar v01)
-             (TyVar v02)
-             (TyVar v03))
-            (TyVar v01))
+            ((TyVar a)
+             (TyVar b)
+             (TyVar c))
+            (TyVar a))
           Empty)))) |}];
 
   print Context.empty (App (Abs (["x"], Var "x"), [Val (Int 42)]));
   [%expect {|
     (Ok (
-      (TyVar v05)
+      (TyVar e)
       (Conj (
-        (Eq (TyVar v02) (TyFun ((TyVar v03)) (TyVar v04)))
+        (Eq (TyVar b) (TyFun ((TyVar c)) (TyVar d)))
         (Subtype
-          (TyVar v05)
-          (TyVar v04))
-        (Subtype (TyConstant (Int 42)) (TyVar v03))
-        (Eq (TyVar v02) (TyConstraint (TyFun ((TyVar v01)) (TyVar v01)) Empty))
+          (TyVar e)
+          (TyVar d))
+        (Subtype (TyConstant (Int 42)) (TyVar c))
+        (Eq (TyVar b) (TyConstraint (TyFun ((TyVar a)) (TyVar a)) Empty))
         Empty)))) |}];
 
   (* TODO: implement derivation of application expression with multiple arguments
@@ -62,7 +61,7 @@ let%expect_test "derivation" =
       (Conj       (Empty Empty)))) |}];
 
   print Context.empty (Letrec ([("x", Val (Int 42))], Var "x"));
-  [%expect {| (Ok ((TyVar v01) (Conj (Empty (Eq (TyVar v01) (TyConstant (Int 42))) Empty)))) |}];
+  [%expect {| (Ok ((TyVar a) (Conj (Empty (Eq (TyVar a) (TyConstant (Int 42))) Empty)))) |}];
 
   print
     Context.empty
@@ -73,39 +72,39 @@ let%expect_test "derivation" =
       ], App (Var "f", [Val (Int 42)])));
   [%expect {|
     (Ok (
-      (TyVar v15)
+      (TyVar o)
       (Conj (
         (Conj (
-          (Eq (TyVar v01) (TyFun ((TyVar v13)) (TyVar v14)))
+          (Eq (TyVar a) (TyFun ((TyVar m)) (TyVar n)))
           (Subtype
-            (TyVar v15)
-            (TyVar v14))
-          (Subtype (TyConstant (Int 42)) (TyVar v13))
+            (TyVar o)
+            (TyVar n))
+          (Subtype (TyConstant (Int 42)) (TyVar m))
           Empty
           Empty))
         (Eq
-          (TyVar v01)
-          (TyVar v07))
+          (TyVar a)
+          (TyVar g))
         (Eq
-          (TyVar v07)
+          (TyVar g)
           (TyConstraint
-            (TyFun ((TyVar v03)) (TyVar v06))
+            (TyFun ((TyVar c)) (TyVar f))
             (Conj (
-              (Eq (TyVar v02) (TyFun ((TyVar v04)) (TyVar v05)))
-              (Subtype (TyVar v06) (TyVar v05))
-              (Subtype (TyVar v03) (TyVar v04))
+              (Eq (TyVar b) (TyFun ((TyVar d)) (TyVar e)))
+              (Subtype (TyVar f) (TyVar e))
+              (Subtype (TyVar c) (TyVar d))
               Empty
               Empty))))
         (Eq
-          (TyVar v02)
-          (TyVar v12))
+          (TyVar b)
+          (TyVar l))
         (Eq
-          (TyVar v12)
+          (TyVar l)
           (TyConstraint
-            (TyFun ((TyVar v08)) (TyVar v11))
+            (TyFun ((TyVar h)) (TyVar k))
             (Conj (
-              (Eq (TyVar v01) (TyFun ((TyVar v09)) (TyVar v10)))
-              (Subtype (TyVar v11) (TyVar v10))
-              (Subtype (TyVar v08) (TyVar v09))
+              (Eq (TyVar a) (TyFun ((TyVar i)) (TyVar j)))
+              (Subtype (TyVar k) (TyVar j))
+              (Subtype (TyVar h) (TyVar i))
               Empty
               Empty)))))))) |}];

@@ -15,4 +15,4 @@ let create () =
     Printf.sprintf "%s%02d" "v" !count
 
 let reset_count () =
-  count := 0
+  count := -1
