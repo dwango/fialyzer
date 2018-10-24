@@ -84,19 +84,6 @@ let%expect_test "derivation" =
           Empty
           Empty))
         (Eq
-          (TyVar v02)
-          (TyVar v12))
-        (Eq
-          (TyVar v12)
-          (TyConstraint
-            (TyFun ((TyVar v08)) (TyVar v11))
-            (Conj (
-              (Eq (TyVar v01) (TyFun ((TyVar v09)) (TyVar v10)))
-              (Subtype (TyVar v11) (TyVar v10))
-              (Subtype (TyVar v08) (TyVar v09))
-              Empty
-              Empty))))
-        (Eq
           (TyVar v01)
           (TyVar v07))
         (Eq
@@ -107,5 +94,18 @@ let%expect_test "derivation" =
               (Eq (TyVar v02) (TyFun ((TyVar v04)) (TyVar v05)))
               (Subtype (TyVar v06) (TyVar v05))
               (Subtype (TyVar v03) (TyVar v04))
+              Empty
+              Empty))))
+        (Eq
+          (TyVar v02)
+          (TyVar v12))
+        (Eq
+          (TyVar v12)
+          (TyConstraint
+            (TyFun ((TyVar v08)) (TyVar v11))
+            (Conj (
+              (Eq (TyVar v01) (TyFun ((TyVar v09)) (TyVar v10)))
+              (Subtype (TyVar v11) (TyVar v10))
+              (Subtype (TyVar v08) (TyVar v09))
               Empty
               Empty)))))))) |}];
