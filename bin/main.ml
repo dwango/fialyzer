@@ -1,6 +1,7 @@
 open Obeam
 open Base
 open Result
+open Common
 
 let extract_debug_info_buf layout =
   let {
@@ -50,12 +51,12 @@ let read_input () =
 
 let main =
   read_input () >>= fun code ->
-  Printf.sprintf "code: %s" (Abstract_format.show code) |> Caml.print_endline;
+  Caml.print_endline (!%"code: %s" (Abstract_format.show code));
   From_erlang.code_to_expr code >>= fun expr ->
-  Printf.sprintf "expr: %s" (Ast_intf.show_expr expr) |> Caml.print_endline;
+  Caml.print_endline (!%"expr: %s" (Ast_intf.string_of_expr expr));
   (Derivation.derive Context.empty expr |> map_error ~f:(fun msg -> Failure msg)) >>= fun (ty, c) ->
-  Printf.sprintf "type: %s" (Ast_intf.show_typ ty) |> Caml.print_endline;
-  Printf.sprintf "constraint: %s" (Ast_intf.show_constraint_ c) |> Caml.print_endline;
+  Caml.print_endline (!%"type: %s" (Ast_intf.string_of_typ ty));
+  Caml.print_endline (!%"constraint:\n%s" (Ast_intf.string_of_constraint c));
   Ok ()
 
 let () =

@@ -2,7 +2,7 @@
  (name fialyzer)
  (public_name fialyzer)
  (wrapped false)
- (libraries obeam base)
+ (libraries obeam base sexplib)
  (preprocess (pps ppx_sexp_conv ppx_deriving.std)))
 
 (env
