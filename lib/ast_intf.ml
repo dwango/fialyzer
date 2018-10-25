@@ -26,8 +26,11 @@ and pattern =
     | PatStruct of string list * expr
 [@@deriving show, sexp_of]
 
+let string_of_expr expr =
+  [%sexp_of: expr] expr |> Sexplib.Sexp.to_string_hum ~indent:2
+
 type typ =
-    | TyVar of string
+    | TyVar of Type_variable.t
     | TyStruct of typ list
     | TyFun of typ list * typ
     | TyUnion of typ * typ
@@ -45,6 +48,11 @@ and constraint_ =
     | Disj of constraint_ list
     | Empty
 [@@deriving show, sexp_of]
+
+let string_of_typ typ =
+  [%sexp_of: typ] typ |> Sexplib.Sexp.to_string_hum ~indent:2
+let string_of_constraint c =
+  [%sexp_of: constraint_] c |> Sexplib.Sexp.to_string_hum ~indent:2
 
 type spec_fun = typ list * typ
 [@@deriving show, sexp_of]
