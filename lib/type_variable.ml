@@ -5,6 +5,8 @@ type t = string
 
 type comparator_witness = Base.String.comparator_witness
 
+let comparator = Base.String.comparator
+
 let count = ref (-1)
 
 let create () =

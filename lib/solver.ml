@@ -4,10 +4,9 @@ module Map = Base.Map
 module String = Base.String
 module Result = Base.Result
 
-type ty_var = string
-type sol = (ty_var, typ, String.comparator_witness) Map.t
+type sol = typ Map.M(Type_variable).t
          
-let init : sol = Map.empty (module String)
+let init : sol = Map.empty (module Type_variable)
 
 (* type_subst (X, τ_1) τ_2 := [X ↦ τ_1]τ_2 *)
 let rec type_subst (x, ty1): typ -> typ = function
@@ -58,7 +57,7 @@ let rec solve_eq sol ty1 ty2 =
   | (ty1, TyVar y) when is_free y ty1 ->
      Ok (add (y, ty1) sol)
   | (TyVar v, _) | (_, TyVar v) ->
-     Error (Failure (Printf.sprintf "not free variable: %s" v))
+     Error (Failure (Printf.sprintf "not free variable: %s" (Type_variable.show v)))
   | (TyStruct tys1, TyStruct tys2) when List.length tys1 = List.length tys2 ->
      let open Result in
      List.zip_exn tys1 tys2
