@@ -6,8 +6,9 @@ open Derivation
 let%expect_test "derivation" =
   let print context term =
     Type_variable.reset_count ();
-    Expect_test_helpers_kernel.print_s
-      [%sexp ((derive context term) : (typ * constraint_, string) Result.t)] in
+    derive context term
+    |> [%sexp_of: (typ * constraint_, string) Result.t]
+    |> Expect_test_helpers_kernel.print_s in
 
   print Context.empty (Val (Int 42));
   [%expect {| (Ok ((TyConstant (Int 42)) Empty)) |}];
