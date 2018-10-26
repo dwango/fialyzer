@@ -1,6 +1,7 @@
 open Obeam
 open Base
 open Result
+open Fialyzer
 open Common
 
 let extract_debug_info_buf layout =

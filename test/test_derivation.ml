@@ -1,4 +1,5 @@
 open Base
+open Fialyzer
 open Ast_intf
 open Derivation
 
