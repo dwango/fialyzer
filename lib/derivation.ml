@@ -15,20 +15,29 @@ let rec derive context = function
      | None ->
         Error ("unknown type variable: " ^ v)
      end
-  (* TODO: implement derivation of application expression with multiple arguments *)
-  | App (f, [arg1]) ->
+  | App (f, args) ->
      derive context f >>= fun (tyf, cf) ->
-     derive context arg1 >>= fun (ty1, c1) ->
-     let alpha1 = new_tyvar () in
+     result_map_m
+       ~f:(fun arg ->
+           derive context arg >>|
+           fun (ty, c) ->
+             let alpha = new_tyvar () in
+             (alpha, [Subtype (ty, alpha); c]))
+       args
+     >>= fun derived_form_args_with_alpha ->
      let alpha = new_tyvar () in
      let beta = new_tyvar () in
-     let constraints = [
-         Eq (tyf, TyFun ([alpha1], alpha));
-         Subtype (beta, alpha);
-         Subtype (ty1, alpha1);
-         cf;
-         c1;
-       ]
+     let alphas = List.map ~f:fst derived_form_args_with_alpha in
+     let args_constraints =
+       derived_form_args_with_alpha
+       |> List.map ~f:snd
+       |> List.concat
+     in
+     let constraints =
+         Eq (tyf, TyFun (alphas, alpha)) ::
+         Subtype (beta, alpha) ::
+         cf ::
+         args_constraints
      in
      Ok (beta, Conj constraints)
   | Abs (vs, e) ->
