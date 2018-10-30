@@ -174,7 +174,9 @@ let rec solve_sub sol ty1 ty2 =
      |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
   | TyFun (args1, _), TyFun (args2, _) ->
      Error (Failure "the fun args are not different length")
-  | _ -> Error (Failure "not implemented")
+  | _ ->
+     (* TODO: support the other cases *)
+     Ok sol
 
 let rec solve sol = function
   | Empty -> Ok sol
