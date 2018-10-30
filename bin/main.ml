@@ -58,6 +58,8 @@ let main =
   (Derivation.derive Context.empty expr |> map_error ~f:(fun msg -> Failure msg)) >>= fun (ty, c) ->
   Caml.print_endline (!%"type: %s" (Ast_intf.string_of_typ ty));
   Caml.print_endline (!%"constraint:\n%s" (Ast_intf.string_of_constraint c));
+  Solver.solve Solver.init c >>= fun sol ->
+  Caml.print_endline (!%"solution:\n%s" (Solver.string_of_sol sol));
   Ok ()
 
 let () =
