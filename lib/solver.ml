@@ -89,62 +89,91 @@ let rec solve_eq sol ty1 ty2 =
   | _ ->
      Error (Failure (Printf.sprintf "must not eq type: %s =? %s" (show_typ ty1) (show_typ ty2)))
 
-let rec concrete sol = function
-  | TyVar v ->
-     Option.value_map (Map.find sol v) ~default:TyAny ~f:(fun ty -> concrete sol ty)
-  | TyStruct l ->
-     TyStruct (List.map l ~f:(concrete sol))
-  | TyFun (a, r) ->
-     TyFun (List.map a ~f:(concrete sol), concrete sol r)
-  | TyUnion (l, r) ->
-     TyUnion (concrete sol l, concrete sol r)
-  | TyConstraint (t, c) ->
-     TyConstraint (concrete sol t, concrete' sol c)
-  | t -> t
-and concrete' sol = function
-  | Eq (ty1, ty2) ->
-     Eq (concrete sol ty1, concrete sol ty2)
-  | Subtype (ty1, ty2) ->
-     Subtype (concrete sol ty1, concrete sol ty2)
-  | Conj l ->
-     Conj (List.map l ~f:(concrete' sol))
-  | Disj l ->
-     Disj (List.map l ~f:(concrete' sol))
-  | Empty -> Empty
-
-let meet ty1 ty2 =
+(* τ_1 ⊓ τ_2 *)
+let rec meet sol ty1 ty2 =
   match (ty1, ty2) with
+  (* var *)
+  | TyVar x, _ ->
+     let ty1 = Option.value (Map.find sol x) ~default:TyAny in
+     meet sol ty1 ty2
+  | _, TyVar y ->
+     let ty2 = Option.value (Map.find sol y) ~default:TyAny in
+     meet sol ty1 ty2
   (* any *)
-  | TyAny, _ -> Ok ty2
-  | _, TyAny -> Ok ty1
+  | TyAny, _ -> ty2
+  | _, TyAny -> ty1
   (* none *)
-  | TyNone, _ -> Ok TyNone
-  | _, TyNone -> Ok TyNone
+  | TyNone, _ -> TyNone
+  | _, TyNone -> TyNone
+  (* struct *)
+  | TyStruct tys1, TyStruct tys2 when List.length tys1 = List.length tys2 ->
+     List.zip_exn tys1 tys2
+     |> List.map ~f:(fun (ty1, ty2) -> meet sol ty1 ty2)
+     |> (fun tys -> TyStruct tys)
+  (* function *)
+  | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
+     List.zip_exn args1 args2
+     (* NOTE: using `meet` is the same as type derivation [ABS]. perhaps it should be `join` *)
+     |> List.map ~f:(fun (arg1, arg2) -> meet sol arg1 arg2)
+     |> (fun args -> TyFun (args, meet sol body1 body2))
+  (* union *)
+  | TyUnion (tyl, tyr), _ ->
+     TyUnion (meet sol tyl ty2, meet sol tyr ty2)
+  | _, TyUnion (tyl, tyr) ->
+     TyUnion (meet sol ty1 tyl, meet sol ty1 tyr)
+  (* constraint *)
+  | TyConstraint (ty, c), _ ->
+     TyConstraint (meet sol ty ty2, c)
+  | _, TyConstraint (ty, c) ->
+     TyConstraint (meet sol ty1 ty, c)
   (* integer *)
-  | TyInteger, TyInteger -> Ok TyInteger
-  | TyInteger, TyConstant (Int n) -> Ok (TyConstant (Int n))
-  | TyConstant (Int n), TyInteger -> Ok (TyConstant (Int n))
-  | TyConstant (Int n), TyConstant (Int m) when n = m -> Ok (TyConstant (Int n))
-  | _ -> Ok TyNone
+  | TyInteger, TyInteger -> TyInteger
+  | TyInteger, TyConstant (Int n) -> TyConstant (Int n)
+  | TyConstant (Int n), TyInteger -> TyConstant (Int n)
+  | TyConstant (Int n), TyConstant (Int m) when n = m -> TyConstant (Int n)
+  (* atom *)
+  | TyAtom, TyAtom -> TyAtom
+  | TyConstant (Atom a), TyAtom -> TyConstant (Atom a)
+  | TyAtom, TyConstant (Atom a) -> TyConstant (Atom a)
+  | TyConstant (Atom a), TyConstant (Atom b) when a = b -> TyConstant (Atom a)
+  (* constant *)
+  | TyConstant (Float n), TyConstant (Float m) when n = m -> TyConstant (Float n)
+  | TyConstant (String s), TyConstant (String t) when s = t -> TyConstant (String s)
+  (* otherwise *)
+  | _ -> TyNone
 
 (* ty1 ⊆ ty2 *)
-let is_subtype ty1 ty2 =
-  meet ty1 ty2 = Ok ty1
+let is_subtype sol ty1 ty2 =
+  meet sol ty1 ty2 = ty1
 
-let solve_sub sol ty1 ty2 =
+let rec solve_sub sol ty1 ty2 =
   match (ty1, ty2) with
-  | TyVar a, TyVar b ->
-     let ta = Option.value (Map.find sol a) ~default:TyAny in
-     let tb = Option.value (Map.find sol b) ~default:TyAny in
-     if is_subtype ta tb then
+  | _, TyAny ->
+     Ok sol
+  | TyVar v1, _ ->
+     let ty1' = Option.value (Map.find sol v1) ~default:TyAny in
+     if is_subtype sol ty1' ty2 then
        Ok sol
      else
-       meet ta tb >>= fun t ->
-       if t != TyNone then
-         let sol' = set (a, t) sol in
-         Ok sol'
+       let ty = meet sol ty1' ty2 in
+       if ty != TyNone then
+         Ok (set (v1, ty) sol)
        else
          Error (Failure "there is no solution")
+  | TyStruct tys1, TyStruct tys2 when List.length tys1 = List.length tys2 ->
+     let open Result in
+     List.zip_exn tys1 tys2
+     |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
+  | TyStruct tys1, TyStruct tys2 ->
+     Error (Failure "the tuple types are not different length")
+  | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
+     let open Result in
+     (* NOTE: `solve_sub arg1 arg2` is the same as type derivation [ABS]. *)
+     (* perhaps it should be `solve_sub arg2 arg1` *)
+     List.zip_exn (body1 :: args1) (body2 :: args2)
+     |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
+  | TyFun (args1, _), TyFun (args2, _) ->
+     Error (Failure "the fun args are not different length")
   | _ -> Error (Failure "not implemented")
 
 let rec solve sol = function
