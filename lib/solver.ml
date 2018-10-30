@@ -4,7 +4,6 @@ module Map = Base.Map
 module String = Base.String
 module Result = Base.Result
 module Option = Base.Option
-open Result
 
 type sol = typ Map.M(Type_variable).t
 [@@deriving sexp_of]
@@ -142,7 +141,7 @@ let rec meet sol ty1 ty2 =
   (* otherwise *)
   | _ -> TyNone
 
-(* ty1 ⊆ ty2 *)
+(* τ_1 ⊆ τ_2 *)
 let is_subtype sol ty1 ty2 =
   meet sol ty1 ty2 = ty1
 
