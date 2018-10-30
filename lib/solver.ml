@@ -5,6 +5,10 @@ module String = Base.String
 module Result = Base.Result
 
 type sol = typ Map.M(Type_variable).t
+[@@deriving sexp_of]
+
+let string_of_sol sol =
+  [%sexp_of: sol] sol |> Sexplib.Sexp.to_string_hum ~indent:2
          
 let init : sol = Map.empty (module Type_variable)
 
