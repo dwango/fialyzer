@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: ~/fialyzer # use /fialyzer for local circleci cli
     docker:
-      - image: ocaml/opam:alpine-3.6_ocaml-4.06.0
+      - image: ocaml/opam2:alpine-3.8-ocaml-4.07
     steps:
       - checkout
       - run:
