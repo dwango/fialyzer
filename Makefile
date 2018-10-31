@@ -7,6 +7,9 @@ default:
 test:
 	dune runtest test
 
+promote:
+	dune promote
+
 install:
 	dune install $(INSTALL_ARGS)
 
