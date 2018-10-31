@@ -5,13 +5,13 @@ module String = Base.String
 module Result = Base.Result
 module Option = Base.Option
 
-type sol = typ Map.M(Type_variable).t
+type solution = typ Map.M(Type_variable).t
 [@@deriving sexp_of]
 
 let string_of_sol sol =
-  [%sexp_of: sol] sol |> Sexplib.Sexp.to_string_hum ~indent:2
-
-let init : sol = Map.empty (module Type_variable)
+  [%sexp_of: solution] sol |> Sexplib.Sexp.to_string_hum ~indent:2
+         
+let init : solution = Map.empty (module Type_variable)
 
 (* type_subst (X, τ_1) τ_2 := [X ↦ τ_1]τ_2 *)
 let rec type_subst (x, ty1): typ -> typ = function

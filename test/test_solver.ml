@@ -39,7 +39,7 @@ let%expect_test "meet" =
 let%expect_test "solver" =
   let print c =
     solve init c
-    |> [%sexp_of: (sol, exn) Result.t]
+    |> [%sexp_of: (solution, exn) Result.t]
     |> Expect_test_helpers_kernel.print_s in
 
   let create_vars n =
