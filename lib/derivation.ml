@@ -15,6 +15,10 @@ let rec derive context = function
      | None ->
         Error ("unknown type variable: " ^ v)
      end
+  | Struct exprs ->
+     result_map_m ~f:(derive context) exprs
+     >>| List.unzip
+     >>| fun (tys, cs) -> (TyStruct tys, Conj cs)
   | App (f, args) ->
      derive context f >>= fun (tyf, cf) ->
      result_map_m

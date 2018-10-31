@@ -19,6 +19,15 @@ let%expect_test "derivation" =
   print (Context.add "x" TyInteger Context.empty) (Var "x");
   [%expect {| (Ok (TyInteger Empty)) |}];
 
+  print Context.empty (Struct [Val (Int 42); Val (Atom "x")]);
+  [%expect {|
+    (Ok (
+      (TyStruct (
+        (TyConstant (Int  42))
+        (TyConstant (Atom x))))
+      (Conj (Empty Empty))))
+  |}];
+
   print Context.empty (Abs (["x"], Var "x"));
   [%expect {|
     (Ok (
