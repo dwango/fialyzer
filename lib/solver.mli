@@ -1,9 +1,9 @@
 open Ast_intf
 
-type sol
+type solution
 
-val string_of_sol : sol -> string
-         
-val init : sol
+val string_of_sol : solution -> string
 
-val solve : sol -> constraint_ -> (sol, exn) result
+val init : solution
+
+val solve : solution -> constraint_ -> (solution, exn) result
