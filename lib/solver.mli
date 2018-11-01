@@ -1,9 +1,13 @@
 open Ast_intf
 
-type sol
+type solution
+[@@deriving sexp_of]
 
-val string_of_sol : sol -> string
-         
-val init : sol
+val string_of_sol : solution -> string
 
-val solve : sol -> constraint_ -> (sol, exn) result
+val init : solution
+
+val solve : solution -> constraint_ -> (solution, exn) result
+
+(* TODO: don't export *)
+val meet : solution -> typ -> typ -> typ
