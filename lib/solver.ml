@@ -30,7 +30,7 @@ let rec type_subst (x, ty1): typ -> typ = function
   | TyConstant const -> TyConstant const
   | TyVar v ->
      if x = v then ty1 else (TyVar v)
-and type_subst_to_constraint (x, ty1) = function
+and _type_subst_to_constraint (x, ty1) = function
   | _ ->
      failwith "not implemented type_subst_to_constraint"
 
