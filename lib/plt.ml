@@ -97,3 +97,12 @@ let dict_of_etf = function
   | other ->
      Error (Failure (!%"dict_of_etf"))
         empty_segment;
+let file_md5_of_etf = function
+  | Etf.SmallTuple(2, [
+        String filename;
+        Binary bin;
+    ]) ->
+     Ok {filename; binary = Bitstring.string_of_bitstring bin}
+  | other ->
+     Error (Failure (!%"file_md5_of_etf error: %s" (show_etf other)))
+
