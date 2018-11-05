@@ -58,3 +58,42 @@ type file_plt = {
     implementation_md5 : file_md5 list;
   }
 [@@deriving show]
+
+let rec fold_bucket f acc = function
+  | Etf.Nil | List ([], Nil) -> acc
+  | List(List([k;v], Nil) :: bkt, tl) -> fold_bucket f (f k v acc) (List(bkt,tl))
+  | List(List([k],v) :: bkt, tl) -> fold_bucket f (f k v acc) (List(bkt,tl))
+  | other ->
+     failwith (!%"fold_bucket: '%s'" (show_etf other))
+let rec fold_seg f acc seg i =
+  if i = 0 then acc
+  else
+    let[@warning "-8"] Some bkt = List.nth seg (i-1) in
+    fold_seg f (fold_bucket f acc bkt) seg (i-1)
+let rec fold_segs f acc segs i =
+  if i = 0 then acc
+  else
+    let[@warning "-8"] Some (Etf.SmallTuple (n, seg)) = List.nth segs (i-1) in
+    fold_segs f (fold_seg f acc seg n) segs (i-1)
+let fold_dict f acc dict =
+  let segs = dict in
+  fold_segs f acc segs (List.length segs)
+let dict_to_list dict =
+  fold_dict (fun k v acc -> (k, v) :: acc) [] dict
+
+let dict_of_etf = function
+  | Etf.SmallTuple(9, [
+        Atom "dict";
+        SmallInteger size;
+        SmallInteger num_of_active_slot;
+        SmallInteger maxn;
+        SmallInteger buddy_slot_offset;
+        SmallInteger exp_size;
+        SmallInteger con_size;
+        empty_segment;
+        SmallTuple (_, segs);
+    ]) ->
+     Ok (dict_to_list segs)
+  | other ->
+     Error (Failure (!%"dict_of_etf"))
+        empty_segment;
