@@ -96,7 +96,35 @@ let dict_of_etf = function
      Ok (dict_to_list segs)
   | other ->
      Error (Failure (!%"dict_of_etf"))
+
+let fold_elist f acc = function
+  | Etf.Nil -> acc
+  | List(bkt, Nil) -> List.fold_left ~f ~init:acc bkt
+  | other ->
+     failwith (!%"fold_elist: '%s'" (show_etf other))
+let fold_seg f acc0 seg =
+  let[@warning "-8"] Etf.SmallTuple (_, bs) = seg in
+  List.fold_left ~f:(fun acc elist -> fold_elist f acc elist) ~init:acc0 bs
+let fold_segs f acc0 segs =
+  List.fold_left ~f:(fun acc seg -> fold_seg f acc seg) ~init:acc0 segs
+let to_list segs =
+  fold_segs (fun xs x -> x :: xs) [] segs
+let set_of_etf = function
+  | Etf.SmallTuple(9, [
+        Atom "set";
+        SmallInteger size;
+        SmallInteger num_of_active_slot;
+        SmallInteger maxn;
+        SmallInteger buddy_slot_offset;
+        SmallInteger exp_size;
+        SmallInteger con_size;
         empty_segment;
+        SmallTuple (_, segs);
+    ]) ->
+     Ok (to_list segs)
+  | other ->
+     Error (Failure (!%"set_of_etf: %s" (show_etf other)))
+
 let file_md5_of_etf = function
   | Etf.SmallTuple(2, [
         String filename;
