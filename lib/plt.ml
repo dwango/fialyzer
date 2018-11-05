@@ -20,6 +20,21 @@ type t = {
     contracts : (mfa, ret_args_types) map;
   }
 
+let rec show_etf = function
+  | Etf.SmallInteger i -> !%"SInt(%d)" i
+  | Integer i32 -> Int32.to_string i32
+  | Atom atom -> atom
+  | SmallTuple (_arity, elems) ->
+     !%"{%s}" (List.map ~f:show_etf elems |> Caml.String.concat ", ")
+  | Nil -> "nil"
+  | String s -> !%{|"%s"|} s
+  | Binary bitstr -> !%{|<<"%s">>|} (Bitstring.string_of_bitstring bitstr)
+  | List (elems, tail) ->
+     !%"[%s | %s]" (List.map ~f:show_etf elems |> Caml.String.concat ", ")
+       (show_etf tail)
+  | NewFloat f -> !%"%f" f
+  | SmallAtomUtf8 s -> !%"`%s`" s
+
 type infoval = (Etf.t * Etf.t list)
 [@@deriving show]
 type file_md5 = {
