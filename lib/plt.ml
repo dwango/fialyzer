@@ -106,3 +106,25 @@ let file_md5_of_etf = function
   | other ->
      Error (Failure (!%"file_md5_of_etf error: %s" (show_etf other)))
 
+let mfa_of_etf = function
+  | Etf.SmallTuple(3, [
+        Atom module_;
+        Atom func;
+        SmallInteger arity;
+    ]) ->
+     Ok (module_, func, arity)
+  | other ->
+     Error (Failure (!%"mfa_of_etf error: %s" (show_etf other)))
+let infoval_of_etf = function
+  | Etf.SmallTuple(2, [
+        v;
+        List (vs, Nil);
+    ]) ->
+     Ok(v,vs)
+  | SmallTuple(2, [
+        v;
+        Nil;
+    ]) ->
+     Ok(v,[])
+  | other ->
+     Error (Failure (!%"infoval_of_etf error: %s" (show_etf other)))
