@@ -217,6 +217,19 @@ let erl_type_of_etf = function
   | other ->
      Error (Failure (!%"erl_type_of_etf error: %s" (show_etf other)))
                
+let ret_args_types_of_etf = function
+  | Etf.SmallTuple(2, [v; List (vs, Nil) ]) ->
+     let open Result in
+     erl_type_of_etf v >>= fun ty ->
+     result_map_m ~f:erl_type_of_etf vs >>= fun arg_types ->
+     Ok(ty, arg_types)
+  | SmallTuple(2, [v; Nil]) ->
+     let open Result in
+     erl_type_of_etf v >>= fun ty ->
+     Ok(ty, [])
+  | other ->
+     Error (Failure (!%"ret_args_types_of_etf error: %s" (show_etf other)))
+
     ]) ->
      Ok(v,[])
   | other ->
