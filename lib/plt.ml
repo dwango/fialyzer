@@ -230,6 +230,54 @@ let ret_args_types_of_etf = function
   | other ->
      Error (Failure (!%"ret_args_types_of_etf error: %s" (show_etf other)))
 
+(**
+```
+-type contr_constr()  :: {'subtype', erl_types:erl_type(), erl_types:erl_type()}.
+-type contract_pair() :: {erl_types:erl_type(), [contr_constr()]}.
+
+-record(contract, {contracts	  = []		   :: [contract_pair()],
+		   args		  = []		   :: [erl_types:erl_type()],
+		   forms	  = []		   :: [{_, _}]}).
+```
+https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer.hrl
+ *)
+let contr_constr_of_etf = function
+  | Etf.SmallTuple(3, [
+                     Atom "subtype";
+                     e1; e2
+                  ]) ->
+     let open Result in
+     erl_type_of_etf e1 >>= fun ty1 ->
+     erl_type_of_etf e2 >>= fun ty2 ->
+     Ok (ty1, ty2)
+  | other ->
+     Error (Failure (!%"contr_constr_of_etf error: %s" (show_etf other)))
+
+let contract_of_etf = function
+  | Etf.SmallTuple(4, [
+                     Atom "contract";
+                     contracts_etf;
+                     args_etf;
+                     forms_etf;
+                  ]) ->
+     let open Result in
+     let elem_of_etf etf =
+       pair_of_etf etf >>= fun (x, y) ->
+       erl_type_of_etf x >>= fun ty ->
+       list_of_etf y >>= fun ys ->
+       result_map_m ~f:contr_constr_of_etf ys >>= fun constrs ->
+       Ok (ty, constrs)
+     in
+     list_of_etf contracts_etf >>= fun contract_etfs ->
+     result_map_m ~f:elem_of_etf contract_etfs >>= fun contracts ->
+     list_of_etf args_etf >>= fun arg_etfs ->
+     result_map_m ~f:erl_type_of_etf arg_etfs >>= fun args ->
+     list_of_etf forms_etf >>= fun form_etfs ->
+     result_map_m ~f:pair_of_etf form_etfs >>= fun forms ->
+     Ok {contracts; args; forms}
+  | other ->
+     Error (Failure (!%"contract_of_etf error: %s" (show_etf other)))
+
     ]) ->
      Ok(v,[])
   | other ->
