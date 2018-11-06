@@ -233,12 +233,23 @@ type erl_type = typ (*TODO*)
 type ret_args_types = erl_type * erl_type list
 [@@deriving show]
 
+(**
+{v
+-type contr_constr()  :: {'subtype', erl_types:erl_type(), erl_types:erl_type()}.
+-type contract_pair() :: {erl_types:erl_type(), [contr_constr()]}.
+
+-record(contract, {contracts	  = []		   :: [contract_pair()],
+		   args		  = []		   :: [erl_types:erl_type()],
+		   forms	  = []		   :: [{_, _}]}).
+v}
+https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer.hrl
+ *)
 type contract = {
-    contracts: (typ *  (typ*typ) list) list;
-    args : typ list;
-    forms: (Etf.t * Etf.t) list; (*???*)
+    contracts: (erl_type * (erl_type*erl_type) list) list;
+    args : erl_type list;
+    forms: unit; (*TODO: (Etf.t * Etf.t) list; (*???*)*)
   }
-[@@deriving show]
+[@@deriving show, sexp_of]
 
 type module_name = string
 
@@ -336,7 +347,7 @@ let contract_of_etf = function
      list_of_etf args_etf >>= fun arg_etfs ->
      result_map_m ~f:erl_type_of_etf arg_etfs >>= fun args ->
      list_of_etf forms_etf >>= fun form_etfs ->
-     result_map_m ~f:pair_of_etf form_etfs >>= fun forms ->
-     Ok {contracts; args; forms}
+     (*TODO: result_map_m ~f:pair_of_etf form_etfs >>= fun forms -> *)
+     Ok {contracts; args; forms=()}
   | other ->
      Error (Failure (!%"contract_of_etf error: %s" (show_etf other)))
