@@ -5,20 +5,10 @@ open Common
 open Ast_intf
 module Format = Caml.Format
 
-type mfa = string * string * int
-[@@deriving show]
-
-type ret_args_types = typ * typ list
-[@@deriving show]
+(** OTP-21.1.1 *)
 
 type ('a, 'b) map = ('a * 'b) list
 [@@deriving show]
-
-type t = {
-    info : (module_, ret_args_types) map;
-    types : (mfa, ret_args_types) map;
-    contracts : (mfa, ret_args_types) map;
-  }
 
 let rec show_etf = function
   | Etf.SmallInteger i -> !%"SInt(%d)" i
@@ -34,30 +24,6 @@ let rec show_etf = function
        (show_etf tail)
   | NewFloat f -> !%"%f" f
   | SmallAtomUtf8 s -> !%"`%s`" s
-
-type infoval = (Etf.t * Etf.t list)
-[@@deriving show]
-type file_md5 = {
-    filename : string;
-    binary : string;
-  }
-[@@deriving show]
-
-type dict = (Etf.t, Etf.t) map
-[@@deriving show]
-
-type file_plt = {
-    version : string;
-    file_md5_list : file_md5 list;
-    info : (mfa, infoval) map;
-    contracts : (mfa, Etf.t) map;
-    callbacks : (Etf.t, Etf.t) map;
-    types : (Etf.t, Etf.t) map;
-    exported_types : Etf.t list;
-    mod_deps : (Etf.t, Etf.t) map;
-    implementation_md5 : file_md5 list;
-  }
-[@@deriving show]
 
 let rec fold_bucket f acc = function
   | Etf.Nil | List ([], Nil) -> acc
@@ -96,6 +62,9 @@ let dict_of_etf = function
      Ok (dict_to_list segs)
   | other ->
      Error (Failure (!%"dict_of_etf"))
+(** ========================================================================= *)
+(** basic erlang data structure: set *)
+(** ========================================================================= *)
 
 let fold_elist f acc = function
   | Etf.Nil -> acc
@@ -124,6 +93,69 @@ let set_of_etf = function
      Ok (to_list segs)
   | other ->
      Error (Failure (!%"set_of_etf: %s" (show_etf other)))
+(** ========================================================================= *)
+(** basic erlang data structure: dict *)
+(** ========================================================================= *)
+(** ========================================================================= *)
+
+type mfa = string * string * int
+[@@deriving show]
+
+type ret_args_types = typ * typ list
+[@@deriving show]
+
+type contract = {
+    contracts: (typ *  (typ*typ) list) list;
+    args : typ list;
+    forms: (Etf.t * Etf.t) list; (*???*)
+  }
+[@@deriving show]
+
+type module_name = string
+
+(**
+```
+-record(plt, {info      :: ets:tid(), %% {mfa() | integer(), ret_args_types()}
+              types     :: ets:tid(), %% {module(), erl_types:type_table()}
+              contracts :: ets:tid(), %% {mfa(), #contract{}}
+              callbacks :: ets:tid(), %% {module(),
+                                      %%  [{mfa(),
+                                      %%  dialyzer_contracts:file_contract()}]
+              exported_types :: ets:tid() %% {module(), sets:set()}
+             }).
+ ```
+https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer_plt.erl#L78
+ *)
+type info_key = InfoKey_Mfa of mfa | InfoKey_Int of int
+type t = {
+    info : (info_key, ret_args_types) map;
+    types : (module_name, ret_args_types) map;
+    contracts : (mfa, ret_args_types) map;
+  }
+
+type infoval = (Etf.t * Etf.t list)
+[@@deriving show]
+type file_md5 = {
+    filename : string;
+    binary : string;
+  }
+[@@deriving show]
+
+type dict = (Etf.t, Etf.t) map
+[@@deriving show]
+
+type file_plt = {
+    version : string;
+    file_md5_list : file_md5 list;
+    info : (mfa, ret_args_types) map;
+    contracts : (mfa, contract) map;
+    callbacks : (Etf.t, Etf.t) map;
+    types : (Etf.t, Etf.t) map;
+    exported_types : Etf.t list;
+    mod_deps : (Etf.t, Etf.t) map;
+    implementation_md5 : file_md5 list;
+  }
+[@@deriving show]
 
 let file_md5_of_etf = function
   | Etf.SmallTuple(2, [
