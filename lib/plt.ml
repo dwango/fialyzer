@@ -44,33 +44,50 @@ let list_of_etf = function
     Basic erlang data structure: set
     ========================================================================= *)
 
-let fold_elist f acc = function
-  | Etf.Nil -> acc
-  | List(bkt, Nil) -> List.fold_left ~f ~init:acc bkt
-  | other ->
-     failwith (!%"fold_elist: '%s'" (show_etf other))
-let fold_seg f acc0 seg =
-  let[@warning "-8"] Etf.SmallTuple (_, bs) = seg in
-  List.fold_left ~f:(fun acc elist -> fold_elist f acc elist) ~init:acc0 bs
-let fold_segs f acc0 segs =
-  List.fold_left ~f:(fun acc seg -> fold_seg f acc seg) ~init:acc0 segs
-let to_list segs =
-  fold_segs (fun xs x -> x :: xs) [] segs
+(** erlang set() type
+    https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/sets.erl#L62-L72
+ *)
+type set = {
+    set_size : int;
+    set_num_of_active_slot : int;
+    set_maxn : int;
+    set_buddy_slot_offset : int;
+    set_exp_size : int;
+    set_con_size : int;
+    set_empty_segment : Etf.t;
+    set_segs : Etf.t list;
+  }
+[@@deriving show]
+
 let set_of_etf = function
   | Etf.SmallTuple(9, [
         Atom "set";
-        SmallInteger size;
-        SmallInteger num_of_active_slot;
-        SmallInteger maxn;
-        SmallInteger buddy_slot_offset;
-        SmallInteger exp_size;
-        SmallInteger con_size;
-        empty_segment;
-        SmallTuple (_, segs);
+        SmallInteger set_size;
+        SmallInteger set_num_of_active_slot;
+        SmallInteger set_maxn;
+        SmallInteger set_buddy_slot_offset;
+        SmallInteger set_exp_size;
+        SmallInteger set_con_size;
+        set_empty_segment;
+        SmallTuple (_, set_segs);
     ]) ->
-     Ok (to_list segs)
+     Ok {set_size; set_num_of_active_slot; set_maxn; set_buddy_slot_offset;
+         set_exp_size; set_con_size; set_empty_segment; set_segs}
   | other ->
      Error (Failure (!%"set_of_etf: %s" (show_etf other)))
+
+let fold_elist ~f ~init = function
+  | Etf.Nil -> init
+  | List(bkt, Nil) -> List.fold_left ~f ~init bkt
+  | other ->
+     failwith (!%"fold_elist: '%s'" (show_etf other))
+let fold_seg ~f ~init seg =
+  let[@warning "-8"] Etf.SmallTuple (_, bs) = seg in
+  List.fold_left ~f:(fun acc elist -> fold_elist ~f ~init:acc elist) ~init bs
+let fold_segs ~f ~init segs =
+  List.fold_left ~f:(fun acc seg -> fold_seg ~f ~init:acc seg) ~init segs
+let to_list segs =
+  fold_segs ~f:(fun xs x -> x :: xs) ~init:[] segs
 
 (** =========================================================================
     Basic erlang data structure: dict
