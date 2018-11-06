@@ -1,3 +1,13 @@
+(**
+   plt file reader and writer
+   TODO:
+   - read info
+   - read types
+   - read callbacks
+   - read exported_types
+   - writer
+ *)
+
 open Base
 open Obeam
 module Etf = External_term_format
