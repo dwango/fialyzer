@@ -217,7 +217,20 @@ module Mfa = struct
   include Comparator.Make(S)
 end
 
-type ret_args_types = typ * typ list
+(**
+{v
+-record(c, {tag			      :: tag(),
+	    elements  = []	      :: term(),
+	    qualifier = ?unknown_qual :: qual()}).
+
+-opaque erl_type() :: ?any | ?none | ?unit | #c{}.
+v}
+https://github.com/erlang/otp/blob/OTP-21.1.1/lib/hipe/cerl/erl_types.erl
+ *)
+type erl_type = typ (*TODO*)
+[@@deriving show, sexp_of]
+
+type ret_args_types = erl_type * erl_type list
 [@@deriving show]
 
 type contract = {
@@ -230,7 +243,7 @@ type contract = {
 type module_name = string
 
 (**
-```
+{v
 -record(plt, {info      :: ets:tid(), %% {mfa() | integer(), ret_args_types()}
               types     :: ets:tid(), %% {module(), erl_types:type_table()}
               contracts :: ets:tid(), %% {mfa(), #contract{}}
@@ -239,14 +252,17 @@ type module_name = string
                                       %%  dialyzer_contracts:file_contract()}]
               exported_types :: ets:tid() %% {module(), sets:set()}
              }).
- ```
+v}
 https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer_plt.erl#L78
  *)
-type info_key = InfoKey_Mfa of mfa | InfoKey_Int of int
+type info_key = InfoKey_Mfa of Mfa.t | InfoKey_Int of int [@@deriving show]
+
 type t = {
-    info : (info_key, ret_args_types) map;
-    types : (module_name, ret_args_types) map;
+    info : unit; (*TODO (info_key, ret_args_types) map;*)
+    types : unit; (*TODO (module_name, ret_args_types) map;*)
     contracts : contract Map.M(Mfa).t;
+    callbacks : unit; (*TODO*)
+    exported_types : unit; (*TODO*)
   }
 [@@deriving sexp_of]
 
@@ -260,16 +276,6 @@ let mfa_of_etf = function
   | other ->
      Error (Failure (!%"mfa_of_etf error: %s" (show_etf other)))
 
-(**
-```
--record(c, {tag			      :: tag(),
-	    elements  = []	      :: term(),
-	    qualifier = ?unknown_qual :: qual()}).
-
--opaque erl_type() :: ?any | ?none | ?unit | #c{}.
-```
-https://github.com/erlang/otp/blob/OTP-21.1.1/lib/hipe/cerl/erl_types.erl
- *)
     
 let erl_type_of_etf = function
   | Etf.Atom "any" -> Ok TyAny
@@ -298,17 +304,6 @@ let ret_args_types_of_etf = function
   | other ->
      Error (Failure (!%"ret_args_types_of_etf error: %s" (show_etf other)))
 
-(**
-```
--type contr_constr()  :: {'subtype', erl_types:erl_type(), erl_types:erl_type()}.
--type contract_pair() :: {erl_types:erl_type(), [contr_constr()]}.
-
--record(contract, {contracts	  = []		   :: [contract_pair()],
-		   args		  = []		   :: [erl_types:erl_type()],
-		   forms	  = []		   :: [{_, _}]}).
-```
-https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer.hrl
- *)
 let contr_constr_of_etf = function
   | Etf.SmallTuple(3, [
                      Atom "subtype";
