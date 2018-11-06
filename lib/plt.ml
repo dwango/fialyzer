@@ -25,43 +25,21 @@ let rec show_etf = function
   | NewFloat f -> !%"%f" f
   | SmallAtomUtf8 s -> !%"`%s`" s
 
-let rec fold_bucket f acc = function
-  | Etf.Nil | List ([], Nil) -> acc
-  | List(List([k;v], Nil) :: bkt, tl) -> fold_bucket f (f k v acc) (List(bkt,tl))
-  | List(List([k],v) :: bkt, tl) -> fold_bucket f (f k v acc) (List(bkt,tl))
+let tuple_of_etf = function
+  | Etf.SmallTuple(_, etfs) -> Ok etfs
+  | other -> Error(Failure (!%"tuple_of_etf: %s" (show_etf other)))
+let pair_of_etf etf =
+  let open Result in
+  tuple_of_etf etf >>= function
+  | [x; y] -> Ok (x, y)
   | other ->
-     failwith (!%"fold_bucket: '%s'" (show_etf other))
-let rec fold_seg f acc seg i =
-  if i = 0 then acc
-  else
-    let[@warning "-8"] Some bkt = List.nth seg (i-1) in
-    fold_seg f (fold_bucket f acc bkt) seg (i-1)
-let rec fold_segs f acc segs i =
-  if i = 0 then acc
-  else
-    let[@warning "-8"] Some (Etf.SmallTuple (n, seg)) = List.nth segs (i-1) in
-    fold_segs f (fold_seg f acc seg n) segs (i-1)
-let fold_dict f acc dict =
-  let segs = dict in
-  fold_segs f acc segs (List.length segs)
-let dict_to_list dict =
-  fold_dict (fun k v acc -> (k, v) :: acc) [] dict
-
-let dict_of_etf = function
-  | Etf.SmallTuple(9, [
-        Atom "dict";
-        SmallInteger size;
-        SmallInteger num_of_active_slot;
-        SmallInteger maxn;
-        SmallInteger buddy_slot_offset;
-        SmallInteger exp_size;
-        SmallInteger con_size;
-        empty_segment;
-        SmallTuple (_, segs);
-    ]) ->
-     Ok (dict_to_list segs)
+     Error (Failure (!%"pair_of_etf: [%s]" (List.map ~f:show_etf other |> String.concat ~sep:",")))
+let list_of_etf = function    
+  | Etf.Nil -> Ok []
+  | List(bkt, Nil) -> Ok bkt
   | other ->
-     Error (Failure (!%"dict_of_etf"))
+     Error (Failure(!%"list_of_etf: '%s'" (show_etf other)))
+     
 (** ========================================================================= *)
 (** basic erlang data structure: set *)
 (** ========================================================================= *)
@@ -95,6 +73,35 @@ let set_of_etf = function
      Error (Failure (!%"set_of_etf: %s" (show_etf other)))
 (** ========================================================================= *)
 (** basic erlang data structure: dict *)
+(** ========================================================================= *)
+let fold_dict f init dict =
+  let segs = dict in
+  fold_segs (fun acc e ->
+      match e with
+      | List([k; v], Nil) -> f k v acc
+      | List([k], v) -> f k v acc
+      | other -> failwith (!%"fold_dict: %s" (show_etf other))
+    )
+       init segs
+let dict_to_list dict =
+  fold_dict (fun k v acc -> (k, v) :: acc) [] dict
+
+let dict_of_etf = function
+  | Etf.SmallTuple(9, [
+        Atom "dict";
+        SmallInteger size;
+        SmallInteger num_of_active_slot;
+        SmallInteger maxn;
+        SmallInteger buddy_slot_offset;
+        SmallInteger exp_size;
+        SmallInteger con_size;
+        empty_segment;
+        SmallTuple (_, segs);
+    ]) ->
+     Ok (dict_to_list segs)
+  | other ->
+     Error (Failure (!%"dict_of_etf"))
+
 (** ========================================================================= *)
 (** ========================================================================= *)
 
@@ -168,11 +175,11 @@ let file_md5_of_etf = function
 
 let mfa_of_etf = function
   | Etf.SmallTuple(3, [
-        Atom module_;
+        Atom module_name;
         Atom func;
         SmallInteger arity;
     ]) ->
-     Ok (module_, func, arity)
+     Ok (module_name, func, arity)
   | other ->
      Error (Failure (!%"mfa_of_etf error: %s" (show_etf other)))
 let infoval_of_etf = function
