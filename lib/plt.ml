@@ -351,3 +351,24 @@ let contract_of_etf = function
      Ok {contracts; args; forms=()}
   | other ->
      Error (Failure (!%"contract_of_etf error: %s" (show_etf other)))
+
+let contracts_of_dict dict =
+  let open Result in
+  fold_dict ~f:(fun k v acc ->
+              acc >>= fun map ->
+              mfa_of_etf k >>= fun mfa ->
+              contract_of_etf v >>= fun contract ->
+              Ok (Map.set map ~key:mfa ~data:contract))
+            ~init:(Ok(Map.empty(module Mfa))) dict
+
+let of_file_plt (file_plt: file_plt) =
+  let open Result in
+  contracts_of_dict file_plt.contracts >>= fun contracts ->
+  Ok {info = (); contracts; types=(); callbacks=(); exported_types=()}
+
+let of_file filename =
+  let open Result in
+  try_with (fun () -> Bitstring.bitstring_of_file filename) >>= fun bin ->
+  (External_term_format.parse bin |> Result.map_error ~f:(fun (msg,_) -> Failure msg)) >>= fun (etf, _) ->
+  file_plt_of_etf etf >>= fun file_plt ->
+  of_file_plt file_plt
