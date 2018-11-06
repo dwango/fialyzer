@@ -93,34 +93,48 @@ let to_list segs =
     Basic erlang data structure: dict
     ========================================================================= *)
 
-let fold_dict f init dict =
-  let segs = dict in
-  fold_segs (fun acc e ->
-      match e with
-      | List([k; v], Nil) -> f k v acc
-      | List([k], v) -> f k v acc
-      | other -> failwith (!%"fold_dict: %s" (show_etf other))
-    )
-       init segs
-let dict_to_list dict =
-  fold_dict (fun k v acc -> (k, v) :: acc) [] dict
+(** erlang dict() type
+    https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/dict.erl#L61-L71
+ *)
+type dict = {
+    dict_size : int;
+    dict_num_of_active_slot : int;
+    dict_maxn : int;
+    dict_buddy_slot_offset : int;
+    dict_exp_size : int;
+    dict_con_size : int;
+    dict_empty_segment : Etf.t;
+    dict_segs : Etf.t list;
+  }
+[@@deriving show]
 
 let dict_of_etf = function
   | Etf.SmallTuple(9, [
         Atom "dict";
-        SmallInteger size;
-        SmallInteger num_of_active_slot;
-        SmallInteger maxn;
-        SmallInteger buddy_slot_offset;
-        SmallInteger exp_size;
-        SmallInteger con_size;
-        empty_segment;
-        SmallTuple (_, segs);
+        SmallInteger dict_size;
+        SmallInteger dict_num_of_active_slot;
+        SmallInteger dict_maxn;
+        SmallInteger dict_buddy_slot_offset;
+        SmallInteger dict_exp_size;
+        SmallInteger dict_con_size;
+        dict_empty_segment;
+        SmallTuple (_, dict_segs);
     ]) ->
-     Ok (dict_to_list segs)
+     Ok {dict_size; dict_num_of_active_slot; dict_maxn; dict_buddy_slot_offset;
+         dict_exp_size; dict_con_size; dict_empty_segment; dict_segs}
   | other ->
      Error (Failure (!%"dict_of_etf"))
 
+let fold_dict ~f ~init dict =
+  let segs = dict.dict_segs in
+  fold_segs ~f:(fun acc e ->
+      match e with
+      | List([k; v], Nil) -> f k v acc
+      | List([k], v) -> f k v acc
+      | other -> failwith (!%"fold_dict: %s" (show_etf other))
+    ) ~init segs
+let dict_to_list dict =
+  fold_dict ~f:(fun k v acc -> (k, v) :: acc) ~init:[] dict
 
 (** =========================================================================
     PLT File
