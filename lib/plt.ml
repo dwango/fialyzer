@@ -20,35 +20,21 @@ module Format = Caml.Format
 type ('a, 'b) map = ('a * 'b) list
 [@@deriving show]
 
-let rec show_etf = function
-  | Etf.SmallInteger i -> !%"SInt(%d)" i
-  | Integer i32 -> Int32.to_string i32
-  | Atom atom -> atom
-  | SmallTuple (_arity, elems) ->
-     !%"{%s}" (List.map ~f:show_etf elems |> Caml.String.concat ", ")
-  | Nil -> "nil"
-  | String s -> !%{|"%s"|} s
-  | Binary bitstr -> !%{|<<"%s">>|} (Bitstring.string_of_bitstring bitstr)
-  | List (elems, tail) ->
-     !%"[%s | %s]" (List.map ~f:show_etf elems |> Caml.String.concat ", ")
-       (show_etf tail)
-  | NewFloat f -> !%"%f" f
-  | SmallAtomUtf8 s -> !%"`%s`" s
 
 let tuple_of_etf = function
   | Etf.SmallTuple(_, etfs) -> Ok etfs
-  | other -> Error(Failure (!%"tuple_of_etf: %s" (show_etf other)))
+  | other -> Error(Failure (!%"tuple_of_etf: %s" (Etf.show other)))
 let pair_of_etf etf =
   let open Result in
   tuple_of_etf etf >>= function
   | [x; y] -> Ok (x, y)
   | other ->
-     Error (Failure (!%"pair_of_etf: [%s]" (List.map ~f:show_etf other |> String.concat ~sep:",")))
+     Error (Failure (!%"pair_of_etf: [%s]" (List.map ~f:Etf.show other |> String.concat ~sep:",")))
 let list_of_etf = function    
   | Etf.Nil -> Ok []
   | List(bkt, Nil) -> Ok bkt
   | other ->
-     Error (Failure(!%"list_of_etf: '%s'" (show_etf other)))
+     Error (Failure(!%"list_of_etf: '%s'" (Etf.show other)))
      
 (** =========================================================================
     Basic erlang data structure: set
@@ -84,13 +70,13 @@ let set_of_etf = function
      Ok {set_size; set_num_of_active_slot; set_maxn; set_buddy_slot_offset;
          set_exp_size; set_con_size; set_empty_segment; set_segs}
   | other ->
-     Error (Failure (!%"set_of_etf: %s" (show_etf other)))
+     Error (Failure (!%"set_of_etf: %s" (Etf.show other)))
 
 let fold_elist ~f ~init = function
   | Etf.Nil -> init
   | List(bkt, Nil) -> List.fold_left ~f ~init bkt
   | other ->
-     failwith (!%"fold_elist: '%s'" (show_etf other))
+     failwith (!%"fold_elist: '%s'" (Etf.show other))
 let fold_seg ~f ~init seg =
   let[@warning "-8"] Etf.SmallTuple (_, bs) = seg in
   List.fold_left ~f:(fun acc elist -> fold_elist ~f ~init:acc elist) ~init bs
@@ -141,7 +127,7 @@ let fold_dict ~f ~init dict =
       match e with
       | List([k; v], Nil) -> f k v acc
       | List([k], v) -> f k v acc
-      | other -> failwith (!%"fold_dict: %s" (show_etf other))
+      | other -> failwith (!%"fold_dict: %s" (Etf.show other))
     ) ~init segs
 let dict_to_list dict =
   fold_dict ~f:(fun k v acc -> (k, v) :: acc) ~init:[] dict
@@ -176,7 +162,7 @@ let file_md5_of_etf = function
     ]) ->
      Ok {filename; binary = Bitstring.string_of_bitstring bin}
   | other ->
-     Error (Failure (!%"file_md5_of_etf error: %s" (show_etf other)))
+     Error (Failure (!%"file_md5_of_etf error: %s" (Etf.show other)))
 
 let file_plt_of_etf = function
   | Etf.SmallTuple(10, [
@@ -212,7 +198,7 @@ let file_plt_of_etf = function
          implementation_md5;
        }
   | other ->
-     Error (Failure (!%"file_plt_of_etc: %s" (show_etf other)))
+     Error (Failure (!%"file_plt_of_etc: %s" (Etf.show other)))
 
 (** =========================================================================
     PLT
@@ -295,7 +281,7 @@ let mfa_of_etf = function
     ]) ->
      Ok (module_name, func, arity)
   | other ->
-     Error (Failure (!%"mfa_of_etf error: %s" (show_etf other)))
+     Error (Failure (!%"mfa_of_etf error: %s" (Etf.show other)))
 
     
 let erl_type_of_etf = function
@@ -308,9 +294,9 @@ let erl_type_of_etf = function
                  elements;
                  qualifier;
               ]) as etf ->
-     Ok (TyConstant(String (show_etf etf))) (*TODO*)
+     Ok (TyConstant(String (Etf.show etf))) (*TODO*)
   | other ->
-     Error (Failure (!%"erl_type_of_etf error: %s" (show_etf other)))
+     Error (Failure (!%"erl_type_of_etf error: %s" (Etf.show other)))
                
 let ret_args_types_of_etf = function
   | Etf.SmallTuple(2, [v; List (vs, Nil) ]) ->
@@ -323,7 +309,7 @@ let ret_args_types_of_etf = function
      erl_type_of_etf v >>= fun ty ->
      Ok(ty, [])
   | other ->
-     Error (Failure (!%"ret_args_types_of_etf error: %s" (show_etf other)))
+     Error (Failure (!%"ret_args_types_of_etf error: %s" (Etf.show other)))
 
 let contr_constr_of_etf = function
   | Etf.SmallTuple(3, [
@@ -335,7 +321,7 @@ let contr_constr_of_etf = function
      erl_type_of_etf e2 >>= fun ty2 ->
      Ok (ty1, ty2)
   | other ->
-     Error (Failure (!%"contr_constr_of_etf error: %s" (show_etf other)))
+     Error (Failure (!%"contr_constr_of_etf error: %s" (Etf.show other)))
 
 let contract_of_etf = function
   | Etf.SmallTuple(4, [
@@ -360,7 +346,7 @@ let contract_of_etf = function
      (*TODO: result_map_m ~f:pair_of_etf form_etfs >>= fun forms -> *)
      Ok {contracts; args; forms=()}
   | other ->
-     Error (Failure (!%"contract_of_etf error: %s" (show_etf other)))
+     Error (Failure (!%"contract_of_etf error: %s" (Etf.show other)))
 
 let contracts_of_dict dict =
   let open Result in
