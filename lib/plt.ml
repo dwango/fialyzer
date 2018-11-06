@@ -149,15 +149,24 @@ type file_md5 = {
 type file_plt = {
     version : string;
     file_md5_list : file_md5 list;
-    info : (mfa, ret_args_types) map;
-    contracts : (mfa, contract) map;
-    callbacks : (Etf.t, Etf.t) map;
-    types : (Etf.t, Etf.t) map;
-    exported_types : Etf.t list;
-    mod_deps : (Etf.t, Etf.t) map;
+    info : dict; (*(mfa, ret_args_types) map;*)
+    contracts : dict; (*(mfa, contract) map;*)
+    callbacks : dict; (*(Etf.t, Etf.t) map;*)
+    types : dict; (*(Etf.t, Etf.t) map;*)
+    exported_types : set; (*Etf.t list;*)
+    mod_deps : dict; (*(Etf.t, Etf.t) map;*)
     implementation_md5 : file_md5 list;
   }
 [@@deriving show]
+
+let file_md5_of_etf = function
+  | Etf.SmallTuple(2, [
+        String filename;
+        Binary bin;
+    ]) ->
+     Ok {filename; binary = Bitstring.string_of_bitstring bin}
+  | other ->
+     Error (Failure (!%"file_md5_of_etf error: %s" (show_etf other)))
 
 let file_plt_of_etf = function
   | Etf.SmallTuple(10, [
@@ -176,17 +185,7 @@ let file_plt_of_etf = function
      result_map_m ~f:file_md5_of_etf file_md5s >>= fun file_md5_list ->
      result_map_m ~f:file_md5_of_etf impl_md5s >>= fun implementation_md5 ->
      dict_of_etf info_etf >>= fun info_dict ->
-     result_map_m ~f:(fun (k,v) ->
-                    mfa_of_etf k >>= fun mfa ->
-                    ret_args_types_of_etf v >>= fun types ->
-                    Ok (mfa, types)
-                  ) info_dict >>= fun info ->
      dict_of_etf contracts_etf >>= fun contracts_dict ->
-     result_map_m ~f:(fun (k,v) ->
-                    mfa_of_etf k >>= fun mfa ->
-                    contract_of_etf v >>= fun contract ->
-         Ok(mfa, contract)
-       ) contracts_dict >>= fun contracts ->
      dict_of_etf callbacks_etf >>= fun callbacks_dict ->
      dict_of_etf types_etf >>= fun types_dict ->
      dict_of_etf mod_deps_etf >>= fun mod_deps_dict ->
@@ -194,8 +193,8 @@ let file_plt_of_etf = function
      Ok {
          version;
          file_md5_list;
-         info;
-         contracts;
+         info = info_dict;
+         contracts = contracts_dict;
          callbacks = callbacks_dict;
          types = types_dict;
          exported_types = exported_types_set;
@@ -243,16 +242,6 @@ type t = {
     types : (module_name, ret_args_types) map;
     contracts : (mfa, ret_args_types) map;
   }
-
-
-let file_md5_of_etf = function
-  | Etf.SmallTuple(2, [
-        String filename;
-        Binary bin;
-    ]) ->
-     Ok {filename; binary = Bitstring.string_of_bitstring bin}
-  | other ->
-     Error (Failure (!%"file_md5_of_etf error: %s" (show_etf other)))
 
 let mfa_of_etf = function
   | Etf.SmallTuple(3, [
