@@ -40,9 +40,9 @@ let list_of_etf = function
   | other ->
      Error (Failure(!%"list_of_etf: '%s'" (show_etf other)))
      
-(** ========================================================================= *)
-(** basic erlang data structure: set *)
-(** ========================================================================= *)
+(** =========================================================================
+    Basic erlang data structure: set
+    ========================================================================= *)
 
 let fold_elist f acc = function
   | Etf.Nil -> acc
@@ -71,9 +71,11 @@ let set_of_etf = function
      Ok (to_list segs)
   | other ->
      Error (Failure (!%"set_of_etf: %s" (show_etf other)))
-(** ========================================================================= *)
-(** basic erlang data structure: dict *)
-(** ========================================================================= *)
+
+(** =========================================================================
+    Basic erlang data structure: dict
+    ========================================================================= *)
+
 let fold_dict f init dict =
   let segs = dict in
   fold_segs (fun acc e ->
@@ -102,8 +104,79 @@ let dict_of_etf = function
   | other ->
      Error (Failure (!%"dict_of_etf"))
 
-(** ========================================================================= *)
-(** ========================================================================= *)
+
+(** =========================================================================
+    PLT File
+    ========================================================================= *)
+
+type file_md5 = {
+    filename : string;
+    binary : string;
+  }
+[@@deriving show]
+
+type file_plt = {
+    version : string;
+    file_md5_list : file_md5 list;
+    info : (mfa, ret_args_types) map;
+    contracts : (mfa, contract) map;
+    callbacks : (Etf.t, Etf.t) map;
+    types : (Etf.t, Etf.t) map;
+    exported_types : Etf.t list;
+    mod_deps : (Etf.t, Etf.t) map;
+    implementation_md5 : file_md5 list;
+  }
+[@@deriving show]
+
+let file_plt_of_etf = function
+  | Etf.SmallTuple(10, [
+        Atom "file_plt";
+        String version;
+        List(file_md5s, _);
+        info_etf;
+        contracts_etf;
+        callbacks_etf;
+        types_etf;
+        exported_types_etf;
+        mod_deps_etf;
+        List(impl_md5s, _);
+    ]) ->
+     let open Result in
+     result_map_m ~f:file_md5_of_etf file_md5s >>= fun file_md5_list ->
+     result_map_m ~f:file_md5_of_etf impl_md5s >>= fun implementation_md5 ->
+     dict_of_etf info_etf >>= fun info_dict ->
+     result_map_m ~f:(fun (k,v) ->
+                    mfa_of_etf k >>= fun mfa ->
+                    ret_args_types_of_etf v >>= fun types ->
+                    Ok (mfa, types)
+                  ) info_dict >>= fun info ->
+     dict_of_etf contracts_etf >>= fun contracts_dict ->
+     result_map_m ~f:(fun (k,v) ->
+                    mfa_of_etf k >>= fun mfa ->
+                    contract_of_etf v >>= fun contract ->
+         Ok(mfa, contract)
+       ) contracts_dict >>= fun contracts ->
+     dict_of_etf callbacks_etf >>= fun callbacks_dict ->
+     dict_of_etf types_etf >>= fun types_dict ->
+     dict_of_etf mod_deps_etf >>= fun mod_deps_dict ->
+     set_of_etf exported_types_etf >>= fun exported_types_set ->
+     Ok {
+         version;
+         file_md5_list;
+         info;
+         contracts;
+         callbacks = callbacks_dict;
+         types = types_dict;
+         exported_types = exported_types_set;
+         mod_deps = mod_deps_dict;
+         implementation_md5;
+       }
+  | other ->
+     Error (Failure (!%"file_plt_of_etc: %s" (show_etf other)))
+
+(** =========================================================================
+    PLT
+    ========================================================================= *)
 
 type mfa = string * string * int
 [@@deriving show]
@@ -140,29 +213,6 @@ type t = {
     contracts : (mfa, ret_args_types) map;
   }
 
-type infoval = (Etf.t * Etf.t list)
-[@@deriving show]
-type file_md5 = {
-    filename : string;
-    binary : string;
-  }
-[@@deriving show]
-
-type dict = (Etf.t, Etf.t) map
-[@@deriving show]
-
-type file_plt = {
-    version : string;
-    file_md5_list : file_md5 list;
-    info : (mfa, ret_args_types) map;
-    contracts : (mfa, contract) map;
-    callbacks : (Etf.t, Etf.t) map;
-    types : (Etf.t, Etf.t) map;
-    exported_types : Etf.t list;
-    mod_deps : (Etf.t, Etf.t) map;
-    implementation_md5 : file_md5 list;
-  }
-[@@deriving show]
 
 let file_md5_of_etf = function
   | Etf.SmallTuple(2, [
@@ -182,15 +232,6 @@ let mfa_of_etf = function
      Ok (module_name, func, arity)
   | other ->
      Error (Failure (!%"mfa_of_etf error: %s" (show_etf other)))
-let infoval_of_etf = function
-  | Etf.SmallTuple(2, [
-        v;
-        List (vs, Nil);
-    ]) ->
-     Ok(v,vs)
-  | SmallTuple(2, [
-        v;
-        Nil;
 
 (**
 ```
@@ -277,49 +318,3 @@ let contract_of_etf = function
      Ok {contracts; args; forms}
   | other ->
      Error (Failure (!%"contract_of_etf error: %s" (show_etf other)))
-
-let file_plt_of_etf = function
-  | Etf.SmallTuple(10, [
-        Atom "file_plt";
-        String version;
-        List(file_md5s, _);
-        info_etf;
-        contracts_etf;
-        callbacks_etf;
-        types_etf;
-        exported_types_etf;
-        mod_deps_etf;
-        List(impl_md5s, _);
-    ]) ->
-     let open Result in
-     result_map_m ~f:file_md5_of_etf file_md5s >>= fun file_md5_list ->
-     result_map_m ~f:file_md5_of_etf impl_md5s >>= fun implementation_md5 ->
-     dict_of_etf info_etf >>= fun info_dict ->
-     result_map_m ~f:(fun (k,v) ->
-                    mfa_of_etf k >>= fun mfa ->
-                    ret_args_types_of_etf v >>= fun types ->
-                    Ok (mfa, types)
-                  ) info_dict >>= fun info ->
-     dict_of_etf contracts_etf >>= fun contracts_dict ->
-     result_map_m ~f:(fun (k,v) ->
-                    mfa_of_etf k >>= fun mfa ->
-                    contract_of_etf v >>= fun contract ->
-         Ok(mfa, contract)
-       ) contracts_dict >>= fun contracts ->
-     dict_of_etf callbacks_etf >>= fun callbacks_dict ->
-     dict_of_etf types_etf >>= fun types_dict ->
-     dict_of_etf mod_deps_etf >>= fun mod_deps_dict ->
-     set_of_etf exported_types_etf >>= fun exported_types_set ->
-     Ok {
-         version;
-         file_md5_list;
-         info;
-         contracts;
-         callbacks = callbacks_dict;
-         types = types_dict;
-         exported_types = exported_types_set;
-         mod_deps = mod_deps_dict;
-         implementation_md5;
-       }
-  | other ->
-     Error (Failure (!%"file_plt_of_etc: %s" (show_etf other)))
