@@ -191,6 +191,32 @@ let infoval_of_etf = function
   | SmallTuple(2, [
         v;
         Nil;
+
+(**
+```
+-record(c, {tag			      :: tag(),
+	    elements  = []	      :: term(),
+	    qualifier = ?unknown_qual :: qual()}).
+
+-opaque erl_type() :: ?any | ?none | ?unit | #c{}.
+```
+https://github.com/erlang/otp/blob/OTP-21.1.1/lib/hipe/cerl/erl_types.erl
+ *)
+    
+let erl_type_of_etf = function
+  | Etf.Atom "any" -> Ok TyAny
+  | Atom "none" -> Ok TyNone
+  | Atom "unit" -> Ok (TyConstant(Atom"unit")) (* TODO *)
+  | SmallTuple(4, [
+                 Atom "c";
+                 tag;
+                 elements;
+                 qualifier;
+              ]) as etf ->
+     Ok (TyConstant(String (show_etf etf))) (*TODO*)
+  | other ->
+     Error (Failure (!%"erl_type_of_etf error: %s" (show_etf other)))
+               
     ]) ->
      Ok(v,[])
   | other ->
