@@ -208,8 +208,14 @@ let file_plt_of_etf = function
     PLT
     ========================================================================= *)
 
-type mfa = string * string * int
-[@@deriving show]
+module Mfa = struct
+  module S = struct
+    type t = string * string * int [@@deriving show, sexp_of]
+    let compare = Polymorphic_compare.compare
+  end
+  include S
+  include Comparator.Make(S)
+end
 
 type ret_args_types = typ * typ list
 [@@deriving show]
@@ -240,8 +246,9 @@ type info_key = InfoKey_Mfa of mfa | InfoKey_Int of int
 type t = {
     info : (info_key, ret_args_types) map;
     types : (module_name, ret_args_types) map;
-    contracts : (mfa, ret_args_types) map;
+    contracts : contract Map.M(Mfa).t;
   }
+[@@deriving sexp_of]
 
 let mfa_of_etf = function
   | Etf.SmallTuple(3, [
