@@ -21,16 +21,29 @@ let rec expr_of_exprs = function
 let rec expr_of_erlang_expr = function
   | F.ExprBody erlangs ->
      expr_of_exprs (List.map ~f:expr_of_erlang_expr erlangs)
+  | ExprCase (_line_t, e, clauses) ->
+    let cs = clauses |> List.map ~f:(function 
+    | F.ClsCase (_, F.PatVar (_, v), _, e) -> (PatVar (v, Val(Atom("true"))), expr_of_erlang_expr e)
+    | F.ClsCase (_, F.PatUniversal _, _, e) -> (PatVar ("_", Val(Atom("true"))), expr_of_erlang_expr e)
+    | F.ClsCase (_, _, _, _) | F.ClsFun (_, _, _, _) -> failwith "not implemented"
+    ) in
+    Case (expr_of_erlang_expr e, cs)
   | ExprBinOp (_line_t, op, e1, e2) ->
      App(Var op, List.map ~f:expr_of_erlang_expr [e1; e2])
   | ExprVar (_line_t, v) -> Var v
   | ExprLit literal -> Val (const_of_literal literal)
+  | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) -> failwith "not implemented"
 
 let clauses_to_function = function
   | F.ClsCase(_line, _pattern, _guards, _body) ->
      failwith "not implemented: Clause Case"(* TODO : clause case *)
   | F.ClsFun(_line, args, _guards, body) ->
-     let vs = args |> List.map ~f:(function F.PatVar (_,v) -> v | F.PatUniversal _ -> "_") in
+     let f = (function
+     | F.PatVar (_, v) -> v
+     | F.PatUniversal _ -> "_"
+     | F.PatMap (_, _) | F.PatLit _ -> failwith "not implemented"
+     ) in
+     let vs = args |> List.map ~f:f in
      (vs, expr_of_erlang_expr body)
 let forms_to_functions forms =
   forms
