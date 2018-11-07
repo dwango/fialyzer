@@ -1,5 +1,7 @@
 (**
-   plt file reader and writer
+   plt file reader and writer (OTP-21.1.1)
+   @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer_plt.erl>
+
    TODO:
    - read info
    - read types
@@ -14,12 +16,6 @@ module Etf = External_term_format
 open Common
 open Ast_intf
 module Format = Caml.Format
-
-(** OTP-21.1.1 *)
-
-type ('a, 'b) map = ('a * 'b) list
-[@@deriving show]
-
 
 let tuple_of_etf = function
   | Etf.SmallTuple(_, etfs) -> Ok etfs
@@ -40,8 +36,8 @@ let list_of_etf = function
     Basic erlang data structure: set
     ========================================================================= *)
 
-(** erlang set() type
-    https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/sets.erl#L62-L72
+(** Erlang [set()] type
+    @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/sets.erl#L62-L72>
  *)
 type set = {
     set_size : int;
@@ -90,7 +86,7 @@ let to_list segs =
     ========================================================================= *)
 
 (** erlang dict() type
-    https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/dict.erl#L61-L71
+    @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/dict.erl#L61-L71>
  *)
 type dict = {
     dict_size : int;
@@ -221,7 +217,7 @@ end
 
 -opaque erl_type() :: ?any | ?none | ?unit | #c{}.
 v}
-https://github.com/erlang/otp/blob/OTP-21.1.1/lib/hipe/cerl/erl_types.erl
+@see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/hipe/cerl/erl_types.erl>
  *)
 type erl_type = typ (*TODO*)
 [@@deriving show, sexp_of]
@@ -238,7 +234,7 @@ type ret_args_types = erl_type * erl_type list
 		   args		  = []		   :: [erl_types:erl_type()],
 		   forms	  = []		   :: [{_, _}]}).
 v}
-https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer.hrl
+@see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer.hrl>
  *)
 type contract = {
     contracts: (erl_type * (erl_type*erl_type) list) list;
@@ -248,6 +244,8 @@ type contract = {
 [@@deriving show, sexp_of]
 
 type module_name = string
+
+type info_key = InfoKey_Mfa of Mfa.t | InfoKey_Int of int [@@deriving show]
 
 (**
 {v
@@ -260,10 +258,8 @@ type module_name = string
               exported_types :: ets:tid() %% {module(), sets:set()}
              }).
 v}
-https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer_plt.erl#L78
+@see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer_plt.erl#L78>
  *)
-type info_key = InfoKey_Mfa of Mfa.t | InfoKey_Int of int [@@deriving show]
-
 type t = {
     info : unit; (*TODO (info_key, ret_args_types) map;*)
     types : unit; (*TODO (module_name, ret_args_types) map;*)
