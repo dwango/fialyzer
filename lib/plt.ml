@@ -200,14 +200,7 @@ let file_plt_of_etf = function
     PLT
     ========================================================================= *)
 
-module Mfa = struct
-  module S = struct
-    type t = string * string * int [@@deriving show, sexp_of]
-    let compare = Polymorphic_compare.compare
-  end
-  include S
-  include Comparator.Make(S)
-end
+
 
 (**
 {v
@@ -245,7 +238,7 @@ type contract = {
 
 type module_name = string
 
-type info_key = InfoKey_Mfa of Mfa.t | InfoKey_Int of int [@@deriving show]
+type info_key = InfoKey_Mfa of Mfa.t | InfoKey_Int of int [@@deriving sexp_of]
 
 (**
 {v
@@ -263,7 +256,7 @@ v}
 type t = {
     info : unit; (*TODO (info_key, ret_args_types) map;*)
     types : unit; (*TODO (module_name, ret_args_types) map;*)
-    contracts : contract Map.M(Mfa).t;
+    contracts : contract Poly_map.OnMfa.t;
     callbacks : unit; (*TODO*)
     exported_types : unit; (*TODO*)
   }
@@ -351,7 +344,7 @@ let contracts_of_dict dict =
               mfa_of_etf k >>= fun mfa ->
               contract_of_etf v >>= fun contract ->
               Ok (Map.set map ~key:mfa ~data:contract))
-            ~init:(Ok(Map.empty(module Mfa))) dict
+            ~init:(Ok(Poly_map.OnMfa.empty)) dict
 
 let of_file_plt (file_plt: file_plt) =
   let open Result in
