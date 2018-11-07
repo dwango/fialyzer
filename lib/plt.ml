@@ -68,11 +68,10 @@ let set_of_etf = function
   | other ->
      Error (Failure (!%"set_of_etf: %s" (Etf.show other)))
 
-let fold_elist ~f ~init = function
-  | Etf.Nil -> init
-  | List(bkt, Nil) -> List.fold_left ~f ~init bkt
-  | other ->
-     failwith (!%"fold_elist: '%s'" (Etf.show other))
+let fold_elist ~f ~init etf =
+  match list_of_etf etf with
+  | Ok etfs -> List.fold_left ~f ~init etfs
+  | Error exn -> raise exn
 let fold_seg ~f ~init seg =
   let[@warning "-8"] Etf.SmallTuple (_, bs) = seg in
   List.fold_left ~f:(fun acc elist -> fold_elist ~f ~init:acc elist) ~init bs
