@@ -17,6 +17,9 @@ open Common
 open Ast_intf
 module Format = Caml.Format
 
+type etf = Etf.t
+let sexp_of_etf etf = sexp_of_string (Etf.show etf)
+
 let tuple_of_etf = function
   | Etf.SmallTuple(_, etfs) -> Ok etfs
   | other -> Error(Failure (!%"tuple_of_etf: %s" (Etf.show other)))
