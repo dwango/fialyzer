@@ -32,6 +32,16 @@ let mandatoriness_of_etf = function
   | Atom "opt" -> Ok Optional
   | _ -> Error (Failure "mandatoriness_of_etf")
 
+(**
+{v
+-record(c, {tag			      :: tag(),
+	    elements  = []	      :: term(),
+	    qualifier = ?unknown_qual :: qual()}).
+
+-opaque erl_type() :: ?any | ?none | ?unit | #c{}.
+v}
+@see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/hipe/cerl/erl_types.erl>
+ *)
 type t =
   | Any
   | None
@@ -49,7 +59,7 @@ type t =
   | Tuple of t list * int * t (* (types, arity, tag) : TODO *)
   (* | TupleSet of tuples : TODO *)
   (* | Var of id : TODO *)
- (* | Matchstate of p * slots : TODO *)
+  (* | Matchstate of p * slots : TODO *)
   | Union of t list
 [@@deriving show, sexp_of]
 and t_map_pair = t * t_map_mandatoriness * t
