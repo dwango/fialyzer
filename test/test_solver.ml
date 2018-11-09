@@ -44,7 +44,7 @@ let%expect_test "solver" =
 
   let create_vars n =
     Type_variable.reset_count ();
-    List.init n ~f:(fun _ -> Type_variable.create ()) in
+    List.init n ~f:(fun _ -> Type_variable.create ()) |> List.rev in
 
   print Empty;
   [%expect {| (Ok ()) |}];
@@ -56,3 +56,36 @@ let%expect_test "solver" =
   let [a] = create_vars 1 in
   print (Subtype (TyVar a, TyInteger));
   [%expect {| (Ok ((a TyInteger))) |}];
+
+  let [a; b] = create_vars 2 in
+  print (Subtype (TyStruct [TyVar a; TyVar b], TyStruct [TyInteger; TyAtom]));
+  [%expect {|
+    (Ok (
+      (a TyInteger)
+      (b TyAtom))) |}];
+
+  let [a; b] = create_vars 2 in
+  print (Subtype (TyUnion (TyVar a, TyVar b), TyInteger));
+  [%expect {|
+    (Ok (
+      (a TyInteger)
+      (b TyInteger))) |}];
+
+  let [a] = create_vars 1 in
+  print (Subtype (TyConstraint (TyVar a, Eq (TyVar a, TyInteger)), TyAtom));
+  [%expect {| (Error (Failure "there is no solution that satisfies subtype constraints")) |}];
+
+  print (Subtype (TyNone, TyAny));
+  [%expect {| (Ok ()) |}];
+
+  print (Subtype (TyAny, TyAny));
+  [%expect {| (Ok ()) |}];
+
+  print (Subtype (TyNone, TyAny));
+  [%expect {| (Ok ()) |}];
+
+  print (Subtype (TyNone, TyNone));
+  [%expect {| (Ok ()) |}];
+
+  print (Subtype (TyInteger, TyAtom));
+  [%expect {| (Error (Failure "there is no solution that satisfies subtype constraints")) |}];
