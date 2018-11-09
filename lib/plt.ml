@@ -13,6 +13,7 @@
 open Base
 open Obeam
 module Etf = External_term_format
+module E = Etf_util
 open Common
 open Ast_intf
 module Format = Caml.Format
@@ -20,6 +21,9 @@ module Format = Caml.Format
 type etf = Etf.t
 let sexp_of_etf etf = sexp_of_string (Etf.show etf)
 
+let atom_of_etf = function
+  | Etf.Atom atom -> Ok atom
+  | other -> Error(Failure (!%"atom_of_etf: %s" (Etf.show other)))
 let tuple_of_etf = function
   | Etf.SmallTuple(_, etfs) -> Ok etfs
   | other -> Error(Failure (!%"tuple_of_etf: %s" (Etf.show other)))
@@ -202,23 +206,39 @@ let file_plt_of_etf = function
     PLT
     ========================================================================= *)
 
-
-
-(**
-{v
--record(c, {tag			      :: tag(),
-	    elements  = []	      :: term(),
-	    qualifier = ?unknown_qual :: qual()}).
-
--opaque erl_type() :: ?any | ?none | ?unit | #c{}.
-v}
-@see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/hipe/cerl/erl_types.erl>
- *)
-type erl_type = typ (*TODO*)
+type tag = AtomTag | BinaryTag | FunctionTag | IdentifierTag | ListTag | MapTag
+           | MatchstateTag | NilTag | NumberTag | OpaqueTag | ProductTag
+           | TupleTag | TupleSetTag | UnionTag | VarTag
 [@@deriving show, sexp_of]
 
+type erl_type = Erl_type.t
+[@@deriving show, sexp_of]
+
+let tag_of_etf etf =
+  let open Result in
+  let tag_of_atom = function
+    | "atom" -> Ok AtomTag
+    | "binary" -> Ok BinaryTag
+    | "function" -> Ok FunctionTag
+    | "identifier" -> Ok IdentifierTag
+    | "list" -> Ok ListTag
+    | "map" -> Ok MapTag
+    | "matchstate" -> Ok MatchstateTag
+    | "nil" -> Ok NilTag
+    | "number" -> Ok NumberTag
+    | "opaque" -> Ok OpaqueTag
+    | "product" -> Ok ProductTag
+    | "tuple_set" -> Ok TupleSetTag
+    | "tuple" -> Ok TupleTag
+    | "union" -> Ok UnionTag
+    | "var" -> Ok VarTag
+    | other -> Error (Failure(!%"tag_of_atom: unknown : %s" other))
+  in
+  atom_of_etf etf >>= fun atom ->
+  tag_of_atom atom
+
 type ret_args_types = erl_type * erl_type list
-[@@deriving show]
+[@@deriving sexp_of]
 
 (**
 {v
@@ -236,7 +256,7 @@ type contract = {
     args : erl_type list;
     forms: unit; (*TODO: (Etf.t * Etf.t) list; (*???*)*)
   }
-[@@deriving show, sexp_of]
+[@@deriving sexp_of]
 
 type module_name = string
 
@@ -275,20 +295,109 @@ let mfa_of_etf = function
      Error (Failure (!%"mfa_of_etf error: %s" (Etf.show other)))
 
     
-let erl_type_of_etf = function
-  | Etf.Atom "any" -> Ok TyAny
-  | Atom "none" -> Ok TyNone
-  | Atom "unit" -> Ok (TyConstant(Atom"unit")) (* TODO *)
+let rec erl_type_of_etf = function
+  | Etf.Atom "any" -> Ok Erl_type.Any
+  | Atom "none" -> Ok Erl_type.None
+  | Atom "unit" -> Ok Erl_type.Unit
   | SmallTuple(4, [
                  Atom "c";
-                 tag;
+                 tag_etf;
                  elements;
-                 qualifier;
-              ]) as etf ->
-     Ok (TyConstant(String (Etf.show etf))) (*TODO*)
+                 qualifier_etf;
+              ]) ->
+     let open Result in
+     tag_of_etf tag_etf >>= fun tag ->
+     begin match tag with
+     | AtomTag ->
+        list_of_etf elements >>= fun elems ->
+        result_map_m ~f:atom_of_etf elems >>= fun atoms ->
+        Ok (Erl_type.Atom atoms)
+     | FunctionTag ->
+        list_of_etf elements >>= fun elems ->
+        result_guard (List.length elems = 2) (Failure "erl_type_of_erl:FunctionTag") >>= fun _ ->
+        let domain_etf = List.nth_exn elems 0 in
+        let range_etf = List.nth_exn elems 1 in
+        erl_type_of_etf domain_etf >>= fun domain_ty ->
+        begin match domain_ty with
+        | Erl_type.Product domain ->
+           erl_type_of_etf range_etf >>= fun range ->
+           Ok (Erl_type.Function(domain, range))
+        | other ->
+           Error(Failure (!%"tyfun_of_etf: unsupported"))
+        end
+     | ListTag ->
+        list_of_etf elements >>= fun elems ->
+        begin match elems with
+        | [types_etf; term_etf] ->
+           erl_type_of_etf types_etf >>= fun types ->
+           erl_type_of_etf term_etf >>= fun term ->
+           (Erl_type.qualifier_of_etf qualifier_etf @? "ListTag") >>= fun size ->
+           Ok (Erl_type.List (types, term, size))
+        | _ ->
+           Error (Failure (!%"ListTag:%s" (Etf.show elements)))
+        end
+     | NilTag ->
+        Ok Erl_type.Nil
+     | MapTag ->
+        tuple_of_etf elements >>= fun elems ->
+        begin match elems with
+        | [pairs_etf; defkey_etf; defval_etf] ->
+           erl_type_of_etf defkey_etf >>= fun defkey ->
+           erl_type_of_etf defval_etf >>= fun defval ->
+           list_of_etf pairs_etf >>= fun pair_etfs ->
+           result_map_m ~f:t_map_pair_of_etf pair_etfs >>= fun t_map_dict ->
+           Ok (Erl_type.Map (t_map_dict, defkey, defval))
+        | _ ->
+           Error (Failure "erl_types(MapTag)")
+        end
+     | OpaqueTag ->
+        list_of_etf elements >>= fun elems ->
+        result_map_m ~f:opaque_of_etf elems >>= fun opaques ->
+        Ok (Erl_type.Opaque opaques)
+     | ProductTag ->
+        list_of_etf elements >>= fun elems ->
+        result_map_m ~f:erl_type_of_etf elems >>= fun tys ->
+        Ok (Erl_type.Product tys)
+     | TupleTag ->
+        list_of_etf elements >>= fun elems ->
+        result_map_m ~f:erl_type_of_etf elems >>= fun tys ->
+        pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
+        E.int_of_etf arity_etf >>= fun arity ->
+        (erl_type_of_etf tag_etf @? !%"TupleTag(%s)" (Etf.show tag_etf)) >>= fun tag ->
+        Ok (Erl_type.Tuple(tys, arity, tag))
+     | UnionTag ->
+        list_of_etf elements >>= fun elems ->
+        result_map_m ~f:erl_type_of_etf elems >>= fun tys ->
+        Ok (Erl_type.Union tys)
+     | other ->
+        !%"erl_type_of_etf: unsupported: %s\n  elements = %s" (Sexplib.Sexp.to_string (sexp_of_tag other))
+          (Etf.show elements)
+        |> fun msg -> Error (Failure msg)
+     end
   | other ->
      Error (Failure (!%"erl_type_of_etf error: %s" (Etf.show other)))
-               
+and opaque_of_etf elem =
+  let open Result in
+  tuple_of_etf elem >>= function
+  | [Atom "opaque"; Atom mod_; Atom name; args_etf; struct_etf] ->
+     list_of_etf args_etf >>= fun arg_etfs ->
+     result_map_m ~f:erl_type_of_etf arg_etfs >>= fun args ->
+     erl_type_of_etf struct_etf >>= fun struct_ ->
+     Ok {Erl_type.mod_; name; args; struct_}
+  | other ->
+     Error (Failure "opaque_of_etf")
+and t_map_pair_of_etf etf =
+  let open Result in
+  tuple_of_etf etf >>= fun es ->
+  match es with
+  | [ty_etf1; mand_etf; ty_etf2] ->
+     erl_type_of_etf ty_etf1 >>= fun ty1 ->
+     erl_type_of_etf ty_etf2 >>= fun ty2 ->
+     Erl_type.mandatoriness_of_etf mand_etf >>= fun mand ->
+     Ok (ty1, mand, ty2)
+  | _ ->
+     Error (Failure "t_map_pair_of_etf")
+
 let ret_args_types_of_etf = function
   | Etf.SmallTuple(2, [v; List (vs, Nil) ]) ->
      let open Result in
