@@ -18,3 +18,5 @@ let create () =
 
 let reset_count () =
   count := -1
+
+let of_string s = s
