@@ -63,6 +63,7 @@ let main =
   Ok ()
 
 let () =
+  [%Loga.info "=== start fialyzer ==="];
   match main with
   | Ok () -> ()
   | Error (Failure msg) ->
