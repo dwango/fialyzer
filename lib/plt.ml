@@ -356,6 +356,6 @@ let of_file_plt (file_plt: file_plt) =
 let of_file filename =
   let open Result in
   try_with (fun () -> Bitstring.bitstring_of_file filename) >>= fun bin ->
-  (External_term_format.parse bin |> Result.map_error ~f:(fun (msg,_) -> Failure msg)) >>= fun (etf, _) ->
+  (External_term_format.parse bin |> Result.map_error ~f:(fun (msg,_) -> Failure (!%"Etf.parse: %s"msg))) >>= fun (etf, _) ->
   file_plt_of_etf etf >>= fun file_plt ->
   of_file_plt file_plt
