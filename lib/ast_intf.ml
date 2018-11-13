@@ -21,10 +21,10 @@ type expr =
     | Letrec of (string * expr) list * expr
     | Case of expr * (pattern * expr) list
 [@@deriving show, sexp_of]
-and pattern = pattern_ * expr
-and pattern_ =
+and pattern = pattern' * expr
+and pattern' =
     | PatVar of string
-    | PatStruct of pattern_ list
+    | PatStruct of pattern' list
 [@@deriving show, sexp_of]
 
 let string_of_expr expr =
