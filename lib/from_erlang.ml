@@ -23,8 +23,8 @@ let rec expr_of_erlang_expr = function
      expr_of_exprs (List.map ~f:expr_of_erlang_expr erlangs)
   | ExprCase (_line_t, e, clauses) ->
     let cs = clauses |> List.map ~f:(function 
-    | F.ClsCase (_, F.PatVar (_, v), _, e) -> (PatVar (v, Val(Atom("true"))), expr_of_erlang_expr e)
-    | F.ClsCase (_, F.PatUniversal _, _, e) -> (PatVar ("_", Val(Atom("true"))), expr_of_erlang_expr e)
+    | F.ClsCase (_, F.PatVar (_, v), _, e) -> ((PatVar v, Val (Atom "true")), expr_of_erlang_expr e)
+    | F.ClsCase (_, F.PatUniversal _, _, e) -> ((PatVar "_", Val (Atom "true")), expr_of_erlang_expr e)
     | F.ClsCase (_, _, _, _) | F.ClsFun (_, _, _, _) -> failwith "not implemented"
     ) in
     Case (expr_of_erlang_expr e, cs)
