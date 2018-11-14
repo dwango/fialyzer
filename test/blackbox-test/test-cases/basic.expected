@@ -1,0 +1,36 @@
+code: (Abstract_format.AbstractCode
+   (Abstract_format.ModDecl
+      [(Abstract_format.AttrFile (1, "test-cases/basic.erl", 1));
+        (Abstract_format.AttrMod (1, "basic"));
+        (Abstract_format.AttrExport (3, [("ok", 0); ("id", 1)]));
+        (Abstract_format.DeclFun (5, "ok", 0,
+           [(Abstract_format.ClsFun (5, [], None,
+               (Abstract_format.ExprBody
+                  [(Abstract_format.ExprLit
+                      (Abstract_format.LitAtom (5, "ok")))
+                    ])
+               ))
+             ]
+           ));
+        (Abstract_format.DeclFun (7, "id", 1,
+           [(Abstract_format.ClsFun (7, [(Abstract_format.PatVar (7, "A"))],
+               None,
+               (Abstract_format.ExprBody [(Abstract_format.ExprVar (7, "A"))])
+               ))
+             ]
+           ));
+        Abstract_format.FormEof]))
+expr: (Letrec ((ok (Abs () (Val (Atom ok)))) (id (Abs (A) (Var A))))
+  (Struct ((Var ok) (Var id))))
+type: (TyStruct ((TyVar a) (TyVar b)))
+constraint:
+(Conj
+  ((Conj (Empty Empty)) (Eq (TyVar a) (TyVar c))
+    (Eq (TyVar c) (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
+    (Eq (TyVar b) (TyVar e))
+    (Eq (TyVar e) (TyConstraint (TyFun ((TyVar d)) (TyVar d)) Empty))))
+solution:
+((a (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
+  (b (TyConstraint (TyFun ((TyVar d)) (TyVar d)) Empty))
+  (c (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
+  (e (TyConstraint (TyFun ((TyVar d)) (TyVar d)) Empty)))
