@@ -174,7 +174,7 @@ let contract_of_etf = function
 
 let contracts_of_dict dict =
   let open Result in
-  E.fold_dict ~f:(fun k v acc ->
+  E.fold_dict ~f:(fun acc k v ->
               acc >>= fun map ->
               mfa_of_etf k >>= fun mfa ->
               contract_of_etf v >>= fun contract ->
