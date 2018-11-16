@@ -14,7 +14,7 @@ module Make(S : Seed) = struct
                 end)
   end
   type 'v t = 'v Map.M(Comp).t [@@deriving sexp_of]
-  let empty = Map.empty(module Comp)      
+  let empty = Map.empty(module Comp)
 end
 
 module OnMfa = Make(Mfa)

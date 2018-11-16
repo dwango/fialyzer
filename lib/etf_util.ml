@@ -21,7 +21,7 @@ let pair_of_etf etf =
   | other ->
      Error (Failure (!%"pair_of_etf: [%s]" (List.map ~f:Etf.show other |> String.concat ~sep:",")))
 
-let list_of_etf = function    
+let list_of_etf = function
   | Etf.Nil -> Ok []
   | List(bkt, Nil) -> Ok bkt
   | other ->
@@ -31,13 +31,10 @@ let int_of_etf = function
   | Etf.SmallInteger i -> Ok i
   | other -> Error (Failure (!%"int_of_etf: %s" (Etf.show other)))
 
-(** =========================================================================
-    Basic erlang data structure: set
-    ========================================================================= *)
+(* ==========================================================================
+   Basic erlang data structure: set
+   ========================================================================== *)
 
-(** Erlang [set()] type
-    @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/sets.erl#L62-L72>
- *)
 type set = {
     set_size : int;
     set_num_of_active_slot : int;
@@ -76,16 +73,15 @@ let fold_seg ~f ~init seg =
   List.fold_left ~f:(fun acc elist -> fold_elist ~f ~init:acc elist) ~init bs
 let fold_segs ~f ~init segs =
   List.fold_left ~f:(fun acc seg -> fold_seg ~f ~init:acc seg) ~init segs
-let to_list segs =
-  fold_segs ~f:(fun xs x -> x :: xs) ~init:[] segs
+let fold_set ~f ~init set =
+  fold_segs ~f ~init set.set_segs
+let to_list set =
+  fold_segs ~f:(fun xs x -> x :: xs) ~init:[] set.set_segs
 
-(** =========================================================================
-    Basic erlang data structure: dict
-    ========================================================================= *)
+(* ==========================================================================
+   Basic erlang data structure: dict
+   ========================================================================== *)
 
-(** erlang dict() type
-    @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/dict.erl#L61-L71>
- *)
 type dict = {
     dict_size : int;
     dict_num_of_active_slot : int;
@@ -119,9 +115,9 @@ let fold_dict ~f ~init dict =
   let segs = dict.dict_segs in
   fold_segs ~f:(fun acc e ->
       match e with
-      | List([k; v], Nil) -> f k v acc
-      | List([k], v) -> f k v acc
+      | List([k; v], Nil) -> f acc k v
+      | List([k], v) -> f acc k v
       | other -> failwith (!%"fold_dict: %s" (Etf.show other))
     ) ~init segs
 let dict_to_list dict =
-  fold_dict ~f:(fun k v acc -> (k, v) :: acc) ~init:[] dict
+  fold_dict ~f:(fun acc k v -> (k, v) :: acc) ~init:[] dict
