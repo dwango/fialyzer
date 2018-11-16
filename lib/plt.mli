@@ -29,4 +29,5 @@ v}
 type t
 [@@deriving sexp_of]
 
+val of_etf : Obeam.External_term_format.t -> (t, exn) Result.t
 val of_file : string -> (t, exn) Result.t
