@@ -11,6 +11,10 @@ val pair_of_etf : Etf.t -> ((Etf.t * Etf.t) , exn) Result.t
 val list_of_etf : Etf.t -> (Etf.t list, exn) Result.t
 val int_of_etf : Etf.t -> (int, exn) Result.t
 
+val list : Etf.t list -> Etf.t
+val small_tuple : Etf.t list -> Etf.t
+val pair : Etf.t -> Etf.t -> Etf.t
+
 (** =========================================================================
     Basic erlang data structure: set
     ========================================================================= *)
@@ -24,6 +28,8 @@ type set
 val set_of_etf : Etf.t -> (set, exn) Result.t
 val fold_set : f:('acc -> Etf.t -> 'acc) -> init:'acc -> set -> 'acc
 val to_list : set -> Etf.t list
+val empty_set : set
+val etf_of_set : set -> Etf.t
 
 (** =========================================================================
     Basic erlang data structure: dict
@@ -38,3 +44,5 @@ type dict
 val dict_of_etf : Etf.t -> (dict, exn) Result.t
 val fold_dict : f:('acc -> Etf.t -> Etf.t -> 'acc) -> init:'acc -> dict -> 'acc
 val dict_to_list : dict -> (Etf.t * Etf.t) list
+val empty_dict : dict
+val etf_of_dict : dict -> Etf.t
