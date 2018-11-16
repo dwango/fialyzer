@@ -18,122 +18,6 @@ open Common
 open Ast_intf
 module Format = Caml.Format
 
-type etf = Etf.t
-let sexp_of_etf etf = sexp_of_string (Etf.show etf)
-
-let atom_of_etf = function
-  | Etf.Atom atom -> Ok atom
-  | other -> Error(Failure (!%"atom_of_etf: %s" (Etf.show other)))
-let tuple_of_etf = function
-  | Etf.SmallTuple(_, etfs) -> Ok etfs
-  | other -> Error(Failure (!%"tuple_of_etf: %s" (Etf.show other)))
-let pair_of_etf etf =
-  let open Result in
-  tuple_of_etf etf >>= function
-  | [x; y] -> Ok (x, y)
-  | other ->
-     Error (Failure (!%"pair_of_etf: [%s]" (List.map ~f:Etf.show other |> String.concat ~sep:",")))
-let list_of_etf = function    
-  | Etf.Nil -> Ok []
-  | List(bkt, Nil) -> Ok bkt
-  | other ->
-     Error (Failure(!%"list_of_etf: '%s'" (Etf.show other)))
-     
-(** =========================================================================
-    Basic erlang data structure: set
-    ========================================================================= *)
-
-(** Erlang [set()] type
-    @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/sets.erl#L62-L72>
- *)
-type set = {
-    set_size : int;
-    set_num_of_active_slot : int;
-    set_maxn : int;
-    set_buddy_slot_offset : int;
-    set_exp_size : int;
-    set_con_size : int;
-    set_empty_segment : Etf.t;
-    set_segs : Etf.t list;
-  }
-[@@deriving show]
-
-let set_of_etf = function
-  | Etf.SmallTuple(9, [
-        Atom "set";
-        SmallInteger set_size;
-        SmallInteger set_num_of_active_slot;
-        SmallInteger set_maxn;
-        SmallInteger set_buddy_slot_offset;
-        SmallInteger set_exp_size;
-        SmallInteger set_con_size;
-        set_empty_segment;
-        SmallTuple (_, set_segs);
-    ]) ->
-     Ok {set_size; set_num_of_active_slot; set_maxn; set_buddy_slot_offset;
-         set_exp_size; set_con_size; set_empty_segment; set_segs}
-  | other ->
-     Error (Failure (!%"set_of_etf: %s" (Etf.show other)))
-
-let fold_elist ~f ~init etf =
-  match list_of_etf etf with
-  | Ok etfs -> List.fold_left ~f ~init etfs
-  | Error exn -> raise exn
-let fold_seg ~f ~init seg =
-  let[@warning "-8"] Etf.SmallTuple (_, bs) = seg in
-  List.fold_left ~f:(fun acc elist -> fold_elist ~f ~init:acc elist) ~init bs
-let fold_segs ~f ~init segs =
-  List.fold_left ~f:(fun acc seg -> fold_seg ~f ~init:acc seg) ~init segs
-let to_list segs =
-  fold_segs ~f:(fun xs x -> x :: xs) ~init:[] segs
-
-(** =========================================================================
-    Basic erlang data structure: dict
-    ========================================================================= *)
-
-(** erlang dict() type
-    @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/stdlib/src/dict.erl#L61-L71>
- *)
-type dict = {
-    dict_size : int;
-    dict_num_of_active_slot : int;
-    dict_maxn : int;
-    dict_buddy_slot_offset : int;
-    dict_exp_size : int;
-    dict_con_size : int;
-    dict_empty_segment : Etf.t;
-    dict_segs : Etf.t list;
-  }
-[@@deriving show]
-
-let dict_of_etf = function
-  | Etf.SmallTuple(9, [
-        Atom "dict";
-        SmallInteger dict_size;
-        SmallInteger dict_num_of_active_slot;
-        SmallInteger dict_maxn;
-        SmallInteger dict_buddy_slot_offset;
-        SmallInteger dict_exp_size;
-        SmallInteger dict_con_size;
-        dict_empty_segment;
-        SmallTuple (_, dict_segs);
-    ]) ->
-     Ok {dict_size; dict_num_of_active_slot; dict_maxn; dict_buddy_slot_offset;
-         dict_exp_size; dict_con_size; dict_empty_segment; dict_segs}
-  | other ->
-     Error (Failure (!%"dict_of_etf"))
-
-let fold_dict ~f ~init dict =
-  let segs = dict.dict_segs in
-  fold_segs ~f:(fun acc e ->
-      match e with
-      | List([k; v], Nil) -> f k v acc
-      | List([k], v) -> f k v acc
-      | other -> failwith (!%"fold_dict: %s" (Etf.show other))
-    ) ~init segs
-let dict_to_list dict =
-  fold_dict ~f:(fun k v acc -> (k, v) :: acc) ~init:[] dict
-
 (** =========================================================================
     PLT File
     ========================================================================= *)
@@ -142,20 +26,18 @@ type file_md5 = {
     filename : string;
     binary : string;
   }
-[@@deriving show]
 
 type file_plt = {
     version : string;
     file_md5_list : file_md5 list;
-    info : dict; (*(mfa, ret_args_types) map;*)
-    contracts : dict; (*(mfa, contract) map;*)
-    callbacks : dict; (*(Etf.t, Etf.t) map;*)
-    types : dict; (*(Etf.t, Etf.t) map;*)
-    exported_types : set; (*Etf.t list;*)
-    mod_deps : dict; (*(Etf.t, Etf.t) map;*)
+    info : E.dict; (*(mfa, ret_args_types) map;*)
+    contracts : E.dict; (*(mfa, contract) map;*)
+    callbacks : E.dict; (*(Etf.t, Etf.t) map;*)
+    types : E.dict; (*(Etf.t, Etf.t) map;*)
+    exported_types : E.set; (*Etf.t list;*)
+    mod_deps : E.dict; (*(Etf.t, Etf.t) map;*)
     implementation_md5 : file_md5 list;
   }
-[@@deriving show]
 
 let file_md5_of_etf = function
   | Etf.SmallTuple(2, [
@@ -182,12 +64,12 @@ let file_plt_of_etf = function
      let open Result in
      result_map_m ~f:file_md5_of_etf file_md5s >>= fun file_md5_list ->
      result_map_m ~f:file_md5_of_etf impl_md5s >>= fun implementation_md5 ->
-     dict_of_etf info_etf >>= fun info_dict ->
-     dict_of_etf contracts_etf >>= fun contracts_dict ->
-     dict_of_etf callbacks_etf >>= fun callbacks_dict ->
-     dict_of_etf types_etf >>= fun types_dict ->
-     dict_of_etf mod_deps_etf >>= fun mod_deps_dict ->
-     set_of_etf exported_types_etf >>= fun exported_types_set ->
+     E.dict_of_etf info_etf >>= fun info_dict ->
+     E.dict_of_etf contracts_etf >>= fun contracts_dict ->
+     E.dict_of_etf callbacks_etf >>= fun callbacks_dict ->
+     E.dict_of_etf types_etf >>= fun types_dict ->
+     E.dict_of_etf mod_deps_etf >>= fun mod_deps_dict ->
+     E.set_of_etf exported_types_etf >>= fun exported_types_set ->
      Ok {
          version;
          file_md5_list;
@@ -234,7 +116,7 @@ let tag_of_etf etf =
     | "var" -> Ok VarTag
     | other -> Error (Failure(!%"tag_of_atom: unknown : %s" other))
   in
-  atom_of_etf etf >>= fun atom ->
+  E.atom_of_etf etf >>= fun atom ->
   tag_of_atom atom
 
 type ret_args_types = erl_type * erl_type list
@@ -309,11 +191,11 @@ let rec erl_type_of_etf = function
      tag_of_etf tag_etf >>= fun tag ->
      begin match tag with
      | AtomTag ->
-        list_of_etf elements >>= fun elems ->
-        result_map_m ~f:atom_of_etf elems >>= fun atoms ->
+        E.list_of_etf elements >>= fun elems ->
+        result_map_m ~f:E.atom_of_etf elems >>= fun atoms ->
         Ok (Erl_type.Atom atoms)
      | FunctionTag ->
-        list_of_etf elements >>= fun elems ->
+        E.list_of_etf elements >>= fun elems ->
         result_guard (List.length elems = 2) (Failure "erl_type_of_erl:FunctionTag") >>= fun _ ->
         let domain_etf = List.nth_exn elems 0 in
         let range_etf = List.nth_exn elems 1 in
@@ -326,7 +208,7 @@ let rec erl_type_of_etf = function
            Error(Failure (!%"tyfun_of_etf: unsupported"))
         end
      | ListTag ->
-        list_of_etf elements >>= fun elems ->
+        E.list_of_etf elements >>= fun elems ->
         begin match elems with
         | [types_etf; term_etf] ->
            erl_type_of_etf types_etf >>= fun types ->
@@ -339,38 +221,38 @@ let rec erl_type_of_etf = function
      | NilTag ->
         Ok Erl_type.Nil
      | MapTag ->
-        tuple_of_etf elements >>= fun elems ->
+        E.tuple_of_etf elements >>= fun elems ->
         begin match elems with
         | [pairs_etf; defkey_etf; defval_etf] ->
            erl_type_of_etf defkey_etf >>= fun defkey ->
            erl_type_of_etf defval_etf >>= fun defval ->
-           list_of_etf pairs_etf >>= fun pair_etfs ->
+           E.list_of_etf pairs_etf >>= fun pair_etfs ->
            result_map_m ~f:t_map_pair_of_etf pair_etfs >>= fun t_map_dict ->
            Ok (Erl_type.Map (t_map_dict, defkey, defval))
         | _ ->
            Error (Failure "erl_types(MapTag)")
         end
      | OpaqueTag ->
-        list_of_etf elements >>= fun elems ->
+        E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:opaque_of_etf elems >>= fun opaques ->
         Ok (Erl_type.Opaque opaques)
      | ProductTag ->
-        list_of_etf elements >>= fun elems ->
+        E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:erl_type_of_etf elems >>= fun tys ->
         Ok (Erl_type.Product tys)
      | TupleTag ->
-        list_of_etf elements >>= fun elems ->
+        E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:erl_type_of_etf elems >>= fun tys ->
-        pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
+        E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
         E.int_of_etf arity_etf >>= fun arity ->
         (erl_type_of_etf tag_etf @? !%"TupleTag(%s)" (Etf.show tag_etf)) >>= fun tag ->
         Ok (Erl_type.Tuple(tys, arity, tag))
      | UnionTag ->
-        list_of_etf elements >>= fun elems ->
+        E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:erl_type_of_etf elems >>= fun tys ->
         Ok (Erl_type.Union tys)
      | other ->
-        !%"erl_type_of_etf: unsupported: %s\n  elements = %s" (Sexplib.Sexp.to_string (sexp_of_tag other))
+        !%"erl_type_of_etf: unsupported: %s\n  elements = %s" (show_tag other)
           (Etf.show elements)
         |> fun msg -> Error (Failure msg)
      end
@@ -378,9 +260,9 @@ let rec erl_type_of_etf = function
      Error (Failure (!%"erl_type_of_etf error: %s" (Etf.show other)))
 and opaque_of_etf elem =
   let open Result in
-  tuple_of_etf elem >>= function
+  E.tuple_of_etf elem >>= function
   | [Atom "opaque"; Atom mod_; Atom name; args_etf; struct_etf] ->
-     list_of_etf args_etf >>= fun arg_etfs ->
+     E.list_of_etf args_etf >>= fun arg_etfs ->
      result_map_m ~f:erl_type_of_etf arg_etfs >>= fun args ->
      erl_type_of_etf struct_etf >>= fun struct_ ->
      Ok {Erl_type.mod_; name; args; struct_}
@@ -388,7 +270,7 @@ and opaque_of_etf elem =
      Error (Failure "opaque_of_etf")
 and t_map_pair_of_etf etf =
   let open Result in
-  tuple_of_etf etf >>= fun es ->
+  E.tuple_of_etf etf >>= fun es ->
   match es with
   | [ty_etf1; mand_etf; ty_etf2] ->
      erl_type_of_etf ty_etf1 >>= fun ty1 ->
@@ -432,17 +314,17 @@ let contract_of_etf = function
                   ]) ->
      let open Result in
      let elem_of_etf etf =
-       pair_of_etf etf >>= fun (x, y) ->
+       E.pair_of_etf etf >>= fun (x, y) ->
        erl_type_of_etf x >>= fun ty ->
-       list_of_etf y >>= fun ys ->
+       E.list_of_etf y >>= fun ys ->
        result_map_m ~f:contr_constr_of_etf ys >>= fun constrs ->
        Ok (ty, constrs)
      in
-     list_of_etf contracts_etf >>= fun contract_etfs ->
+     E.list_of_etf contracts_etf >>= fun contract_etfs ->
      result_map_m ~f:elem_of_etf contract_etfs >>= fun contracts ->
-     list_of_etf args_etf >>= fun arg_etfs ->
+     E.list_of_etf args_etf >>= fun arg_etfs ->
      result_map_m ~f:erl_type_of_etf arg_etfs >>= fun args ->
-     list_of_etf forms_etf >>= fun form_etfs ->
+     E.list_of_etf forms_etf >>= fun form_etfs ->
      (*TODO: result_map_m ~f:pair_of_etf form_etfs >>= fun forms -> *)
      Ok {contracts; args; forms=()}
   | other ->
@@ -450,7 +332,7 @@ let contract_of_etf = function
 
 let contracts_of_dict dict =
   let open Result in
-  fold_dict ~f:(fun k v acc ->
+  E.fold_dict ~f:(fun k v acc ->
               acc >>= fun map ->
               mfa_of_etf k >>= fun mfa ->
               contract_of_etf v >>= fun contract ->
