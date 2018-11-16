@@ -70,7 +70,7 @@ let file_plt_of_etf = function
          implementation_md5;
        }
   | other ->
-     Error (Failure (!%"file_plt_of_etc: %s" (Etf.show other)))
+     Error (Failure (!%"file_plt_of_etf: %s" (Etf.show other)))
 
 (* ==========================================================================
    PLT
@@ -186,9 +186,12 @@ let of_file_plt (file_plt: file_plt) =
   contracts_of_dict file_plt.contracts >>= fun contracts ->
   Ok {info = (); contracts; types=(); callbacks=(); exported_types=()}
 
+let of_etf etf =
+  Result.(file_plt_of_etf etf >>= of_file_plt)
+
 let of_file filename =
   let open Result in
   try_with (fun () -> Bitstring.bitstring_of_file filename) >>= fun bin ->
   (External_term_format.parse bin |> Result.map_error ~f:(fun (msg,_) -> Failure (!%"Etf.parse: %s"msg))) >>= fun (etf, _) ->
-  file_plt_of_etf etf >>= fun file_plt ->
-  of_file_plt file_plt
+  Etf.show etf |> Caml.print_endline;
+  of_etf etf
