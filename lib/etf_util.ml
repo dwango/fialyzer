@@ -31,6 +31,10 @@ let int_of_etf = function
   | Etf.SmallInteger i -> Ok i
   | other -> Error (Failure (!%"int_of_etf: %s" (Etf.show other)))
 
+let list etfs = Etf.List(etfs, Etf.Nil)
+let small_tuple etfs = Etf.SmallTuple(List.length etfs, etfs)
+let pair etf1 etf2 = small_tuple [etf1; etf2]
+
 (* ==========================================================================
    Basic erlang data structure: set
    ========================================================================== *)
@@ -78,6 +82,40 @@ let fold_set ~f ~init set =
 let to_list set =
   fold_segs ~f:(fun xs x -> x :: xs) ~init:[] set.set_segs
 
+let empty_set =
+  let seg_size = 16 in
+  let expand_load = 5 in
+  let contract_load = 3 in
+  let exp_size = seg_size * expand_load in
+  let con_size = seg_size * contract_load in
+  let empty_segs =
+    small_tuple Etf.[Nil; Nil; Nil; Nil;  Nil; Nil; Nil; Nil;
+                     Nil; Nil; Nil; Nil;  Nil; Nil; Nil; Nil;]
+  in
+  {
+    set_size = 0;
+    set_num_of_active_slot = seg_size;
+    set_maxn = seg_size;
+    set_buddy_slot_offset = seg_size / 2;
+    set_exp_size = exp_size;
+    set_con_size = con_size;
+    set_empty_segment = empty_segs;
+    set_segs = [empty_segs];
+  }
+
+let etf_of_set set =
+  Etf.(small_tuple [
+           Atom "set";
+           SmallInteger set.set_size;
+           SmallInteger set.set_num_of_active_slot;
+           SmallInteger set.set_maxn;
+           SmallInteger set.set_buddy_slot_offset;
+           SmallInteger set.set_exp_size;
+           SmallInteger set.set_con_size;
+           set.set_empty_segment;
+           small_tuple set.set_segs;
+  ])
+
 (* ==========================================================================
    Basic erlang data structure: dict
    ========================================================================== *)
@@ -121,3 +159,37 @@ let fold_dict ~f ~init dict =
     ) ~init segs
 let dict_to_list dict =
   fold_dict ~f:(fun acc k v -> (k, v) :: acc) ~init:[] dict
+
+let empty_dict =
+  let seg_size = 16 in
+  let expand_load = 5 in
+  let contract_load = 3 in
+  let exp_size = seg_size * expand_load in
+  let con_size = seg_size * contract_load in
+  let empty_segs =
+    small_tuple Etf.[Nil; Nil; Nil; Nil;  Nil; Nil; Nil; Nil;
+                     Nil; Nil; Nil; Nil;  Nil; Nil; Nil; Nil;]
+  in
+  {
+    dict_size = 0;
+    dict_num_of_active_slot = seg_size;
+    dict_maxn = seg_size;
+    dict_buddy_slot_offset = seg_size / 2;
+    dict_exp_size = exp_size;
+    dict_con_size = con_size;
+    dict_empty_segment = empty_segs;
+    dict_segs = [empty_segs];
+  }
+
+let etf_of_dict dict =
+  Etf.(small_tuple [
+           Atom "dict";
+           SmallInteger dict.dict_size;
+           SmallInteger dict.dict_num_of_active_slot;
+           SmallInteger dict.dict_maxn;
+           SmallInteger dict.dict_buddy_slot_offset;
+           SmallInteger dict.dict_exp_size;
+           SmallInteger dict.dict_con_size;
+           dict.dict_empty_segment;
+           small_tuple dict.dict_segs;
+  ])
