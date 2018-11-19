@@ -28,9 +28,9 @@ type t_map_mandatoriness = Mandatory | Optional
 [@@deriving show, sexp_of]
 
 let mandatoriness_of_etf = function
-  | Etf.Atom "mand" -> Ok Mandatory
-  | Atom "opt" -> Ok Optional
-  | _ -> Error (Failure "mandatoriness_of_etf")
+  | Etf.Atom "mandatory" -> Ok Mandatory
+  | Atom "optional" -> Ok Optional
+  | other -> Error (Failure (!%"mandatoriness_of_etf error: %s" (Etf.show other)))
 
 type tag = AtomTag | BinaryTag | FunctionTag | IdentifierTag | ListTag | MapTag
            | MatchstateTag | NilTag | NumberTag | OpaqueTag | ProductTag
