@@ -10,6 +10,7 @@ Prerequisite
 
 - ocaml-4.07.0 or higher
 - opam-2.0.0 or higher
+- odoc (optional)
 
 Build
 -----
