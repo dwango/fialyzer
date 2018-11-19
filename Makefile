@@ -10,6 +10,9 @@ test:
 promote:
 	dune promote
 
+doc:
+	dune build @doc
+
 install:
 	dune install $(INSTALL_ARGS)
 
@@ -21,4 +24,4 @@ reinstall: uninstall reinstall
 clean:
 	rm -rf _build
 
-.PHONY: default install test uninstall reinstall clean
+.PHONY: default install test doc uninstall reinstall clean
