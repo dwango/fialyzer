@@ -114,19 +114,26 @@ let rec of_etf = function
      tag_of_etf tag_etf >>= fun tag ->
      begin match tag with
      | AtomTag ->
-        E.list_of_etf elements >>= fun elems ->
-        result_map_m ~f:E.atom_of_etf elems >>= fun atoms ->
-        Ok (Atom atoms)
+        begin match elements with
+        | Etf.Atom "any" ->
+           Ok (Atom ["any"])
+        | _ ->
+           E.list_of_etf elements>>= fun elems ->
+           result_map_m ~f:E.atom_of_etf elems >>= fun atoms ->
+           Ok (Atom atoms)
+        end
      | FunctionTag ->
         E.list_of_etf elements >>= fun elems ->
         result_guard (List.length elems = 2) (Failure "erl_type_of_erl:FunctionTag") >>= fun _ ->
         let domain_etf = List.nth_exn elems 0 in
         let range_etf = List.nth_exn elems 1 in
         of_etf domain_etf >>= fun domain_ty ->
+        of_etf range_etf >>= fun range ->
         begin match domain_ty with
         | Product domain ->
-           of_etf range_etf >>= fun range ->
            Ok (Function(domain, range))
+        | Any ->
+           Ok (Function([], range))
         | other ->
            Error(Failure (!%"tyfun_of_etf: unsupported"))
         end
@@ -167,12 +174,17 @@ let rec of_etf = function
         result_map_m ~f:of_etf elems >>= fun tys ->
         Ok (Product tys)
      | TupleTag ->
-        E.list_of_etf elements >>= fun elems ->
-        result_map_m ~f:of_etf elems >>= fun tys ->
         E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
-        E.int_of_etf arity_etf >>= fun arity ->
-        (of_etf tag_etf @? !%"TupleTag(%s)" (Etf.show tag_etf)) >>= fun tag ->
-        Ok (Tuple(tys, arity, tag))
+        begin match elements, arity_etf, tag_etf with
+        | Etf.Atom "any", Etf.Atom "any", Etf.Atom "any" -> (* tuple() *)
+           Ok (Tuple([], 0, Any)) (* ?tuple(?any, ?any, ?any) *)
+        | _ ->
+           E.list_of_etf elements >>= fun elems ->
+           result_map_m ~f:of_etf elems >>= fun tys ->
+           E.int_of_etf arity_etf >>= fun arity ->
+           (of_etf tag_etf @? !%"TupleTag(%s)" (Etf.show tag_etf)) >>= fun tag ->
+           Ok (Tuple(tys, arity, tag))
+        end
      | UnionTag ->
         E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:of_etf elems >>= fun tys ->
