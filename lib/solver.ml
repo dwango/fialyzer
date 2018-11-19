@@ -10,7 +10,7 @@ type solution = typ Map.M(Type_variable).t
 
 let string_of_sol sol =
   [%sexp_of: solution] sol |> Sexplib.Sexp.to_string_hum ~indent:2
-         
+
 let init : solution = Map.empty (module Type_variable)
 
 (* type_subst (X, τ_1) τ_2 := [X ↦ τ_1]τ_2 *)
@@ -145,38 +145,6 @@ let rec meet sol ty1 ty2 =
 let is_subtype sol ty1 ty2 =
   meet sol ty1 ty2 = ty1
 
-let rec solve_sub sol ty1 ty2 =
-  match (ty1, ty2) with
-  | _, TyAny ->
-     Ok sol
-  | TyVar v1, _ ->
-     let ty1' = Option.value (Map.find sol v1) ~default:TyAny in
-     if is_subtype sol ty1' ty2 then
-       Ok sol
-     else
-       let ty = meet sol ty1' ty2 in
-       if ty != TyNone then
-         Ok (set (v1, ty) sol)
-       else
-         Error (Failure "there is no solution")
-  | TyStruct tys1, TyStruct tys2 when List.length tys1 = List.length tys2 ->
-     let open Result in
-     List.zip_exn tys1 tys2
-     |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
-  | TyStruct tys1, TyStruct tys2 ->
-     Error (Failure "the tuple types are not different length")
-  | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
-     let open Result in
-     (* NOTE: `solve_sub arg1 arg2` is the same as type derivation [ABS]. *)
-     (* perhaps it should be `solve_sub arg2 arg1` *)
-     List.zip_exn (body1 :: args1) (body2 :: args2)
-     |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
-  | TyFun (args1, _), TyFun (args2, _) ->
-     Error (Failure "the fun args are not different length")
-  | _ ->
-     (* TODO: support the other cases *)
-     Ok sol
-
 let rec solve sol = function
   | Empty -> Ok sol
   | Eq (ty1, ty2) ->
@@ -193,3 +161,41 @@ and solve_conj sol = function
      let open Result in
      solve sol c >>= fun sol' ->
      solve_conj sol' cs
+and solve_sub sol ty1 ty2 =
+  match (ty1, ty2) with
+  | TyVar v1, _ ->
+     let ty1' = Option.value (Map.find sol v1) ~default:TyAny in
+     if is_subtype sol ty1' ty2 then
+       Ok sol
+     else
+       let ty = meet sol ty1' ty2 in
+       if ty != TyNone then
+         Ok (set (v1, ty) sol)
+       else
+         Error (Failure "there is no solution that satisfies subtype constraints")
+  | TyStruct tys1, TyStruct tys2 when List.length tys1 = List.length tys2 ->
+     let open Result in
+     List.zip_exn tys1 tys2
+     |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
+  | TyStruct tys1, TyStruct tys2 ->
+     Error (Failure "the tuple types are not different length")
+  | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
+     let open Result in
+     (* NOTE: `solve_sub arg1 arg2` is the same as type derivation [ABS]. *)
+     (* perhaps it should be `solve_sub arg2 arg1` *)
+     List.zip_exn (body1 :: args1) (body2 :: args2)
+     |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
+  | TyFun (args1, _), TyFun (args2, _) ->
+     Error (Failure "the fun args are not different length")
+  | TyUnion (ty11, ty12), _ ->
+     let open Result in
+     solve_sub sol ty11 ty2 >>= fun sol' -> solve_sub sol' ty12 ty2
+  | TyConstraint (ty, c), _ ->
+     let open Result in
+     solve sol c >>= fun sol' -> solve_sub sol' ty ty2
+  | _ ->
+     (* TODO: normalize *)
+     if is_subtype sol ty1 ty2 then
+       Ok sol
+     else
+       Error (Failure "there is no solution that satisfies subtype constraints")
