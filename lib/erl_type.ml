@@ -80,7 +80,7 @@ type t =
   (* | Identifier of : TODO *)
   | List of t * t * qualifier (* (types, term, size): TODO *)
   | Nil
-  (*  | Number of set * qualifier : TODO *)
+  | Number of qualifier (*TODO: elements *)
   | Map of t_map_pair list * t * t (* (t_map_dict, defkey, defval) : TODO *)
   | Opaque of opaque list
   | Product of t list
@@ -143,6 +143,9 @@ let rec of_etf = function
         end
      | NilTag ->
         Ok Nil
+     | NumberTag ->
+        qualifier_of_etf qualifier_etf >>= fun qual ->
+        Ok (Number qual)
      | MapTag ->
         E.tuple_of_etf elements >>= fun elems ->
         begin match elems with
@@ -175,8 +178,9 @@ let rec of_etf = function
         result_map_m ~f:of_etf elems >>= fun tys ->
         Ok (Union tys)
      | other ->
-        !%"of_etf: unsupported: %s\n  elements = %s" (show_tag other)
+        !%"of_etf: unsupported: %s\n  elements = %s\n  qual = %s" (show_tag other)
           (Etf.show elements)
+          (Etf.show qualifier_etf)
         |> fun msg -> Error (Failure msg)
      end
   | other ->

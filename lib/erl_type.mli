@@ -28,7 +28,7 @@ type t =
   (* | Identifier of : TODO *)
   | List of t * t * qualifier (* (types, term, size): TODO *)
   | Nil
-  (*  | Number of set * qualifier : TODO *)
+  | Number of qualifier
   | Map of t_map_pair list * t * t (* (t_map_dict, defkey, defval) : TODO *)
   | Opaque of opaque list
   | Product of t list

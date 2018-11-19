@@ -177,7 +177,7 @@ let contracts_of_dict dict =
   E.fold_dict ~f:(fun acc k v ->
               acc >>= fun map ->
               mfa_of_etf k >>= fun mfa ->
-              contract_of_etf v >>= fun contract ->
+              (contract_of_etf v @? !%"(%s)" (Mfa.show mfa)) >>= fun contract ->
               Ok (Map.set map ~key:mfa ~data:contract))
             ~init:(Ok(Poly_map.OnMfa.empty)) dict
 
@@ -193,5 +193,4 @@ let of_file filename =
   let open Result in
   try_with (fun () -> Bitstring.bitstring_of_file filename) >>= fun bin ->
   (External_term_format.parse bin |> Result.map_error ~f:(fun (msg,_) -> Failure (!%"Etf.parse: %s"msg))) >>= fun (etf, _) ->
-  Etf.show etf |> Caml.print_endline;
   of_etf etf
