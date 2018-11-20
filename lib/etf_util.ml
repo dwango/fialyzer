@@ -29,6 +29,7 @@ let list_of_etf = function
 
 let int_of_etf = function
   | Etf.SmallInteger i -> Ok i
+  | Etf.Integer i32 -> Ok (Int32.to_int_exn i32)
   | other -> Error (Failure (!%"int_of_etf: %s" (Etf.show other)))
 
 let list etfs = Etf.List(etfs, Etf.Nil)
@@ -51,22 +52,30 @@ type set = {
   }
 [@@deriving show]
 
-let set_of_etf = function
-  | Etf.SmallTuple(9, [
-        Atom "set";
-        SmallInteger set_size;
-        SmallInteger set_num_of_active_slot;
-        SmallInteger set_maxn;
-        SmallInteger set_buddy_slot_offset;
-        SmallInteger set_exp_size;
-        SmallInteger set_con_size;
-        set_empty_segment;
-        SmallTuple (_, set_segs);
-    ]) ->
+let set_of_etf etf =
+  let open Result in
+  tuple_of_etf etf >>= function
+  | [Atom "set";
+     set_size_etf;
+     set_num_of_active_slot_etf;
+     set_maxn_etf;
+     set_buddy_slot_offset_etf;
+     set_exp_size_etf;
+     set_con_size_etf;
+     set_empty_segment;
+     set_segs_etf;
+    ] ->
+     tuple_of_etf set_segs_etf >>= fun set_segs ->
+     int_of_etf set_size_etf >>= fun set_size ->
+     int_of_etf set_num_of_active_slot_etf >>= fun set_num_of_active_slot ->
+     int_of_etf set_maxn_etf >>= fun set_maxn ->
+     int_of_etf set_buddy_slot_offset_etf >>= fun set_buddy_slot_offset ->
+     int_of_etf set_exp_size_etf >>= fun set_exp_size ->
+     int_of_etf set_con_size_etf >>= fun set_con_size ->
      Ok {set_size; set_num_of_active_slot; set_maxn; set_buddy_slot_offset;
          set_exp_size; set_con_size; set_empty_segment; set_segs}
-  | other ->
-     Error (Failure (!%"set_of_etf: %s" (Etf.show other)))
+  | _ ->
+     Error (Failure (!%"set_of_etf: %s" (Etf.show etf)))
 
 let fold_elist ~f ~init etf =
   match list_of_etf etf with
@@ -132,22 +141,30 @@ type dict = {
   }
 [@@deriving show]
 
-let dict_of_etf = function
-  | Etf.SmallTuple(9, [
-        Atom "dict";
-        SmallInteger dict_size;
-        SmallInteger dict_num_of_active_slot;
-        SmallInteger dict_maxn;
-        SmallInteger dict_buddy_slot_offset;
-        SmallInteger dict_exp_size;
-        SmallInteger dict_con_size;
-        dict_empty_segment;
-        SmallTuple (_, dict_segs);
-    ]) ->
+let dict_of_etf etf =
+  let open Result in
+  tuple_of_etf etf >>= function
+  | [Atom "dict";
+     dict_size_etf;
+     dict_num_of_active_slot_etf;
+     dict_maxn_etf;
+     dict_buddy_slot_offset_etf;
+     dict_exp_size_etf;
+     dict_con_size_etf;
+     dict_empty_segment;
+     dict_segs_etf;
+    ] ->
+     tuple_of_etf dict_segs_etf >>= fun dict_segs ->
+     int_of_etf dict_size_etf >>= fun dict_size ->
+     int_of_etf dict_num_of_active_slot_etf >>= fun dict_num_of_active_slot ->
+     int_of_etf dict_maxn_etf >>= fun dict_maxn ->
+     int_of_etf dict_buddy_slot_offset_etf >>= fun dict_buddy_slot_offset ->
+     int_of_etf dict_exp_size_etf >>= fun dict_exp_size ->
+     int_of_etf dict_con_size_etf >>= fun dict_con_size ->
      Ok {dict_size; dict_num_of_active_slot; dict_maxn; dict_buddy_slot_offset;
          dict_exp_size; dict_con_size; dict_empty_segment; dict_segs}
   | other ->
-     Error (Failure (!%"dict_of_etf"))
+     Error (Failure (!%"dict_of_etf: %s" (Etf.show etf)))
 
 let fold_dict ~f ~init dict =
   let segs = dict.dict_segs in
