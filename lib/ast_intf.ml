@@ -4,8 +4,15 @@ let sexp_of_string = Base.sexp_of_string
 let sexp_of_list = Base.sexp_of_list
 let sexp_of_option = Base.sexp_of_option
 
+module Z = struct
+  type t = Z.t
+  let sexp_of_t z = Z.to_string z |> sexp_of_string
+  let pp fmt z = Z.to_string z |> Format.fprintf fmt "%s"
+end
+
 type constant =
     | Int of int
+    | BigInt of Z.t
     | Float of float
     | Atom of string
     | String of string

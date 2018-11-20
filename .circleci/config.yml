@@ -5,13 +5,14 @@ jobs:
     docker:
       - image: ocaml/opam2:alpine-3.8-ocaml-4.07
     steps:
+      - run:
+          name: Install System Deps
+          # NOTE: You must install git and openssh before checkout, otherwise submodule will not be updated.
+          command: sudo apk add --update m4 make zlib-dev gmp-dev perl git openssh
       - checkout
       - run:
           name: submodule update
           command: git submodule init && git submodule update
-      - run:
-          name: Install System Deps
-          command: sudo apk add --update m4 make zlib-dev
       - run:
           name: Install
           command: eval $(opam config env) && opam repo add remote-default https://opam.ocaml.org && opam pin add -y obeam obeam && opam pin add -y fialyzer .
