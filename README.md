@@ -12,7 +12,8 @@ Prerequisite
 - opam-2.0.0 or higher
 - GMP
 - Perl
-- odoc (optional)
+- odoc (optional, for `make doc`)
+- Erlang/OTP (optional, for `make test`)
 
 Build
 -----

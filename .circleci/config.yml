@@ -1,15 +1,35 @@
 version: 2
 jobs:
+  beam:
+    working_directory: ~/fialyzer
+    docker:
+      - image: erlang:21.1.2-alpine
+    steps:
+      - checkout
+      - run:
+          name: Install System Deps
+          command: apk add --no-cache ca-certificates make
+      - run:
+          name: Compile erl files
+          command: make beam
+      - persist_to_workspace:
+          root: .
+          paths:
+            # CircleCI does not support globstar pattern (`**/*.beam`).
+            # So you must list concrete filepaths if you want to add BEAM files.
+            - ./test/blackbox-test/test-cases/*.beam
   build:
-    working_directory: ~/fialyzer # use /fialyzer for local circleci cli
+    working_directory: ~/fialyzer
     docker:
       - image: ocaml/opam2:alpine-3.8-ocaml-4.07
     steps:
       - run:
           name: Install System Deps
           # NOTE: You must install git and openssh before checkout, otherwise submodule will not be updated.
-          command: sudo apk add --update m4 make zlib-dev gmp-dev perl git openssh
+          command: sudo apk add --no-cache m4 make zlib-dev gmp-dev perl git openssh
       - checkout
+      - attach_workspace:
+          at: .
       - run:
           name: submodule update
           command: git submodule init && git submodule update
@@ -18,4 +38,13 @@ jobs:
           command: eval $(opam config env) && opam repo add remote-default https://opam.ocaml.org && opam pin add -y obeam obeam && opam pin add -y fialyzer .
       - run:
           name: Test
-          command: eval $(opam config env) && make test
+          # NOTE: Don't run `make test` because `make test` requires Erlang/OTP.
+          command: eval $(opam config env) && make unit-test && make blackbox-test
+workflows:
+  version: 2
+  all:
+    jobs:
+      - beam
+      - build:
+          requires:
+            - beam

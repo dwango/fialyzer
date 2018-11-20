@@ -4,8 +4,16 @@ INSTALL_ARGS := $(if $(PREFIX),--prefix $(PREFIX),)
 default:
 	dune build @install
 
-test:
-	dune runtest test
+beam:
+	test/blackbox-test/compile.sh
+
+test: unit-test beam blackbox-test
+
+unit-test:
+	dune runtest test/unit-test
+
+blackbox-test:
+	dune runtest test/blackbox-test
 
 promote:
 	dune promote
@@ -24,4 +32,4 @@ reinstall: uninstall reinstall
 clean:
 	rm -rf _build
 
-.PHONY: default install test doc uninstall reinstall clean
+.PHONY: default install beam test unit-test blackbox-test promote doc uninstall reinstall clean
