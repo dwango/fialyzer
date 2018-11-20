@@ -60,6 +60,21 @@ let tag_of_etf etf =
   E.atom_of_etf etf >>= fun atom ->
   tag_of_atom atom
 
+type ident_type = IAny | IPort | IPid | IReference
+[@@deriving show, sexp_of]
+
+let ident_type_of_etf etf =
+  let open Result in
+  let tag_of_atom = function
+    | "any" -> Ok IAny
+    | "port" -> Ok IPort
+    | "pid" -> Ok IPid
+    | "reference" -> Ok IReference
+    | other -> Error (Failure(!%"ident_type_of_atom: unknown : %s" other))
+  in
+  E.atom_of_etf etf >>= fun atom ->
+  tag_of_atom atom
+
 (**
 {v
 -record(c, {tag			      :: tag(),
@@ -77,7 +92,7 @@ type t =
   | Atom of string list
   (*  | Bitstr of : TODO *)
   | Function of t list * t
-  (* | Identifier of : TODO *)
+  | Identifier of ident_type list
   | List of t * t * qualifier (* (types, term, size): TODO *)
   | Nil
   | Number of qualifier (*TODO: elements *)
@@ -137,6 +152,10 @@ let rec of_etf = function
         | other ->
            Error(Failure (!%"tyfun_of_etf: unsupported"))
         end
+     | IdentifierTag ->
+        (E.list_of_etf elements @? "Identifier") >>= fun elems ->
+        result_map_m ~f:ident_type_of_etf elems >>= fun ident_types ->
+        Ok (Identifier ident_types)
      | ListTag ->
         E.list_of_etf elements >>= fun elems ->
         begin match elems with
