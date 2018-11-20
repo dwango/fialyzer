@@ -8,6 +8,9 @@ type qualifier
 type t_map_mandatoriness
 [@@deriving show, sexp_of]
 
+type ident_type
+[@@deriving show, sexp_of]
+
 (**
 {v
 -record(c, {tag			      :: tag(),
@@ -25,7 +28,7 @@ type t =
   | Atom of string list
   (*  | Bitstr of : TODO *)
   | Function of t list * t
-  (* | Identifier of : TODO *)
+  | Identifier of ident_type list
   | List of t * t * qualifier (* (types, term, size): TODO *)
   | Nil
   | Number of qualifier
