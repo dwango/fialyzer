@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: Install System Deps
-          command: apk add --update --no-cache ca-certificates make
+          command: apk add --no-cache ca-certificates make
       - run:
           name: Compile erl files
           command: make beam
@@ -26,7 +26,7 @@ jobs:
       - run:
           name: Install System Deps
           # NOTE: You must install git and openssh before checkout, otherwise submodule will not be updated.
-          command: sudo apk add --update --no-cache m4 make zlib-dev gmp-dev perl git openssh
+          command: sudo apk add --no-cache m4 make zlib-dev gmp-dev perl git openssh
       - checkout
       - attach_workspace:
           at: .
