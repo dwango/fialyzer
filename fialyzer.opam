@@ -14,6 +14,7 @@ depends: [
   "base"
   "obeam"
   "bitstring"
+  "zarith"
   "ppx_deriving" {build}
   "ppx_expect" {build}
   "expect_test_helpers_kernel"
