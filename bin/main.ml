@@ -34,9 +34,6 @@ let beam_to_etf beam_buf = match Chunk.parse_layout beam_buf with
   | Error (msg, _rest) ->
      Error (Failure msg)
 
-let show_usage () =
-  Printf.sprintf "Usage: %s <beam_filename>" Sys.argv.(0)
-
 let read_file beam_filename =
   try_with (fun () -> Bitstring.bitstring_of_file beam_filename) >>= fun beam ->
   beam_to_etf beam >>= fun etf ->
@@ -48,7 +45,7 @@ let read_input () =
   | [|_; beam_filename|] ->
      read_file beam_filename
   | _ ->
-     Error (Failure (show_usage()))
+     Error (Known_error.FialyzerError InvalidUsage)
 
 let main =
   read_input () >>= fun code ->
@@ -65,7 +62,8 @@ let main =
 let () =
   match main with
   | Ok () -> ()
-  | Error (Failure msg) ->
-     Caml.prerr_endline msg
+  | Error (Known_error.FialyzerError err) ->
+     Caml.prerr_endline (Known_error.to_message err);
+     Caml.exit 1
   | Error exn ->
      raise exn
