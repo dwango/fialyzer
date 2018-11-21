@@ -14,6 +14,6 @@ type t =
 
 exception FialyzerError of t
 
-val make_type_error : file_name:string -> line:int -> actual:Ast_intf.typ -> expected:Ast_intf.typ -> type_error
+val make_type_error : filename:string -> line:int -> actual:Ast_intf.typ -> expected:Ast_intf.typ -> type_error
 val make_issue : url:string -> issue
 val to_message : t -> string
