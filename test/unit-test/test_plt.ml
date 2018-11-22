@@ -10,6 +10,11 @@ let%expect_test "Plt.of_file" =
     |> Expect_test_helpers_kernel.print_s
   in
 
+  (*
+    The plt file was created by the following:
+    - $ erlc +debug_info samples/test01.erl
+    - $ dialyzer --build_plt test01.beam --output_plt test01.plt
+   *)
   print "plt/test01.plt";
   [%expect {|
     (Ok (
