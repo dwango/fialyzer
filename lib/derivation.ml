@@ -75,12 +75,12 @@ let rec derive context = function
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, Conj (c :: constraints))
   | MFA (Val (Atom m), Val (Atom f), Val (Int a)) ->
-     (* TODO: find MFA from context *)
+     (* find MFA from context *)
      begin match Context.find context (Context.Key.MFA (m, f, a)) with
      | Some ty ->
         Ok (ty, Empty)
      | None ->
-        Error ("unknown type variable: " ^ f)
+        Error (Printf.sprintf "unknown MFA: %s:%s/%d" m f a)
      end
   | MFA (m, f, a) ->
      (* few info to find MFA *)
