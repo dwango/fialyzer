@@ -16,7 +16,7 @@ let%expect_test "derivation" =
   print Context.empty (Var "x");
   [%expect {| (Error "unknown type variable: x") |}];
 
-  print (Context.add "x" TyInteger Context.empty) (Var "x");
+  print (Context.add (Context.Key.Var "x") TyInteger Context.empty) (Var "x");
   [%expect {| (Ok (TyInteger Empty)) |}];
 
   print Context.empty (Struct [Val (Int 42); Val (Atom "x")]);
@@ -182,3 +182,43 @@ let%expect_test "derivation" =
                 (TyVar h)
                 (TyVar i))
               Empty)))))))) |}];
+
+  print
+    (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TyConstant (Atom "ok"))) Context.empty)
+    (App (MFA (Val (Atom "m"), Val (Atom "f"), Val (Int 0)), []));
+  [%expect {|
+    (Ok (
+      (TyVar b)
+      (Conj (
+        (Eq (TyFun () (TyConstant (Atom ok))) (TyFun () (TyVar a)))
+        (Subtype
+          (TyVar b)
+          (TyVar a))
+        Empty)))) |}];
+
+  print
+    (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TyConstant (Atom "ok"))) Context.empty)
+    (Let ("M", Val (Atom "m"),
+          Let ("F", Val (Atom "f"),
+               Let ("A", Val (Int 0),
+                    App (MFA (Var "M", Var "F", Var "A"), [])))));
+  [%expect {|
+    (Ok (
+      (TyVar c)
+      (Conj (
+        Empty (
+          Conj (
+            Empty (
+              Conj (
+                Empty (
+                  Conj (
+                    (Eq (TyVar a) (TyFun () (TyVar b)))
+                    (Subtype
+                      (TyVar c)
+                      (TyVar b))
+                    (Conj (
+                      Empty Empty Empty
+                      (Subtype (TyConstant (Atom m)) TyAtom)
+                      (Subtype (TyConstant (Atom f)) TyAtom)
+                      (Subtype (TyConstant (Int  0)) TyInteger)
+                      (Subtype (TyVar a) TyAny))))))))))))) |}]

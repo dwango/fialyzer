@@ -9,7 +9,7 @@ let rec derive context = function
   | Val c ->
      Ok (TyConstant c, Empty)
   | Var v ->
-     begin match Context.find context v with
+     begin match Context.find context (Context.Key.Var v) with
      | Some ty ->
         Ok (ty, Empty)
      | None ->
@@ -48,7 +48,7 @@ let rec derive context = function
      let new_tyvars = List.map ~f:(fun v -> (v, (new_tyvar ()))) vs in
      let added_context =
        List.fold_left
-         ~f:(fun context (v, tyvar) -> Context.add v tyvar context)
+         ~f:(fun context (v, tyvar) -> Context.add (Context.Key.Var v) tyvar context)
          ~init:context
          new_tyvars in
      derive added_context e >>= fun (ty_e, c) ->
@@ -56,13 +56,13 @@ let rec derive context = function
      Ok (tyvar, Eq (tyvar, TyConstraint (TyFun (List.map ~f:snd new_tyvars, ty_e), c)))
   | Let (v, e1, e2) ->
      derive context e1 >>= fun (ty_e1, c1) ->
-     derive (Context.add v ty_e1 context) e2 >>= fun (ty_e2, c2) ->
+     derive (Context.add (Context.Key.Var v) ty_e1 context) e2 >>= fun (ty_e2, c2) ->
      Ok (ty_e2, Conj [c1; c2])
   | Letrec (lets , e) ->
      let new_tyvars = List.map ~f:(fun (v, f) -> (v, f, (new_tyvar ()))) lets in
      let added_context =
        List.fold_left
-         ~f:(fun context (v, _, tyvar) -> Context.add v tyvar context)
+         ~f:(fun context (v, _, tyvar) -> Context.add (Context.Key.Var v) tyvar context)
          ~init:context
          new_tyvars in
      let constraints_result =
@@ -76,7 +76,7 @@ let rec derive context = function
      Ok (ty, Conj (c :: constraints))
   | MFA (Val (Atom m), Val (Atom f), Val (Int a)) ->
      (* TODO: find MFA from context *)
-     begin match Context.find context f with
+     begin match Context.find context (Context.Key.MFA (m, f, a)) with
      | Some ty ->
         Ok (ty, Empty)
      | None ->
