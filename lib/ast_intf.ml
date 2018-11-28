@@ -27,6 +27,7 @@ type expr =
     | Let of string * expr * expr
     | Letrec of (string * expr) list * expr
     | Case of expr * (pattern * expr) list
+    | MFA of expr * expr * expr
 [@@deriving show, sexp_of]
 and pattern = pattern' * expr
 and pattern' =
