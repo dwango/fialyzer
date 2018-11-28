@@ -93,7 +93,7 @@ let rec derive context = function
         Subtype (ty_m, TyAtom);
         Subtype (ty_f, TyAtom);
         Subtype (ty_a, TyInteger);
-        Subtype (tyvar_mfa, TyAny)] (* cannot be TyFun (.., ..) because arity is unknown *)
+        Subtype (tyvar_mfa, TyAny)] (* cannot be TyFun (.., ..) because the arity is unknown. give up *)
      in
      Ok (tyvar_mfa, Conj cs)
   | other ->
