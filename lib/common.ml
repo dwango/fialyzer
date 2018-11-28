@@ -13,8 +13,8 @@ let result_or r1 r2 =
 
 let (@?) res message =
   let f = function
-    | Failure msg -> Failure (msg ^ ": " ^ message)
-    | exn -> Failure (Caml.Printexc.to_string exn ^": "^ message)
+    | Failure msg -> Failure (message ^ ": " ^ msg)
+    | exn -> Failure (message ^": "^Caml.Printexc.to_string exn)
   in
   Result.map_error ~f res
 

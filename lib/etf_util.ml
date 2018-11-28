@@ -27,6 +27,10 @@ let list_of_etf = function
   | other ->
      Error (Failure(!%"list_of_etf: '%s'" (Etf.show other)))
 
+let string_of_etf = function
+  | Etf.String s -> Ok s
+  | other -> Error (Failure (!%"string_of_etf: %s" (Etf.show other)))
+
 let int_of_etf = function
   | Etf.SmallInteger i -> Ok i
   | Etf.Integer i32 -> Ok (Int32.to_int_exn i32)

@@ -26,7 +26,7 @@ type t =
   | None
   | Unit
   | Atom of string list
-  (*  | Bitstr of : TODO *)
+  | Binary of int * int
   | Function of t list * t
   | Identifier of ident_type list
   | List of t * t * qualifier (* (types, term, size): TODO *)
