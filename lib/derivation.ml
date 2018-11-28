@@ -74,5 +74,27 @@ let rec derive context = function
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, Conj (c :: constraints))
+  | MFA (Val (Atom m), Val (Atom f), Val (Int a)) ->
+     (* TODO: find MFA from context *)
+     begin match Context.find context f with
+     | Some ty ->
+        Ok (ty, Empty)
+     | None ->
+        Error ("unknown type variable: " ^ f)
+     end
+  | MFA (m, f, a) ->
+     (* few info to find MFA *)
+     let tyvar_mfa = new_tyvar () in
+     derive context m >>= fun (ty_m, c_m) ->
+     derive context f >>= fun (ty_f, c_f) ->
+     derive context a >>= fun (ty_a, c_a) ->
+     let cs =
+       [c_m; c_f; c_a;
+        Subtype (ty_m, TyAtom);
+        Subtype (ty_f, TyAtom);
+        Subtype (ty_a, TyInteger);
+        Subtype (tyvar_mfa, TyAny)] (* cannot be TyFun (.., ..) because arity is unknown *)
+     in
+     Ok (tyvar_mfa, Conj cs)
   | other ->
      Error (Printf.sprintf "unsupported type: %s" (show_expr other))
