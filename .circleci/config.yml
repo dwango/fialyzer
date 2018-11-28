@@ -31,11 +31,8 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: submodule update
-          command: git submodule init && git submodule update
-      - run:
           name: Install
-          command: eval $(opam config env) && opam repo add remote-default https://opam.ocaml.org && opam pin add -y obeam obeam && opam pin add -y fialyzer .
+          command: eval $(opam config env) && opam repo add remote-default https://opam.ocaml.org && opam pin add -y fialyzer .
       - run:
           name: Test
           # NOTE: Don't run `make test` because `make test` requires Erlang/OTP.

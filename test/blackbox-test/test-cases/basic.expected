@@ -2,7 +2,7 @@ code: (Abstract_format.AbstractCode
    (Abstract_format.ModDecl
       [(Abstract_format.AttrFile (1, "test-cases/basic.erl", 1));
         (Abstract_format.AttrMod (1, "basic"));
-        (Abstract_format.AttrExport (3, [("ok", 0); ("id", 1)]));
+        (Abstract_format.AttrExport (3, [("ok", 0); ("id", 1); ("ok2", 0)]));
         (Abstract_format.DeclFun (5, "ok", 0,
            [(Abstract_format.ClsFun (5, [], None,
                (Abstract_format.ExprBody
@@ -19,18 +19,61 @@ code: (Abstract_format.AbstractCode
                ))
              ]
            ));
+        (Abstract_format.DeclFun (9, "ok2", 0,
+           [(Abstract_format.ClsFun (9, [], None,
+               (Abstract_format.ExprBody
+                  [(Abstract_format.ExprLocalCall (9,
+                      (Abstract_format.ExprLit
+                         (Abstract_format.LitAtom (9, "id"))),
+                      [(Abstract_format.ExprLocalCall (9,
+                          (Abstract_format.ExprLit
+                             (Abstract_format.LitAtom (9, "ok"))),
+                          []))
+                        ]
+                      ))
+                    ])
+               ))
+             ]
+           ));
         Abstract_format.FormEof]))
-expr: (Letrec ((ok (Abs () (Val (Atom ok)))) (id (Abs (A) (Var A))))
-  (Struct ((Var ok) (Var id))))
-type: (TyStruct ((TyVar a) (TyVar b)))
+expr: (Letrec
+  ((ok (Abs () (Val (Atom ok)))) (id (Abs (A) (Var A)))
+    (ok2 (Abs () (App (Val (Atom id)) ((App (Val (Atom ok)) ()))))))
+  (Struct ((Var ok) (Var id) (Var ok2))))
+type: (TyStruct ((TyVar a) (TyVar b) (TyVar c)))
 constraint:
 (Conj
-  ((Conj (Empty Empty)) (Eq (TyVar a) (TyVar c))
-    (Eq (TyVar c) (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
-    (Eq (TyVar b) (TyVar e))
-    (Eq (TyVar e) (TyConstraint (TyFun ((TyVar d)) (TyVar d)) Empty))))
+  ((Conj (Empty Empty Empty)) (Eq (TyVar a) (TyVar d))
+    (Eq (TyVar d) (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
+    (Eq (TyVar b) (TyVar f))
+    (Eq (TyVar f) (TyConstraint (TyFun ((TyVar e)) (TyVar e)) Empty))
+    (Eq (TyVar c) (TyVar l))
+    (Eq (TyVar l)
+      (TyConstraint (TyFun () (TyVar k))
+        (Conj
+          ((Eq (TyConstant (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
+            (Subtype (TyVar k) (TyVar j)) Empty (Subtype (TyVar h) (TyVar i))
+            (Conj
+              ((Eq (TyConstant (Atom ok)) (TyFun () (TyVar g)))
+                (Subtype (TyVar h) (TyVar g)) Empty))))))))
 solution:
 ((a (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
-  (b (TyConstraint (TyFun ((TyVar d)) (TyVar d)) Empty))
-  (c (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
-  (e (TyConstraint (TyFun ((TyVar d)) (TyVar d)) Empty)))
+  (b (TyConstraint (TyFun ((TyVar e)) (TyVar e)) Empty))
+  (c
+    (TyConstraint (TyFun () (TyVar k))
+      (Conj
+        ((Eq (TyConstant (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
+          (Subtype (TyVar k) (TyVar j)) Empty (Subtype (TyVar h) (TyVar i))
+          (Conj
+            ((Eq (TyConstant (Atom ok)) (TyFun () (TyVar g)))
+              (Subtype (TyVar h) (TyVar g)) Empty))))))
+  (d (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
+  (f (TyConstraint (TyFun ((TyVar e)) (TyVar e)) Empty))
+  (l
+    (TyConstraint (TyFun () (TyVar k))
+      (Conj
+        ((Eq (TyConstant (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
+          (Subtype (TyVar k) (TyVar j)) Empty (Subtype (TyVar h) (TyVar i))
+          (Conj
+            ((Eq (TyConstant (Atom ok)) (TyFun () (TyVar g)))
+              (Subtype (TyVar h) (TyVar g)) Empty)))))))

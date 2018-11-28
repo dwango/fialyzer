@@ -27,11 +27,7 @@ $ eval $(opam env)
 $ git clone git@github.com:dwango/fialyzer.git
 $ cd fialyzer
 
-# Get submodules:
-$ git submodule init && git submodule update
-
 # Install dependencies:
-$ opam pin add -y obeam obeam
 $ opam pin add -y fialyzer .
 
 # Build package:

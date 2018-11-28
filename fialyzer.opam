@@ -12,7 +12,7 @@ build: [
 depends: [
   "dune" {build}
   "base"
-  "obeam"
+  "obeam" {= "0.0.4"}
   "bitstring"
   "zarith"
   "ppx_deriving" {build}
