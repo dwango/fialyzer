@@ -105,7 +105,7 @@ type t =
   | Opaque of opaque list
   | Product of t list
   | Var of var_id
-  | Tuple of tuple
+  | Tuple of tuple option
   | TupleSet of (int * tuple list) list (* union of tuple *)
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
@@ -207,7 +207,7 @@ let rec of_etf = function
         E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
         begin match elements, arity_etf, tag_etf with
         | Etf.Atom "any", Etf.Atom "any", Etf.Atom "any" -> (* tuple() *)
-           Ok (Tuple{types=[]; arity=(-1); tag=None}) (* ?tuple(?any, ?any, ?any) *)
+           Ok (Tuple None)
         | _ ->
            E.list_of_etf elements >>= fun elems ->
            result_map_m ~f:of_etf elems >>= fun types ->
@@ -215,9 +215,9 @@ let rec of_etf = function
            of_etf tag_etf >>= fun tag_t ->
            begin match tag_t with
            | Any ->
-              Ok (Tuple {types; arity; tag=None})
+              Ok (Tuple (Some{types; arity; tag=None}))
            | Atom [atom] ->
-              Ok (Tuple {types; arity; tag=Some atom})
+              Ok (Tuple (Some{types; arity; tag=Some atom}))
            | other ->
               Error (Failure (!%"Please report:"))
            end
@@ -233,7 +233,7 @@ let rec of_etf = function
         let tuple_of_etf etf =
           Result.(
             of_etf etf >>= function
-            | Tuple tuple -> Ok tuple
+            | Tuple (Some tuple) -> Ok tuple
             | _ -> Error (Failure (!%"Please report: an element of tuple_set is not a tuple: %s" (Etf.show etf)))
           )
         in

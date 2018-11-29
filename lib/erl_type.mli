@@ -39,7 +39,7 @@ type t =
   | Opaque of opaque list
   | Product of t list
   | Var of var_id
-  | Tuple of tuple
+  | Tuple of tuple option
   | TupleSet of (int * tuple list) list
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
