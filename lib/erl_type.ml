@@ -75,6 +75,11 @@ let ident_type_of_etf etf =
   E.atom_of_etf etf >>= fun atom ->
   tag_of_atom atom
 
+type var_id =
+  | VAtom of string
+  | VInt of int
+[@@deriving show, sexp_of]
+
 (**
 {v
 -record(c, {tag			      :: tag(),
@@ -101,7 +106,7 @@ type t =
   | Product of t list
   | Tuple of t list * int * t (* (types, arity, tag) : TODO *)
   (* | TupleSet of tuples : TODO *)
-  (* | Var of id : TODO *)
+  | Var of var_id
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
 [@@deriving show, sexp_of]
@@ -204,6 +209,12 @@ let rec of_etf = function
            (of_etf tag_etf @? !%"TupleTag(%s)" (Etf.show tag_etf)) >>= fun tag ->
            Ok (Tuple(tys, arity, tag))
         end
+     | VarTag ->
+        result_or
+          (E.int_of_etf elements >>| fun i -> VInt i)
+          (E.atom_of_etf elements >>| fun id -> VAtom id)
+        >>= fun var_id ->
+        Ok (Var var_id)
      | UnionTag ->
         E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:of_etf elems >>= fun tys ->
