@@ -88,7 +88,7 @@ let module_to_expr m =
                               (name, Abs (args, body)))
   in
   let fun_names = funs |> List.map ~f:fst in
-  Letrec(funs, Struct (List.map ~f:(fun name -> Var name) fun_names))
+  Letrec(funs, Tuple (List.map ~f:(fun name -> Var name) fun_names))
   |> Result.return
 
 let code_to_expr code =
