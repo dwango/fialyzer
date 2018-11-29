@@ -32,16 +32,15 @@ type t =
   (*  | Bitstr of : TODO *)
   | Function of t list * t
   | Identifier of ident_type list
-  | List of t * t * qualifier (* (types, term, size): TODO *)
+  | List of t * t * qualifier
   | Nil
   | Number of qualifier
-  | Map of t_map_pair list * t * t (* (t_map_dict, defkey, defval) : TODO *)
+  | Map of t_map_pair list * t * t
   | Opaque of opaque list
   | Product of t list
-  | Tuple of t list * int * t (* (types, arity, tag) : TODO *)
-  (* | TupleSet of tuples : TODO *)
-  (* | Var of id : TODO *)
   | Var of var_id
+  | Tuple of tuple
+  | TupleSet of (int * tuple list) list
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
 [@@deriving show, sexp_of]
@@ -53,6 +52,8 @@ and opaque = {
     args : t list;
     struct_ : t;
   }
+[@@deriving show, sexp_of]
+and tuple
 [@@deriving show, sexp_of]
 
 val of_etf : Etf.t -> (t, exn) Result.t

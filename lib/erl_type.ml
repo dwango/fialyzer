@@ -98,15 +98,15 @@ type t =
   (*  | Bitstr of : TODO *)
   | Function of t list * t
   | Identifier of ident_type list
-  | List of t * t * qualifier (* (types, term, size): TODO *)
+  | List of t * t * qualifier
   | Nil
   | Number of qualifier (*TODO: elements *)
-  | Map of t_map_pair list * t * t (* (t_map_dict, defkey, defval) : TODO *)
+  | Map of t_map_pair list * t * t
   | Opaque of opaque list
   | Product of t list
-  | Tuple of t list * int * t (* (types, arity, tag) : TODO *)
-  (* | TupleSet of tuples : TODO *)
   | Var of var_id
+  | Tuple of tuple
+  | TupleSet of (int * tuple list) list (* union of tuple *)
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
 [@@deriving show, sexp_of]
@@ -117,6 +117,12 @@ and opaque = {
     name : string;
     args : t list;
     struct_ : t;
+  }
+[@@deriving show, sexp_of]
+and tuple = {
+    types : t list; (* 各要素の型 *)
+    arity : int;    (* サイズ *)
+    tag : t;        (* おそらくrecord型由来の場合の情報が格納される: Anyは情報なし、Atom[name]のときはレコード名、それ以外は未解明 *)
   }
 [@@deriving show, sexp_of]
 
@@ -201,13 +207,13 @@ let rec of_etf = function
         E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
         begin match elements, arity_etf, tag_etf with
         | Etf.Atom "any", Etf.Atom "any", Etf.Atom "any" -> (* tuple() *)
-           Ok (Tuple([], 0, Any)) (* ?tuple(?any, ?any, ?any) *)
+           Ok (Tuple{types=[]; arity=(-1); tag=Any}) (* ?tuple(?any, ?any, ?any) *)
         | _ ->
            E.list_of_etf elements >>= fun elems ->
-           result_map_m ~f:of_etf elems >>= fun tys ->
+           result_map_m ~f:of_etf elems >>= fun types ->
            E.int_of_etf arity_etf >>= fun arity ->
            (of_etf tag_etf @? !%"TupleTag(%s)" (Etf.show tag_etf)) >>= fun tag ->
-           Ok (Tuple(tys, arity, tag))
+           Ok (Tuple {types; arity; tag})
         end
      | VarTag ->
         result_or
@@ -215,6 +221,26 @@ let rec of_etf = function
           (E.atom_of_etf elements >>| fun id -> VAtom id)
         >>= fun var_id ->
         Ok (Var var_id)
+     | TupleSetTag ->
+        E.list_of_etf elements >>= fun elems ->
+        let tuple_of_etf etf =
+          Result.(
+            of_etf etf >>= function
+            | Tuple tuple -> Ok tuple
+            | _ -> Error (Failure (!%"Prease report: an element of tuple_set is not a tuple: %s" (Etf.show etf)))
+          )
+        in
+        let tuples_of_etf etf =
+          Result.(
+            E.pair_of_etf etf >>= fun (arity_etf, tuples_etf) ->
+            E.int_of_etf arity_etf >>= fun arity ->
+            E.list_of_etf tuples_etf >>= fun etfs ->
+            result_map_m ~f:tuple_of_etf etfs >>= fun tups ->
+            Ok (arity, tups)
+          )
+        in
+        result_map_m ~f:tuples_of_etf elems >>= fun tuples ->
+        Ok (TupleSet tuples)
      | UnionTag ->
         E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:of_etf elems >>= fun tys ->
