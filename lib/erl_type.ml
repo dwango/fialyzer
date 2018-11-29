@@ -120,9 +120,9 @@ and opaque = {
   }
 [@@deriving show, sexp_of]
 and tuple = {
-    types : t list; (* 各要素の型 *)
-    arity : int;    (* サイズ *)
-    tag : t;        (* おそらくrecord型由来の場合の情報が格納される: Anyは情報なし、Atom[name]のときはレコード名、それ以外は未解明 *)
+    types : t list;      (* type of elements *)
+    arity : int;         (* size *)
+    tag : string option; (* first element's tag (may be record name) *)
   }
 [@@deriving show, sexp_of]
 
@@ -207,13 +207,20 @@ let rec of_etf = function
         E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
         begin match elements, arity_etf, tag_etf with
         | Etf.Atom "any", Etf.Atom "any", Etf.Atom "any" -> (* tuple() *)
-           Ok (Tuple{types=[]; arity=(-1); tag=Any}) (* ?tuple(?any, ?any, ?any) *)
+           Ok (Tuple{types=[]; arity=(-1); tag=None}) (* ?tuple(?any, ?any, ?any) *)
         | _ ->
            E.list_of_etf elements >>= fun elems ->
            result_map_m ~f:of_etf elems >>= fun types ->
            E.int_of_etf arity_etf >>= fun arity ->
-           (of_etf tag_etf @? !%"TupleTag(%s)" (Etf.show tag_etf)) >>= fun tag ->
-           Ok (Tuple {types; arity; tag})
+           of_etf tag_etf >>= fun tag_t ->
+           begin match tag_t with
+           | Any ->
+              Ok (Tuple {types; arity; tag=None})
+           | Atom [atom] ->
+              Ok (Tuple {types; arity; tag=Some atom})
+           | other ->
+              Error (Failure (!%"Please report:"))
+           end
         end
      | VarTag ->
         result_or
@@ -227,7 +234,7 @@ let rec of_etf = function
           Result.(
             of_etf etf >>= function
             | Tuple tuple -> Ok tuple
-            | _ -> Error (Failure (!%"Prease report: an element of tuple_set is not a tuple: %s" (Etf.show etf)))
+            | _ -> Error (Failure (!%"Please report: an element of tuple_set is not a tuple: %s" (Etf.show etf)))
           )
         in
         let tuples_of_etf etf =
