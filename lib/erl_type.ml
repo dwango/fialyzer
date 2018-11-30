@@ -219,7 +219,7 @@ let rec of_etf = function
            | Atom [atom] ->
               Ok (Tuple (Some{types; arity; tag=Some atom}))
            | other ->
-              Error (Failure (!%"Please report:"))
+              Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (Etf.show tag_etf)))
            end
         end
      | VarTag ->
