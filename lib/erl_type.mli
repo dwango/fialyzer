@@ -11,6 +11,9 @@ type t_map_mandatoriness
 type ident_type
 [@@deriving show, sexp_of]
 
+type var_id
+[@@deriving show, sexp_of]
+
 (**
 {v
 -record(c, {tag			      :: tag(),
@@ -38,6 +41,7 @@ type t =
   | Tuple of t list * int * t (* (types, arity, tag) : TODO *)
   (* | TupleSet of tuples : TODO *)
   (* | Var of id : TODO *)
+  | Var of var_id
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
 [@@deriving show, sexp_of]
