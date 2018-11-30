@@ -10,21 +10,21 @@ let%expect_test "derivation" =
     |> [%sexp_of: (typ * constraint_, string) Result.t]
     |> Expect_test_helpers_kernel.print_s in
 
-  print Context.empty (Val (Int 42));
-  [%expect {| (Ok ((TyConstant (Int 42)) Empty)) |}];
+  print Context.empty (Constant (Number 42));
+  [%expect {| (Ok ((TySingleton (Number 42)) Empty)) |}];
 
   print Context.empty (Var "x");
   [%expect {| (Error "unknown type variable: x") |}];
 
-  print (Context.add (Context.Key.Var "x") TyInteger Context.empty) (Var "x");
-  [%expect {| (Ok (TyInteger Empty)) |}];
+  print (Context.add (Context.Key.Var "x") TyNumber Context.empty) (Var "x");
+  [%expect {| (Ok (TyNumber Empty)) |}];
 
-  print Context.empty (Tuple [Val (Int 42); Val (Atom "x")]);
+  print Context.empty (Tuple [Constant (Number 42); Constant (Atom "x")]);
   [%expect {|
     (Ok (
       (TyTuple (
-        (TyConstant (Int  42))
-        (TyConstant (Atom x))))
+        (TySingleton (Number 42))
+        (TySingleton (Atom   x))))
       (Conj (Empty Empty))))
   |}];
 
@@ -47,26 +47,26 @@ let%expect_test "derivation" =
             (TyVar a))
           Empty)))) |}];
 
-  print Context.empty (App (Val (Int 57), [Val (Int 42)]));
+  print Context.empty (App (Constant (Number 57), [Constant (Number 42)]));
   [%expect {|
     (Ok (
       (TyVar c)
       (Conj (
-        (Eq (TyConstant (Int 57)) (TyFun ((TyVar a)) (TyVar b)))
+        (Eq (TySingleton (Number 57)) (TyFun ((TyVar a)) (TyVar b)))
         (Subtype
           (TyVar c)
           (TyVar b))
         Empty
-        (Subtype (TyConstant (Int 42)) (TyVar a))
+        (Subtype (TySingleton (Number 42)) (TyVar a))
         Empty)))) |}];
 
-  print Context.empty (App (Val (String "I am a function!"), [Val (Int 42); Val (Int 57)]));
+  print Context.empty (App (Constant (Atom "I am a function!"), [Constant (Number 42); Constant (Number 57)]));
   [%expect {|
     (Ok (
       (TyVar d)
       (Conj (
         (Eq
-          (TyConstant (String "I am a function!"))
+          (TySingleton (Atom "I am a function!"))
           (TyFun
             ((TyVar a)
              (TyVar b))
@@ -75,12 +75,12 @@ let%expect_test "derivation" =
           (TyVar d)
           (TyVar c))
         Empty
-        (Subtype (TyConstant (Int 42)) (TyVar a))
+        (Subtype (TySingleton (Number 42)) (TyVar a))
         Empty
-        (Subtype (TyConstant (Int 57)) (TyVar b))
+        (Subtype (TySingleton (Number 57)) (TyVar b))
         Empty)))) |}];
 
-  print Context.empty (App (Abs (["x"], Var "x"), [Val (Int 42)]));
+  print Context.empty (App (Abs (["x"], Var "x"), [Constant (Number 42)]));
   [%expect {|
     (Ok (
       (TyVar e)
@@ -90,10 +90,10 @@ let%expect_test "derivation" =
           (TyVar e)
           (TyVar d))
         (Eq (TyVar b) (TyConstraint (TyFun ((TyVar a)) (TyVar a)) Empty))
-        (Subtype (TyConstant (Int 42)) (TyVar c))
+        (Subtype (TySingleton (Number 42)) (TyVar c))
         Empty)))) |}];
 
-  print Context.empty (App (Abs (["x"; "y"], Var "x"), [Val (Int 42); Val (Int 57)]));
+  print Context.empty (App (Abs (["x"; "y"], Var "x"), [Constant (Number 42); Constant (Number 57)]));
   [%expect {|
     (Ok (
       (TyVar g)
@@ -115,19 +115,19 @@ let%expect_test "derivation" =
                (TyVar b))
               (TyVar a))
             Empty))
-        (Subtype (TyConstant (Int 42)) (TyVar d))
+        (Subtype (TySingleton (Number 42)) (TyVar d))
         Empty
-        (Subtype (TyConstant (Int 57)) (TyVar e))
+        (Subtype (TySingleton (Number 57)) (TyVar e))
         Empty)))) |}];
 
-  print Context.empty (Let ("x", Val (Int 42), Var "x"));
+  print Context.empty (Let ("x", Constant (Number 42), Var "x"));
   [%expect {|
     (Ok (
-      (TyConstant (Int   42))
-      (Conj       (Empty Empty)))) |}];
+      (TySingleton (Number 42))
+      (Conj        (Empty  Empty)))) |}];
 
-  print Context.empty (Letrec ([("x", Val (Int 42))], Var "x"));
-  [%expect {| (Ok ((TyVar a) (Conj (Empty (Eq (TyVar a) (TyConstant (Int 42))) Empty)))) |}];
+  print Context.empty (Letrec ([("x", Constant (Number 42))], Var "x"));
+  [%expect {| (Ok ((TyVar a) (Conj (Empty (Eq (TyVar a) (TySingleton (Number 42))) Empty)))) |}];
 
   print
     Context.empty
@@ -135,7 +135,7 @@ let%expect_test "derivation" =
       ([
         ("f", Abs (["x"], App (Var "g", [Var "x"])));
         ("g", Abs (["x"], App (Var "f", [Var "x"])))
-      ], App (Var "f", [Val (Int 42)])));
+      ], App (Var "f", [Constant (Number 42)])));
   [%expect {|
     (Ok (
       (TyVar o)
@@ -146,7 +146,7 @@ let%expect_test "derivation" =
             (TyVar o)
             (TyVar n))
           Empty
-          (Subtype (TyConstant (Int 42)) (TyVar m))
+          (Subtype (TySingleton (Number 42)) (TyVar m))
           Empty))
         (Eq
           (TyVar a)
@@ -184,23 +184,23 @@ let%expect_test "derivation" =
               Empty)))))))) |}];
 
   print
-    (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TyConstant (Atom "ok"))) Context.empty)
-    (App (MFA (Val (Atom "m"), Val (Atom "f"), Val (Int 0)), []));
+    (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TySingleton (Atom "ok"))) Context.empty)
+    (App (MFA (Constant (Atom "m"), Constant (Atom "f"), Constant (Number 0)), []));
   [%expect {|
     (Ok (
       (TyVar b)
       (Conj (
-        (Eq (TyFun () (TyConstant (Atom ok))) (TyFun () (TyVar a)))
+        (Eq (TyFun () (TySingleton (Atom ok))) (TyFun () (TyVar a)))
         (Subtype
           (TyVar b)
           (TyVar a))
         Empty)))) |}];
 
   print
-    (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TyConstant (Atom "ok"))) Context.empty)
-    (Let ("M", Val (Atom "m"),
-          Let ("F", Val (Atom "f"),
-               Let ("A", Val (Int 0),
+    (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TySingleton (Atom "ok"))) Context.empty)
+    (Let ("M", Constant (Atom "m"),
+          Let ("F", Constant (Atom "f"),
+               Let ("A", Constant (Number 0),
                     App (MFA (Var "M", Var "F", Var "A"), [])))));
   [%expect {|
     (Ok (
@@ -218,7 +218,7 @@ let%expect_test "derivation" =
                       (TyVar b))
                     (Conj (
                       Empty Empty Empty
-                      (Subtype (TyConstant (Atom m)) TyAtom)
-                      (Subtype (TyConstant (Atom f)) TyAtom)
-                      (Subtype (TyConstant (Int  0)) TyInteger)
+                      (Subtype (TySingleton (Atom   m)) TyAtom)
+                      (Subtype (TySingleton (Atom   f)) TyAtom)
+                      (Subtype (TySingleton (Number 0)) TyNumber)
                       (Subtype (TyVar a) TyAny))))))))))))) |}]
