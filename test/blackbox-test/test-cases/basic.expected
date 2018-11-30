@@ -37,43 +37,43 @@ code: (Abstract_format.AbstractCode
            ));
         Abstract_format.FormEof]))
 expr: (Letrec
-  ((ok (Abs () (Val (Atom ok)))) (id (Abs (A) (Var A)))
-    (ok2 (Abs () (App (Val (Atom id)) ((App (Val (Atom ok)) ()))))))
+  ((ok (Abs () (Constant (Atom ok)))) (id (Abs (A) (Var A)))
+    (ok2 (Abs () (App (Constant (Atom id)) ((App (Constant (Atom ok)) ()))))))
   (Tuple ((Var ok) (Var id) (Var ok2))))
 type: (TyTuple ((TyVar a) (TyVar b) (TyVar c)))
 constraint:
 (Conj
   ((Conj (Empty Empty Empty)) (Eq (TyVar a) (TyVar d))
-    (Eq (TyVar d) (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
+    (Eq (TyVar d) (TyConstraint (TyFun () (TySingleton (Atom ok))) Empty))
     (Eq (TyVar b) (TyVar f))
     (Eq (TyVar f) (TyConstraint (TyFun ((TyVar e)) (TyVar e)) Empty))
     (Eq (TyVar c) (TyVar l))
     (Eq (TyVar l)
       (TyConstraint (TyFun () (TyVar k))
         (Conj
-          ((Eq (TyConstant (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
+          ((Eq (TySingleton (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
             (Subtype (TyVar k) (TyVar j)) Empty (Subtype (TyVar h) (TyVar i))
             (Conj
-              ((Eq (TyConstant (Atom ok)) (TyFun () (TyVar g)))
+              ((Eq (TySingleton (Atom ok)) (TyFun () (TyVar g)))
                 (Subtype (TyVar h) (TyVar g)) Empty))))))))
 solution:
-((a (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
+((a (TyConstraint (TyFun () (TySingleton (Atom ok))) Empty))
   (b (TyConstraint (TyFun ((TyVar e)) (TyVar e)) Empty))
   (c
     (TyConstraint (TyFun () (TyVar k))
       (Conj
-        ((Eq (TyConstant (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
+        ((Eq (TySingleton (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
           (Subtype (TyVar k) (TyVar j)) Empty (Subtype (TyVar h) (TyVar i))
           (Conj
-            ((Eq (TyConstant (Atom ok)) (TyFun () (TyVar g)))
+            ((Eq (TySingleton (Atom ok)) (TyFun () (TyVar g)))
               (Subtype (TyVar h) (TyVar g)) Empty))))))
-  (d (TyConstraint (TyFun () (TyConstant (Atom ok))) Empty))
+  (d (TyConstraint (TyFun () (TySingleton (Atom ok))) Empty))
   (f (TyConstraint (TyFun ((TyVar e)) (TyVar e)) Empty))
   (l
     (TyConstraint (TyFun () (TyVar k))
       (Conj
-        ((Eq (TyConstant (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
+        ((Eq (TySingleton (Atom id)) (TyFun ((TyVar i)) (TyVar j)))
           (Subtype (TyVar k) (TyVar j)) Empty (Subtype (TyVar h) (TyVar i))
           (Conj
-            ((Eq (TyConstant (Atom ok)) (TyFun () (TyVar g)))
+            ((Eq (TySingleton (Atom ok)) (TyFun () (TyVar g)))
               (Subtype (TyVar h) (TyVar g)) Empty)))))))

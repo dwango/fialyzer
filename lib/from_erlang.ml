@@ -4,13 +4,15 @@ open Obeam
 
 module F = Abstract_format
 
-let unit : expr = Val (Int 0)
+let unit : expr = Constant (Number 0)
 
 let const_of_literal = function
   | F.LitAtom (_line_t, name) -> Atom name
-  | LitInteger (_line_t, i) -> Int i
-  | LitBigInt (_line_t, z) -> BigInt z
-  | LitString (_line_t, s) -> String s
+  | LitInteger (_line_t, i) -> Number i
+  | LitBigInt (_line_t, z) ->
+     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"TODO: bigint literal")))
+  | LitString (_line_t, s) ->
+     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"TODO: string literal")))
 
 (* [e1; e2; ...] という式の列を let _ = e1 in let _ = e2 ... in という１つの式にする *)
 let rec expr_of_exprs = function
@@ -24,20 +26,20 @@ let rec expr_of_erlang_expr = function
      expr_of_exprs (List.map ~f:expr_of_erlang_expr erlangs)
   | ExprCase (_line_t, e, clauses) ->
     let cs = clauses |> List.map ~f:(function
-    | F.ClsCase (_, F.PatVar (_, v), _, e) -> ((PatVar v, Val (Atom "true")), expr_of_erlang_expr e)
-    | F.ClsCase (_, F.PatUniversal _, _, e) -> ((PatVar "_", Val (Atom "true")), expr_of_erlang_expr e)
+    | F.ClsCase (_, F.PatVar (_, v), _, e) -> ((PatVar v, Constant (Atom "true")), expr_of_erlang_expr e)
+    | F.ClsCase (_, F.PatUniversal _, _, e) -> ((PatVar "_", Constant (Atom "true")), expr_of_erlang_expr e)
     | F.ClsCase (_, _, _, _) | F.ClsFun (_, _, _, _) -> failwith "not implemented"
     ) in
     Case (expr_of_erlang_expr e, cs)
   | ExprLocalCall (_line_t, f, args) ->
      App (expr_of_erlang_expr f, List.map ~f:expr_of_erlang_expr args)
   | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
-     let mfa = MFA (expr_of_erlang_expr m, expr_of_erlang_expr f, Val (Int (List.length args))) in
+     let mfa = MFA (expr_of_erlang_expr m, expr_of_erlang_expr f, Constant (Number (List.length args))) in
      App (mfa, List.map ~f:expr_of_erlang_expr args)
   | ExprBinOp (_line_t, op, e1, e2) ->
      App(Var op, List.map ~f:expr_of_erlang_expr [e1; e2])
   | ExprVar (_line_t, v) -> Var v
-  | ExprLit literal -> Val (const_of_literal literal)
+  | ExprLit literal -> Constant (const_of_literal literal)
   | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) -> failwith "not implemented"
 
 let clauses_to_function = function

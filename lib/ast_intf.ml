@@ -11,15 +11,12 @@ module Z = struct
 end
 
 type constant =
-    | Int of int
-    | BigInt of Z.t
-    | Float of float
+    | Number of int
     | Atom of string
-    | String of string
 [@@deriving show, sexp_of]
 
 type expr =
-    | Val of constant
+    | Constant of constant
     | Var of string
     | Tuple of expr list
     | App of expr * expr list
@@ -45,10 +42,10 @@ type typ =
     | TyUnion of typ * typ
     | TyConstraint of typ * constraint_
     | TyAny
-    | TyNone
-    | TyInteger
+    | TyBottom
+    | TyNumber
     | TyAtom
-    | TyConstant of constant
+    | TySingleton of constant
 [@@deriving show, sexp_of]
 and constraint_ =
     | Eq of typ * typ

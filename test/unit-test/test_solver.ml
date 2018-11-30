@@ -12,29 +12,29 @@ let%expect_test "meet" =
   print TyAny TyAny;
   [%expect {| TyAny |}];
 
-  print TyNone TyAny;
-  [%expect {| TyNone |}];
+  print TyBottom TyAny;
+  [%expect {| TyBottom |}];
 
-  print (TyConstant (Int 1)) (TyConstant (Int 2));
-  [%expect {| TyNone |}];
+  print (TySingleton (Number 1)) (TySingleton (Number 2));
+  [%expect {| TyBottom |}];
 
-  print (TyUnion (TyUnion (TyConstant (Int 1), TyConstant (Int 2)), TyConstant (Int 3)))
-        (TyUnion (TyUnion (TyConstant (Int 2), TyConstant (Int 3)), TyConstant (Int 4)));
+  print (TyUnion (TyUnion (TySingleton (Number 1), TySingleton (Number 2)), TySingleton (Number 3)))
+        (TyUnion (TyUnion (TySingleton (Number 2), TySingleton (Number 3)), TySingleton (Number 4)));
   (* TODO: normalize *)
   [%expect {|
     (TyUnion
       (TyUnion
-        (TyUnion (TyUnion TyNone TyNone) TyNone)
-        (TyUnion (TyUnion (TyConstant (Int 2)) TyNone) TyNone))
-      (TyUnion (TyUnion TyNone (TyConstant (Int 3))) TyNone)) |}];
+        (TyUnion (TyUnion TyBottom TyBottom) TyBottom)
+        (TyUnion (TyUnion (TySingleton (Number 2)) TyBottom) TyBottom))
+      (TyUnion (TyUnion TyBottom (TySingleton (Number 3))) TyBottom)) |}];
 
-  print (TyUnion (TyUnion (TyConstant (Int 1), TyConstant (Int 2)), TyConstant (Int 3))) TyInteger;
+  print (TyUnion (TyUnion (TySingleton (Number 1), TySingleton (Number 2)), TySingleton (Number 3))) TyNumber;
   [%expect {|
     (TyUnion
       (TyUnion
-        (TyConstant (Int 1))
-        (TyConstant (Int 2)))
-      (TyConstant (Int 3))) |}]
+        (TySingleton (Number 1))
+        (TySingleton (Number 2)))
+      (TySingleton (Number 3))) |}]
 
 let%expect_test "solver" =
   let print c =
@@ -50,42 +50,42 @@ let%expect_test "solver" =
   [%expect {| (Ok ()) |}];
 
   let [a] = create_vars 1 in
-  print (Eq (TyVar a, TyInteger));
-  [%expect {| (Ok ((a TyInteger))) |}];
+  print (Eq (TyVar a, TyNumber));
+  [%expect {| (Ok ((a TyNumber))) |}];
 
   let [a] = create_vars 1 in
-  print (Subtype (TyVar a, TyInteger));
-  [%expect {| (Ok ((a TyInteger))) |}];
+  print (Subtype (TyVar a, TyNumber));
+  [%expect {| (Ok ((a TyNumber))) |}];
 
   let [a; b] = create_vars 2 in
-  print (Subtype (TyTuple [TyVar a; TyVar b], TyTuple [TyInteger; TyAtom]));
+  print (Subtype (TyTuple [TyVar a; TyVar b], TyTuple [TyNumber; TyAtom]));
   [%expect {|
     (Ok (
-      (a TyInteger)
+      (a TyNumber)
       (b TyAtom))) |}];
 
   let [a; b] = create_vars 2 in
-  print (Subtype (TyUnion (TyVar a, TyVar b), TyInteger));
+  print (Subtype (TyUnion (TyVar a, TyVar b), TyNumber));
   [%expect {|
     (Ok (
-      (a TyInteger)
-      (b TyInteger))) |}];
+      (a TyNumber)
+      (b TyNumber))) |}];
 
   let [a] = create_vars 1 in
-  print (Subtype (TyConstraint (TyVar a, Eq (TyVar a, TyInteger)), TyAtom));
+  print (Subtype (TyConstraint (TyVar a, Eq (TyVar a, TyNumber)), TyAtom));
   [%expect {| (Error (Failure "there is no solution that satisfies subtype constraints")) |}];
 
-  print (Subtype (TyNone, TyAny));
+  print (Subtype (TyBottom, TyAny));
   [%expect {| (Ok ()) |}];
 
   print (Subtype (TyAny, TyAny));
   [%expect {| (Ok ()) |}];
 
-  print (Subtype (TyNone, TyAny));
+  print (Subtype (TyBottom, TyAny));
   [%expect {| (Ok ()) |}];
 
-  print (Subtype (TyNone, TyNone));
+  print (Subtype (TyBottom, TyBottom));
   [%expect {| (Ok ()) |}];
 
-  print (Subtype (TyInteger, TyAtom));
+  print (Subtype (TyNumber, TyAtom));
   [%expect {| (Error (Failure "there is no solution that satisfies subtype constraints")) |}];

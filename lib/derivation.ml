@@ -6,8 +6,8 @@ open Result
 let new_tyvar () = TyVar (Type_variable.create())
 
 let rec derive context = function
-  | Val c ->
-     Ok (TyConstant c, Empty)
+  | Constant c ->
+     Ok (TySingleton c, Empty)
   | Var v ->
      begin match Context.find context (Context.Key.Var v) with
      | Some ty ->
@@ -74,7 +74,7 @@ let rec derive context = function
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, Conj (c :: constraints))
-  | MFA (Val (Atom m), Val (Atom f), Val (Int a)) ->
+  | MFA (Constant (Atom m), Constant (Atom f), Constant (Number a)) ->
      (* find MFA from context *)
      begin match Context.find context (Context.Key.MFA (m, f, a)) with
      | Some ty ->
@@ -92,7 +92,7 @@ let rec derive context = function
        [c_m; c_f; c_a;
         Subtype (ty_m, TyAtom);
         Subtype (ty_f, TyAtom);
-        Subtype (ty_a, TyInteger);
+        Subtype (ty_a, TyNumber);
         Subtype (tyvar_mfa, TyAny)] (* cannot be TyFun (.., ..) because the arity is unknown. give up *)
      in
      Ok (tyvar_mfa, Conj cs)

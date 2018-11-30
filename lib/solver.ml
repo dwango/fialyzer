@@ -24,10 +24,10 @@ let rec type_subst (x, ty1): typ -> typ = function
   | TyConstraint (ty, c) -> (* TODO: for constraint? *)
      TyConstraint(type_subst (x, ty1) ty, c)
   | TyAny -> TyAny
-  | TyNone -> TyNone
-  | TyInteger -> TyInteger
+  | TyBottom -> TyBottom
+  | TyNumber -> TyNumber
   | TyAtom -> TyAtom
-  | TyConstant const -> TyConstant const
+  | TySingleton const -> TySingleton const
   | TyVar v ->
      if x = v then ty1 else (TyVar v)
 and _type_subst_to_constraint (x, ty1) = function
@@ -55,7 +55,7 @@ let rec is_free x = function
      is_free x ty1 && is_free x ty2
   | TyConstraint (ty, c) ->
      is_free x ty (* TODO: for constraint ? *)
-  | TyAny | TyNone | TyInteger | TyAtom | TyConstant _  -> true
+  | TyAny | TyBottom | TyNumber | TyAtom | TySingleton _  -> true
 
 (* see TAPL https://dwango.slack.com/messages/CD453S78B/ *)
 let rec solve_eq sol ty1 ty2 =
@@ -102,8 +102,8 @@ let rec meet sol ty1 ty2 =
   | TyAny, _ -> ty2
   | _, TyAny -> ty1
   (* none *)
-  | TyNone, _ -> TyNone
-  | _, TyNone -> TyNone
+  | TyBottom, _ -> TyBottom
+  | _, TyBottom -> TyBottom
   (* struct *)
   | TyTuple tys1, TyTuple tys2 when List.length tys1 = List.length tys2 ->
      List.zip_exn tys1 tys2
@@ -125,21 +125,18 @@ let rec meet sol ty1 ty2 =
      TyConstraint (meet sol ty ty2, c)
   | _, TyConstraint (ty, c) ->
      TyConstraint (meet sol ty1 ty, c)
-  (* integer *)
-  | TyInteger, TyInteger -> TyInteger
-  | TyInteger, TyConstant (Int n) -> TyConstant (Int n)
-  | TyConstant (Int n), TyInteger -> TyConstant (Int n)
-  | TyConstant (Int n), TyConstant (Int m) when n = m -> TyConstant (Int n)
+  (* number *)
+  | TyNumber, TyNumber -> TyNumber
+  | TyNumber, TySingleton (Number n) -> TySingleton (Number n)
+  | TySingleton (Number n), TyNumber -> TySingleton (Number n)
+  | TySingleton (Number n), TySingleton (Number m) when n = m -> TySingleton (Number n)
   (* atom *)
   | TyAtom, TyAtom -> TyAtom
-  | TyConstant (Atom a), TyAtom -> TyConstant (Atom a)
-  | TyAtom, TyConstant (Atom a) -> TyConstant (Atom a)
-  | TyConstant (Atom a), TyConstant (Atom b) when a = b -> TyConstant (Atom a)
-  (* constant *)
-  | TyConstant (Float n), TyConstant (Float m) when n = m -> TyConstant (Float n)
-  | TyConstant (String s), TyConstant (String t) when s = t -> TyConstant (String s)
+  | TySingleton (Atom a), TyAtom -> TySingleton (Atom a)
+  | TyAtom, TySingleton (Atom a) -> TySingleton (Atom a)
+  | TySingleton (Atom a), TySingleton (Atom b) when a = b -> TySingleton (Atom a)
   (* otherwise *)
-  | _ -> TyNone
+  | _ -> TyBottom
 
 (* τ_1 ⊆ τ_2 *)
 let is_subtype sol ty1 ty2 =
@@ -169,7 +166,7 @@ and solve_sub sol ty1 ty2 =
        Ok sol
      else
        let ty = meet sol ty1' ty2 in
-       if ty != TyNone then
+       if ty != TyBottom then
          Ok (set (v1, ty) sol)
        else
          Error (Failure "there is no solution that satisfies subtype constraints")
