@@ -31,9 +31,9 @@ let rec expr_of_erlang_expr = function
     Case (expr_of_erlang_expr e, cs)
   | ExprLocalCall (_line_t, f, args) ->
      App (expr_of_erlang_expr f, List.map ~f:expr_of_erlang_expr args)
-  | ExprRemoteCall (_line_t, _line_m, _m, f, args) ->
-     (* TODO: support full qualified call *)
-     App (expr_of_erlang_expr f, List.map ~f:expr_of_erlang_expr args)
+  | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
+     let mfa = MFA (expr_of_erlang_expr m, expr_of_erlang_expr f, Val (Int (List.length args))) in
+     App (mfa, List.map ~f:expr_of_erlang_expr args)
   | ExprBinOp (_line_t, op, e1, e2) ->
      App(Var op, List.map ~f:expr_of_erlang_expr [e1; e2])
   | ExprVar (_line_t, v) -> Var v
