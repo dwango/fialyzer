@@ -24,6 +24,10 @@ let pair_of_etf etf =
 let list_of_etf = function
   | Etf.Nil -> Ok []
   | List(bkt, Nil) -> Ok bkt
+  | String s -> (* an optimization by ETF: see http://erlang.org/doc/apps/erts/erl_ext_dist.html#string_ext *)
+     String.to_list s
+     |> List.map ~f:(fun char -> Etf.SmallInteger (Char.to_int char))
+     |> Result.return
   | other ->
      Error (Failure(!%"list_of_etf: '%s'" (Etf.show other)))
 

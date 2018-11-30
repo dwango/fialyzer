@@ -3,6 +3,7 @@ module Format = Caml.Format
 module Etf = Obeam.External_term_format
 module E = Etf_util
 open Common
+open Polymorphic_compare
 
 type qualifier = FloatQual | IntegerQual | NonemptyQual | PidQual | PortQual
                  | ReferenceQual | UnknownQual
@@ -95,7 +96,7 @@ type t =
   | None
   | Unit
   | Atom of string list
-  (*  | Bitstr of : TODO *)
+  | Binary of int * int (*(unit, base)*)
   | Function of t list * t
   | Identifier of ident_type list
   | List of t * t * qualifier
@@ -135,7 +136,7 @@ let rec of_etf = function
                  tag_etf;
                  elements;
                  qualifier_etf;
-              ]) ->
+              ]) as etf ->
      let open Result in
      tag_of_etf tag_etf >>= fun tag ->
      begin match tag with
@@ -147,6 +148,14 @@ let rec of_etf = function
            E.list_of_etf elements>>= fun elems ->
            result_map_m ~f:E.atom_of_etf elems >>= fun atoms ->
            Ok (Atom atoms)
+        end
+     | BinaryTag ->
+        E.list_of_etf elements >>= fun elems ->
+        result_map_m ~f:E.int_of_etf elems >>= fun pair ->
+        begin match pair with
+        | [unit; base] ->
+           Ok (Binary (unit, base))
+        | _ -> Error (Failure (!%"Please report: unexpected binary type '%s' in a type contract" (Etf.show etf)))
         end
      | FunctionTag ->
         E.list_of_etf elements >>= fun elems ->
