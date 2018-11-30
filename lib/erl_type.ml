@@ -143,7 +143,7 @@ let rec of_etf = function
         begin match String.to_list elems_s |> List.map ~f:Char.to_int with
         | [unit; base] ->
            Ok (Binary (unit, base))
-        | _ -> Error (Failure (!%"Prease report: unexpected binary type '%s' in a type contract" (Etf.show etf)))
+        | _ -> Error (Failure (!%"Please report: unexpected binary type '%s' in a type contract" (Etf.show etf)))
         end
      | FunctionTag ->
         E.list_of_etf elements >>= fun elems ->
