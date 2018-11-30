@@ -58,7 +58,7 @@ let%expect_test "solver" =
   [%expect {| (Ok ((a TyInteger))) |}];
 
   let [a; b] = create_vars 2 in
-  print (Subtype (TyStruct [TyVar a; TyVar b], TyStruct [TyInteger; TyAtom]));
+  print (Subtype (TyTuple [TyVar a; TyVar b], TyTuple [TyInteger; TyAtom]));
   [%expect {|
     (Ok (
       (a TyInteger)

@@ -39,8 +39,8 @@ code: (Abstract_format.AbstractCode
 expr: (Letrec
   ((ok (Abs () (Val (Atom ok)))) (id (Abs (A) (Var A)))
     (ok2 (Abs () (App (Val (Atom id)) ((App (Val (Atom ok)) ()))))))
-  (Struct ((Var ok) (Var id) (Var ok2))))
-type: (TyStruct ((TyVar a) (TyVar b) (TyVar c)))
+  (Tuple ((Var ok) (Var id) (Var ok2))))
+type: (TyTuple ((TyVar a) (TyVar b) (TyVar c)))
 constraint:
 (Conj
   ((Conj (Empty Empty Empty)) (Eq (TyVar a) (TyVar d))

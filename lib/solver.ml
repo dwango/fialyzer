@@ -15,8 +15,8 @@ let init : solution = Map.empty (module Type_variable)
 
 (* type_subst (X, τ_1) τ_2 := [X ↦ τ_1]τ_2 *)
 let rec type_subst (x, ty1): typ -> typ = function
-  | TyStruct tys ->
-     TyStruct(List.map ~f:(type_subst (x, ty1)) tys)
+  | TyTuple tys ->
+     TyTuple(List.map ~f:(type_subst (x, ty1)) tys)
   | TyFun (tys, ty) ->
      TyFun (List.map ~f:(type_subst (x, ty1)) tys, type_subst (x, ty1) ty)
   | TyUnion (ty_a, ty_b) ->
@@ -47,7 +47,7 @@ let set (x, ty) sol =
 
 let rec is_free x = function
   | TyVar y -> (x <> y)
-  | TyStruct tys ->
+  | TyTuple tys ->
      List.for_all ~f:(is_free x) tys
   | TyFun (tys, ty) ->
      List.for_all ~f:(is_free x) (ty::tys)
@@ -67,11 +67,11 @@ let rec solve_eq sol ty1 ty2 =
      Ok (add (y, ty1) sol)
   | (TyVar v, _) | (_, TyVar v) ->
      Error (Failure (Printf.sprintf "not free variable: %s" (Type_variable.show v)))
-  | (TyStruct tys1, TyStruct tys2) when List.length tys1 = List.length tys2 ->
+  | (TyTuple tys1, TyTuple tys2) when List.length tys1 = List.length tys2 ->
      let open Result in
      List.zip_exn tys1 tys2
      |> List.fold_left ~init:(Ok sol) ~f:(fun res (ty1,ty2) -> res >>= fun sol -> solve_eq sol ty1 ty2)
-  | (TyStruct tys1, TyStruct tys2) ->
+  | (TyTuple tys1, TyTuple tys2) ->
      Error (Failure ("the tuple types are not different length"))
   | (TyFun (tys1, ty1), TyFun (tys2, ty2)) when List.length tys1 = List.length tys2 ->
      let open Result in
@@ -105,10 +105,10 @@ let rec meet sol ty1 ty2 =
   | TyNone, _ -> TyNone
   | _, TyNone -> TyNone
   (* struct *)
-  | TyStruct tys1, TyStruct tys2 when List.length tys1 = List.length tys2 ->
+  | TyTuple tys1, TyTuple tys2 when List.length tys1 = List.length tys2 ->
      List.zip_exn tys1 tys2
      |> List.map ~f:(fun (ty1, ty2) -> meet sol ty1 ty2)
-     |> (fun tys -> TyStruct tys)
+     |> (fun tys -> TyTuple tys)
   (* function *)
   | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
      List.zip_exn args1 args2
@@ -173,11 +173,11 @@ and solve_sub sol ty1 ty2 =
          Ok (set (v1, ty) sol)
        else
          Error (Failure "there is no solution that satisfies subtype constraints")
-  | TyStruct tys1, TyStruct tys2 when List.length tys1 = List.length tys2 ->
+  | TyTuple tys1, TyTuple tys2 when List.length tys1 = List.length tys2 ->
      let open Result in
      List.zip_exn tys1 tys2
      |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
-  | TyStruct tys1, TyStruct tys2 ->
+  | TyTuple tys1, TyTuple tys2 ->
      Error (Failure "the tuple types are not different length")
   | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
      let open Result in

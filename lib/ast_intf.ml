@@ -21,7 +21,7 @@ type constant =
 type expr =
     | Val of constant
     | Var of string
-    | Struct of expr list
+    | Tuple of expr list
     | App of expr * expr list
     | Abs of string list * expr
     | Let of string * expr * expr
@@ -31,7 +31,7 @@ type expr =
 and pattern = pattern' * expr
 and pattern' =
     | PatVar of string
-    | PatStruct of pattern' list
+    | PatTuple of pattern' list
 [@@deriving show, sexp_of]
 
 let string_of_expr expr =
@@ -39,7 +39,7 @@ let string_of_expr expr =
 
 type typ =
     | TyVar of Type_variable.t
-    | TyStruct of typ list
+    | TyTuple of typ list
     | TyFun of typ list * typ
     | TyUnion of typ * typ
     | TyConstraint of typ * constraint_
