@@ -139,8 +139,9 @@ let rec of_etf = function
            Ok (Atom atoms)
         end
      | BinaryTag ->
-        E.string_of_etf elements >>= fun elems_s ->
-        begin match String.to_list elems_s |> List.map ~f:Char.to_int with
+        E.list_of_etf elements >>= fun elems ->
+        result_map_m ~f:E.int_of_etf elems >>= fun pair ->
+        begin match pair with
         | [unit; base] ->
            Ok (Binary (unit, base))
         | _ -> Error (Failure (!%"Please report: unexpected binary type '%s' in a type contract" (Etf.show etf)))

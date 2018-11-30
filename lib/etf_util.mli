@@ -9,7 +9,6 @@ val atom_of_etf : Etf.t -> (string, exn) Result.t
 val tuple_of_etf : Etf.t -> (Etf.t list, exn) Result.t
 val pair_of_etf : Etf.t -> ((Etf.t * Etf.t) , exn) Result.t
 val list_of_etf : Etf.t -> (Etf.t list, exn) Result.t
-val string_of_etf : Etf.t -> (string, exn) Result.t
 val int_of_etf : Etf.t -> (int, exn) Result.t
 
 val list : Etf.t list -> Etf.t
