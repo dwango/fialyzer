@@ -52,7 +52,7 @@ let main =
   Caml.print_endline (!%"code: %s" (Abstract_format.show code));
   From_erlang.code_to_expr code >>= fun expr ->
   Caml.print_endline (!%"expr: %s" (Ast_intf.string_of_expr expr));
-  (Derivation.derive Context.empty expr |> map_error ~f:(fun msg -> Failure msg)) >>= fun (ty, c) ->
+  (Derivation.derive (Context.init ()) expr |> map_error ~f:(fun msg -> Failure msg)) >>= fun (ty, c) ->
   Caml.print_endline (!%"type: %s" (Ast_intf.string_of_typ ty));
   Caml.print_endline (!%"constraint:\n%s" (Ast_intf.string_of_constraint c));
   Solver.solve Solver.init c >>= fun sol ->
