@@ -10,6 +10,6 @@ for beam in $(ls ${dir}/*.beam); do
   testname=$(basename $beam .beam)
   expected="${dir}/${testname}.expected"
   output="${dir}/${testname}.output"
-  $fialyzer $beam > $output
+  $fialyzer --plt ./sample_plt $beam > $output
   diff $output $expected
 done
