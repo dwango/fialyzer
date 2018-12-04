@@ -4,7 +4,38 @@ module Etf = Obeam.External_term_format
 open Common
 
 type etf = Etf.t
-let sexp_of_etf etf = sexp_of_string (Etf.show etf)
+
+let rec show_etf = function
+  | Etf.SmallInteger i -> !%"%d"i
+  | Integer i32 -> !%"%ld" i32
+  | Float s -> s
+  | Atom atom -> !%"'%s'" atom
+  | SmallTuple (_n, ts) ->
+     List.map ~f:show_etf ts
+     |> String.concat ~sep:", "
+     |> !%"{%s}"
+  | Map (_i32, kvs) ->
+     List.map ~f:(fun (k,v) -> !%"%s => %s" (show_etf k) (show_etf v)) kvs
+     |> String.concat ~sep:", "
+     |> !%"#{%s}"
+  | Nil -> "[]"
+  | String s -> !%"\"%s\"" (String.escaped s)
+  | Binary _bitstr -> "<<...>>"
+  | SmallBig z -> Z.to_string z
+  | LargeBig z -> Z.to_string z
+  | List (ts, Nil) ->
+     List.map ~f:show_etf ts
+     |> String.concat ~sep:", "
+     |> !%"[%s]"
+  | List (ts, termination) ->
+     let lst = List.map ~f:show_etf ts |> String.concat ~sep:", " in
+     !%"[%s | %s]" lst (show_etf termination)
+  | NewFloat f -> !%"%f" f
+  | AtomUtf8 s -> !%"'%s'" s
+  | SmallAtomUtf8 s ->
+     !%"'%s'" s
+
+let sexp_of_etf etf = sexp_of_string (show_etf etf)
 
 let atom_of_etf = function
   | Etf.Atom atom -> Ok atom
