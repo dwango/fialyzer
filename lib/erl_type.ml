@@ -159,7 +159,7 @@ let rec of_etf = function
         end
      | FunctionTag ->
         E.list_of_etf elements >>= fun elems ->
-        result_guard (List.length elems = 2) (Failure "erl_type_of_erl:FunctionTag") >>= fun _ ->
+        result_guard ~error:(Failure "erl_type_of_erl:FunctionTag") (List.length elems = 2) >>= fun _ ->
         let domain_etf = List.nth_exn elems 0 in
         let range_etf = List.nth_exn elems 1 in
         of_etf domain_etf >>= fun domain_ty ->

@@ -2,7 +2,7 @@ open Base
 
 let result_map_m rs ~f:f = Result.all (List.map rs ~f:f)
 
-let result_guard cond error =
+let result_guard ?(error=Failure "result_guard") cond =
   if cond then Ok ()
   else Error error
 
