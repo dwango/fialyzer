@@ -18,7 +18,7 @@ type issue = {
 type t =
   | InvalidUsage
   | NoSuchFile of string
-  | InvalidBeam of string
+  | InvalidBeam of string * string (* (beam_filename, message) *)
   | TypeError of type_error
   | NotImplemented of issue
 [@@deriving show, sexp_of]
@@ -35,8 +35,8 @@ let to_message = function
      "Usage: fialyzer <beam_filename>"
   | NoSuchFile filename ->
      !%"No such beam file '%s'" filename
-  | InvalidBeam filename ->
-     !%"Invalid beam format '%s'" filename
+  | InvalidBeam (filename, message) ->
+     !%"Invalid beam format '%s': %s" filename message
   | TypeError err ->
      !%"%s:%d: Type error: type mismatch;\n  found   : %s\n  required: %s" err.filename err.line
        (Ast_intf.show_typ err.actual)
