@@ -3,6 +3,7 @@ module Format = Caml.Format
 module Etf = Obeam.External_term_format
 
 type etf = Etf.t
+val show_etf : Etf.t -> string
 val sexp_of_etf : etf -> Sexplib0.Sexp.t
 
 val atom_of_etf : Etf.t -> (string, exn) Result.t
