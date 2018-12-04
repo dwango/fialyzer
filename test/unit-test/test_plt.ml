@@ -24,10 +24,16 @@ let%expect_test "Plt.of_file" =
         (test01 h 1)
         ((contracts ((
            (Function
-             ((Number IntegerQual))
-             (List (Number IntegerQual) Nil UnknownQual))
+             ((Number Integer))
+             (List
+               (Number (
+                 IntRange
+                 (0)
+                 (1114111)))
+               Nil
+               UnknownQual))
            ())))
-         (args ((Number IntegerQual)))
+         (args ((Number Integer)))
          (forms ())))))
       (callbacks      ())
       (exported_types ()))) |}];
