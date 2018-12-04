@@ -134,7 +134,6 @@ let mfa_of_etf = function
   | other ->
      Error (Failure (!%"mfa_of_etf error: %s" (Etf.show other)))
 
-    
 let contr_constr_of_etf = function
   | Etf.SmallTuple(3, [
                      Atom "subtype";
