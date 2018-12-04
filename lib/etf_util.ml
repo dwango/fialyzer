@@ -39,18 +39,18 @@ let sexp_of_etf etf = sexp_of_string (show_etf etf)
 
 let atom_of_etf = function
   | Etf.Atom atom -> Ok atom
-  | other -> Error(Failure (!%"atom_of_etf: %s" (Etf.show other)))
+  | other -> Error(Failure (!%"atom_of_etf: %s" (show_etf other)))
 
 let tuple_of_etf = function
   | Etf.SmallTuple(_, etfs) -> Ok etfs
-  | other -> Error(Failure (!%"tuple_of_etf: %s" (Etf.show other)))
+  | other -> Error(Failure (!%"tuple_of_etf: %s" (show_etf other)))
 
 let pair_of_etf etf =
   let open Result in
   tuple_of_etf etf >>= function
   | [x; y] -> Ok (x, y)
   | other ->
-     Error (Failure (!%"pair_of_etf: [%s]" (List.map ~f:Etf.show other |> String.concat ~sep:",")))
+     Error (Failure (!%"pair_of_etf: [%s]" (List.map ~f:show_etf other |> String.concat ~sep:",")))
 
 let list_of_etf = function
   | Etf.Nil -> Ok []
@@ -60,12 +60,12 @@ let list_of_etf = function
      |> List.map ~f:(fun char -> Etf.SmallInteger (Char.to_int char))
      |> Result.return
   | other ->
-     Error (Failure(!%"list_of_etf: '%s'" (Etf.show other)))
+     Error (Failure(!%"list_of_etf: '%s'" (show_etf other)))
 
 let int_of_etf = function
   | Etf.SmallInteger i -> Ok i
   | Etf.Integer i32 -> Ok (Int32.to_int_exn i32)
-  | other -> Error (Failure (!%"int_of_etf: %s" (Etf.show other)))
+  | other -> Error (Failure (!%"int_of_etf: %s" (show_etf other)))
 
 let list etfs = Etf.List(etfs, Etf.Nil)
 let small_tuple etfs = Etf.SmallTuple(List.length etfs, etfs)
@@ -110,7 +110,7 @@ let set_of_etf etf =
      Ok {set_size; set_num_of_active_slot; set_maxn; set_buddy_slot_offset;
          set_exp_size; set_con_size; set_empty_segment; set_segs}
   | _ ->
-     Error (Failure (!%"set_of_etf: %s" (Etf.show etf)))
+     Error (Failure (!%"set_of_etf: %s" (show_etf etf)))
 
 let fold_elist ~f ~init etf =
   match list_of_etf etf with
@@ -199,7 +199,7 @@ let dict_of_etf etf =
      Ok {dict_size; dict_num_of_active_slot; dict_maxn; dict_buddy_slot_offset;
          dict_exp_size; dict_con_size; dict_empty_segment; dict_segs}
   | other ->
-     Error (Failure (!%"dict_of_etf: %s" (Etf.show etf)))
+     Error (Failure (!%"dict_of_etf: %s" (show_etf etf)))
 
 let fold_dict ~f ~init dict =
   let segs = dict.dict_segs in
@@ -207,7 +207,7 @@ let fold_dict ~f ~init dict =
       match e with
       | List([k; v], Nil) -> f acc k v
       | List([k], v) -> f acc k v
-      | other -> failwith (!%"fold_dict: %s" (Etf.show other))
+      | other -> failwith (!%"fold_dict: %s" (show_etf other))
     ) ~init segs
 let dict_to_list dict =
   fold_dict ~f:(fun acc k v -> (k, v) :: acc) ~init:[] dict

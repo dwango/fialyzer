@@ -34,7 +34,7 @@ let file_md5_of_etf = function
     ]) ->
      Ok {filename; binary = Bitstring.string_of_bitstring bin}
   | other ->
-     Error (Failure (!%"file_md5_of_etf error: %s" (Etf.show other)))
+     Error (Failure (!%"file_md5_of_etf error: %s" (E.show_etf other)))
 
 let file_plt_of_etf = function
   | Etf.SmallTuple(10, [
@@ -70,7 +70,7 @@ let file_plt_of_etf = function
          implementation_md5;
        }
   | other ->
-     Error (Failure (!%"file_plt_of_etf: %s" (Etf.show other)))
+     Error (Failure (!%"file_plt_of_etf: %s" (E.show_etf other)))
 
 (* ==========================================================================
    PLT
@@ -112,7 +112,7 @@ let ret_args_types_of_etf = function
      erl_type_of_etf v >>= fun ty ->
      Ok(ty, [])
   | other ->
-     Error (Failure (!%"ret_args_types_of_etf error: %s" (Etf.show other)))
+     Error (Failure (!%"ret_args_types_of_etf error: %s" (E.show_etf other)))
 *)
 
 type t = {
@@ -132,9 +132,9 @@ let mfa_of_etf = function
     ]) ->
      Ok (module_name, func, arity)
   | other ->
-     Error (Failure (!%"mfa_of_etf error: %s" (Etf.show other)))
+     Error (Failure (!%"mfa_of_etf error: %s" (E.show_etf other)))
 
-    
+
 let contr_constr_of_etf = function
   | Etf.SmallTuple(3, [
                      Atom "subtype";
@@ -145,7 +145,7 @@ let contr_constr_of_etf = function
      Erl_type.of_etf e2 >>= fun ty2 ->
      Ok (ty1, ty2)
   | other ->
-     Error (Failure (!%"contr_constr_of_etf error: %s" (Etf.show other)))
+     Error (Failure (!%"contr_constr_of_etf error: %s" (E.show_etf other)))
 
 let contract_of_etf = function
   | Etf.SmallTuple(4, [
@@ -170,7 +170,7 @@ let contract_of_etf = function
      (*TODO: result_map_m ~f:pair_of_etf form_etfs >>= fun forms -> *)
      Ok {contracts; args; forms=()}
   | other ->
-     Error (Failure (!%"contract_of_etf error: %s" (Etf.show other)))
+     Error (Failure (!%"contract_of_etf error: %s" (E.show_etf other)))
 
 let contracts_of_dict dict =
   let open Result in
