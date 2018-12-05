@@ -41,20 +41,20 @@ let rec expr_of_erlang_expr = function
     Case (expr_of_erlang_expr e, cs)
   | ExprLocalFunRef (_line_t, name, arity) ->
      (* TODO: support local `fun F/A` *)
-     failwith "not implemented"
+     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/79")))
   | ExprRemoteFunRef (_line_t, m, f, a) ->
      MFA (expr_of_atom_or_var m, expr_of_atom_or_var f, expr_of_integer_or_var a)
   | ExprFun (_line_t, name, clauses) ->
-     (* TODO: fun _(...) -> ... end *)
-     failwith "not implemented"
+     (* TODO: support `fun (...) -> ... end` *)
+     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/80")))
   | ExprLocalCall (_line_t, f, args) ->
      App (expr_of_erlang_expr f, List.map ~f:expr_of_erlang_expr args)
   | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
      let mfa = MFA (expr_of_erlang_expr m, expr_of_erlang_expr f, Constant (Number (List.length args))) in
      App (mfa, List.map ~f:expr_of_erlang_expr args)
   | ExprMatch (line_t, pat, e) ->
-     (* HACK: `A = B` convert to case expr `case B of A -> B end` *)
-     expr_of_erlang_expr (F.ExprCase (line_t, e, [F.ClsCase (line_t, pat, None, e)]))
+     (* TODO: support match expr `A = B` *)
+     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/81")))
   | ExprBinOp (_line_t, op, e1, e2) ->
      App(Var op, List.map ~f:expr_of_erlang_expr [e1; e2])
   | ExprTuple (_line_t, es) ->
