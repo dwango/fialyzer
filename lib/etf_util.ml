@@ -71,6 +71,9 @@ let list etfs = Etf.List(etfs, Etf.Nil)
 let small_tuple etfs = Etf.SmallTuple(List.length etfs, etfs)
 let pair etf1 etf2 = small_tuple [etf1; etf2]
 
+let etf_printer fmt etf = show_etf etf |> Format.fprintf fmt "%s"
+let etfs_printer fmt etfs = List.map ~f:show_etf etfs |> String.concat ~sep:"\n" |> Format.fprintf fmt "%s"
+
 (* ==========================================================================
    Basic erlang data structure: set
    ========================================================================== *)
@@ -82,8 +85,8 @@ type set = {
     set_buddy_slot_offset : int;
     set_exp_size : int;
     set_con_size : int;
-    set_empty_segment : Etf.t;
-    set_segs : Etf.t list;
+    set_empty_segment : Etf.t [@printer etf_printer];
+    set_segs : Etf.t list [@printer etfs_printer];
   }
 [@@deriving show]
 
@@ -171,8 +174,8 @@ type dict = {
     dict_buddy_slot_offset : int;
     dict_exp_size : int;
     dict_con_size : int;
-    dict_empty_segment : Etf.t;
-    dict_segs : Etf.t list;
+    dict_empty_segment : Etf.t [@printer etf_printer];
+    dict_segs : Etf.t list [@printer etfs_printer];
   }
 [@@deriving show]
 

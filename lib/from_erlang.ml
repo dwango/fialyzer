@@ -21,6 +21,14 @@ let rec expr_of_exprs = function
   | e :: es ->
      Let ("_", e, expr_of_exprs es)
 
+let expr_of_atom_or_var = function
+  | F.AtomVarAtom (_line_t, a) -> Constant (Atom a)
+  | AtomVarVar (_line_t, v) -> Var v
+
+let expr_of_integer_or_var = function
+  | F.IntegerVarInteger (_line_t, i) -> Constant (Number i)
+  | IntegerVarVar (_line_t, v) -> Var v
+
 let rec expr_of_erlang_expr = function
   | F.ExprBody erlangs ->
      expr_of_exprs (List.map ~f:expr_of_erlang_expr erlangs)
@@ -31,13 +39,26 @@ let rec expr_of_erlang_expr = function
     | F.ClsCase (_, _, _, _) | F.ClsFun (_, _, _, _) -> failwith "not implemented"
     ) in
     Case (expr_of_erlang_expr e, cs)
+  | ExprLocalFunRef (_line_t, name, arity) ->
+     (* TODO: support local `fun F/A` *)
+     failwith "not implemented"
+  | ExprRemoteFunRef (_line_t, m, f, a) ->
+     MFA (expr_of_atom_or_var m, expr_of_atom_or_var f, expr_of_integer_or_var a)
+  | ExprFun (_line_t, name, clauses) ->
+     (* TODO: fun _(...) -> ... end *)
+     failwith "not implemented"
   | ExprLocalCall (_line_t, f, args) ->
      App (expr_of_erlang_expr f, List.map ~f:expr_of_erlang_expr args)
   | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
      let mfa = MFA (expr_of_erlang_expr m, expr_of_erlang_expr f, Constant (Number (List.length args))) in
      App (mfa, List.map ~f:expr_of_erlang_expr args)
+  | ExprMatch (line_t, pat, e) ->
+     (* HACK: `A = B` convert to case expr `case B of A -> B end` *)
+     expr_of_erlang_expr (F.ExprCase (line_t, e, [F.ClsCase (line_t, pat, None, e)]))
   | ExprBinOp (_line_t, op, e1, e2) ->
      App(Var op, List.map ~f:expr_of_erlang_expr [e1; e2])
+  | ExprTuple (_line_t, es) ->
+     Tuple (List.map ~f:expr_of_erlang_expr es)
   | ExprVar (_line_t, v) -> Var v
   | ExprLit literal -> Constant (const_of_literal literal)
   | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) -> failwith "not implemented"
@@ -49,7 +70,7 @@ let clauses_to_function = function
      let f = (function
      | F.PatVar (_, v) -> v
      | F.PatUniversal _ -> "_"
-     | F.PatMap (_, _) | F.PatLit _ -> failwith "not implemented"
+     | F.PatMap (_, _) | F.PatLit _ | F.PatTuple (_, _) -> failwith "not implemented"
      ) in
      let vs = args |> List.map ~f:f in
      (vs, expr_of_erlang_expr body)

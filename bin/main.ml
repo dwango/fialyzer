@@ -5,23 +5,23 @@ open Fialyzer
 
 let extract_debug_info_buf filename layout =
   let {
-    Chunk.cl_abst = opt_abst;
-    Chunk.cl_dbgi = opt_dbgi;
+    Beam.cl_abst = opt_abst;
+    Beam.cl_dbgi = opt_dbgi;
   } = layout in
   match opt_abst with
   | Some abst ->
-     abst.Chunk.abst_buf
+     abst.Beam.abst_buf
   | None ->
      begin
        match opt_dbgi with
        | Some dbgi ->
-          dbgi.Chunk.dbgi_buf
+          dbgi.Beam.dbgi_buf
        | None ->
           let msg = "abst and dbgi chunk is not found" in
           raise Known_error.(FialyzerError (InvalidBeam (filename, msg)))
      end
 
-let beam_to_etf filename beam_buf = match Chunk.parse_layout beam_buf with
+let beam_to_etf filename beam_buf = match Beam.parse_layout beam_buf with
   | Ok (layout, _) ->
      let debug_info_buf = extract_debug_info_buf filename layout in
      begin
@@ -38,7 +38,7 @@ let read_file beam_filename =
   try_with (fun () -> Bitstring.bitstring_of_file beam_filename) >>= fun beam ->
   beam_to_etf beam_filename beam >>= fun etf ->
   let sf = Simple_term_format.of_etf etf in
-  Ok (Abstract_format.of_sf sf)
+  Abstract_format.of_sf sf |> map_error ~f:(fun e -> Failure (Abstract_format.sexp_of_err_t e |> Sexp.to_string))
 
 let check_module beam_filename =
   read_file beam_filename >>= fun code ->

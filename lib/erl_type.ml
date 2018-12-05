@@ -31,7 +31,7 @@ type t_map_mandatoriness = Mandatory | Optional
 let mandatoriness_of_etf = function
   | Etf.Atom "mandatory" -> Ok Mandatory
   | Atom "optional" -> Ok Optional
-  | other -> Error (Failure (!%"mandatoriness_of_etf error: %s" (Etf.show other)))
+  | other -> Error (Failure (!%"mandatoriness_of_etf error: %s" (E.show_etf other)))
 
 type tag = AtomTag | BinaryTag | FunctionTag | IdentifierTag | ListTag | MapTag
            | MatchstateTag | NilTag | NumberTag | OpaqueTag | ProductTag
@@ -155,7 +155,7 @@ let rec of_etf = function
         begin match pair with
         | [unit; base] ->
            Ok (Binary (unit, base))
-        | _ -> Error (Failure (!%"Please report: unexpected binary type '%s' in a type contract" (Etf.show etf)))
+        | _ -> Error (Failure (!%"Please report: unexpected binary type '%s' in a type contract" (E.show_etf etf)))
         end
      | FunctionTag ->
         E.list_of_etf elements >>= fun elems ->
@@ -185,7 +185,7 @@ let rec of_etf = function
            (qualifier_of_etf qualifier_etf @? "ListTag") >>= fun size ->
            Ok (List (types, term, size))
         | _ ->
-           Error (Failure (!%"ListTag:%s" (Etf.show elements)))
+           Error (Failure (!%"ListTag:%s" (E.show_etf elements)))
         end
      | NilTag ->
         Ok Nil
@@ -228,7 +228,7 @@ let rec of_etf = function
            | Atom [atom] ->
               Ok (Tuple (Some{types; arity; tag=Some atom}))
            | other ->
-              Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (Etf.show tag_etf)))
+              Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (E.show_etf tag_etf)))
            end
         end
      | VarTag ->
@@ -243,7 +243,7 @@ let rec of_etf = function
           Result.(
             of_etf etf >>= function
             | Tuple (Some tuple) -> Ok tuple
-            | _ -> Error (Failure (!%"Please report: an element of tuple_set is not a tuple: %s" (Etf.show etf)))
+            | _ -> Error (Failure (!%"Please report: an element of tuple_set is not a tuple: %s" (E.show_etf etf)))
           )
         in
         let tuples_of_etf etf =
@@ -263,12 +263,12 @@ let rec of_etf = function
         Ok (Union tys)
      | other ->
         !%"of_etf: unsupported: %s\n  elements = %s\n  qual = %s" (show_tag other)
-          (Etf.show elements)
-          (Etf.show qualifier_etf)
+          (E.show_etf elements)
+          (E.show_etf qualifier_etf)
         |> fun msg -> Error (Failure msg)
      end
   | other ->
-     Error (Failure (!%"of_etf error: %s" (Etf.show other)))
+     Error (Failure (!%"of_etf error: %s" (E.show_etf other)))
 and opaque_of_etf elem =
   let open Result in
   E.tuple_of_etf elem >>= function
