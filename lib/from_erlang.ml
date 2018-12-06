@@ -56,7 +56,8 @@ let rec expr_of_erlang_expr = function
      (* TODO: support match expr `A = B` *)
      raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/81")))
   | ExprBinOp (_line_t, op, e1, e2) ->
-     App(Var op, List.map ~f:expr_of_erlang_expr [e1; e2])
+     let func = Ast_intf.MFA (Constant (Atom "erlang"), Constant (Atom op), Constant (Number 2)) in
+     App(func, List.map ~f:expr_of_erlang_expr [e1; e2])
   | ExprTuple (_line_t, es) ->
      Tuple (List.map ~f:expr_of_erlang_expr es)
   | ExprVar (_line_t, v) -> Var v
