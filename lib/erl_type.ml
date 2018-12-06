@@ -25,6 +25,14 @@ let qualifier_of_etf etf =
   E.atom_of_etf etf >>= fun atom ->
   qual_of_atom atom
 
+type number =
+  | IntRange of int option * int option (* (min or -infinity, max or infinity) *)
+  | IntSet of int list
+  | Integer (* integer() *)
+  | Float   (* float()   *)
+  | All     (* number()  *)
+[@@deriving show, sexp_of]
+
 type t_map_mandatoriness = Mandatory | Optional
 [@@deriving show, sexp_of]
 
@@ -101,7 +109,7 @@ type t =
   | Identifier of ident_type list
   | List of t * t * qualifier
   | Nil
-  | Number of qualifier (*TODO: elements *)
+  | Number of number
   | Map of t_map_pair list * t * t
   | Opaque of opaque list
   | Product of t list
@@ -159,7 +167,7 @@ let rec of_etf = function
         end
      | FunctionTag ->
         E.list_of_etf elements >>= fun elems ->
-        result_guard (List.length elems = 2) (Failure "erl_type_of_erl:FunctionTag") >>= fun _ ->
+        result_guard ~error:(Failure "erl_type_of_erl:FunctionTag") (List.length elems = 2) >>= fun _ ->
         let domain_etf = List.nth_exn elems 0 in
         let range_etf = List.nth_exn elems 1 in
         of_etf domain_etf >>= fun domain_ty ->
@@ -190,8 +198,31 @@ let rec of_etf = function
      | NilTag ->
         Ok Nil
      | NumberTag ->
-        qualifier_of_etf qualifier_etf >>= fun qual ->
-        Ok (Number qual)
+        E.atom_of_etf qualifier_etf >>= fun qual ->
+        begin match (qual, E.atom_of_etf elements) with
+        | ("float", Ok "any") ->
+           Ok (Number Float)
+        | ("unknown", Ok "any") ->
+           Ok (Number All)
+        | ("integer", Ok "any") ->
+           Ok (Number Integer)
+        | ("integer", Error _) ->
+           E.tuple_of_etf elements >>= fun elems ->
+           begin match elems with
+           | [Atom "int_set"; set_etf] ->
+              (E.list_of_etf set_etf >>= result_map_m ~f:E.int_of_etf) >>= fun set ->
+              Ok (Number (IntSet set))
+           | [Atom "int_rng"; min_etf; max_etf] ->
+              let min = E.int_of_etf min_etf |> Result.ok in
+              let max = E.int_of_etf max_etf |> Result.ok in
+              result_guard (Option.is_some min || min_etf = Atom "neg_inf") >>= fun () ->
+              Ok (Number (IntRange (min, max)))
+           | _ ->
+              Error (Failure (!%"NumberTag: unexpected int elem: %s" (Etf.show elements)))
+           end
+        | _ ->
+           Error (Failure (!%"NumberTag: %s" (Etf.show etf)))
+        end
      | MapTag ->
         E.tuple_of_etf elements >>= fun elems ->
         begin match elems with

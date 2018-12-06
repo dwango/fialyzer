@@ -14,6 +14,9 @@ type ident_type
 type var_id
 [@@deriving show, sexp_of]
 
+type number
+[@@deriving show, sexp_of]
+
 (**
 {v
 -record(c, {tag			      :: tag(),
@@ -34,7 +37,7 @@ type t =
   | Identifier of ident_type list
   | List of t * t * qualifier
   | Nil
-  | Number of qualifier
+  | Number of number
   | Map of t_map_pair list * t * t
   | Opaque of opaque list
   | Product of t list
