@@ -218,10 +218,10 @@ let rec of_etf = function
               result_guard (Option.is_some min || min_etf = Atom "neg_inf") >>= fun () ->
               Ok (Number (IntRange (min, max)))
            | _ ->
-              Error (Failure (!%"NumberTag: unexpected int elem: %s" (Etf.show elements)))
+              Error (Failure (!%"NumberTag: unexpected int elem: %s" (E.show_etf elements)))
            end
         | _ ->
-           Error (Failure (!%"NumberTag: %s" (Etf.show etf)))
+           Error (Failure (!%"NumberTag: %s" (E.show_etf etf)))
         end
      | MapTag ->
         E.tuple_of_etf elements >>= fun elems ->
