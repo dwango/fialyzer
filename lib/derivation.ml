@@ -124,6 +124,11 @@ let rec derive context = function
       (* |- b_n : beta_n *)
       derive added_context b_n >>= fun(ty_beta_n, c_b) ->
         Ok (Conj [
+          (*
+            In the original paper about success typing, it's assumed that guard are true. However, we consider
+            guards to be boolean type because true type constraint is too strong and not intuitive.
+            Boolean type is true | false.
+           *)
           Subtype (ty_g_n, TyUnion (TySingleton (Atom "true"), TySingleton (Atom "false")));
           Eq (beta, ty_beta_n); Eq (ty_e_t, ty_alpha_n); c_p; c_g; c_b
         ])
