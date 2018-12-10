@@ -52,8 +52,7 @@ let rec derive context = function
          ~init:context
          new_tyvars in
      derive added_context e >>= fun (ty_e, c) ->
-     let tyvar = new_tyvar () in
-     Ok (tyvar, Eq (tyvar, TyConstraint (TyFun (List.map ~f:snd new_tyvars, ty_e), c)))
+     Ok (TyFun (List.map ~f:snd new_tyvars, ty_e), c)
   | Let (v, e1, e2) ->
      derive context e1 >>= fun (ty_e1, c1) ->
      derive (Context.add (Context.Key.Var v) ty_e1 context) e2 >>= fun (ty_e2, c2) ->
@@ -112,7 +111,7 @@ let rec derive context = function
       let p_n_tyvars = variables p_n in
       let p_n_expr = pattern_to_expr p_n in
       (* A ∪ { ... } *)
-      let added_context = 
+      let added_context =
         List.fold_left
         ~f:(fun context (v, tyvar) -> Context.add (Context.Key.Var v) tyvar context)
         ~init:context

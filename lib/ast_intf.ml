@@ -40,14 +40,14 @@ type typ =
     | TyTuple of typ list
     | TyFun of typ list * typ
     | TyUnion of typ * typ
-    | TyConstraint of typ * constraint_
     | TyAny
     | TyBottom
     | TyNumber
     | TyAtom
     | TySingleton of constant
 [@@deriving show, sexp_of]
-and constraint_ =
+
+type constraint_ =
     | Eq of typ * typ
     | Subtype of typ * typ
     | Conj of constraint_ list
