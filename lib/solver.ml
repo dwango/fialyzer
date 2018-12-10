@@ -54,9 +54,19 @@ let rec solve_eq sol ty1 ty2 =
   match (ty1, ty2) with
   | (ty1, ty2) when ty1 = ty2 -> Ok sol
   | (TyVar x, ty2) when is_free x ty2 ->
-     Ok (add (x, ty2) sol)
+     begin match Map.find sol x with
+     | Some ty' ->
+        solve_eq sol ty' ty2
+     | None ->
+        Ok (add (x, ty2) sol)
+     end
   | (ty1, TyVar y) when is_free y ty1 ->
-     Ok (add (y, ty1) sol)
+     begin match Map.find sol y with
+     | Some ty' ->
+        solve_eq sol ty1 ty'
+     | None ->
+        Ok (add (y, ty1) sol)
+     end
   | (TyVar v, _) | (_, TyVar v) ->
      Error (Failure (Printf.sprintf "not free variable: %s" (Type_variable.show v)))
   | (TyTuple tys1, TyTuple tys2) when List.length tys1 = List.length tys2 ->
