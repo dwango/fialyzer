@@ -28,6 +28,113 @@ let%expect_test "derivation" =
       (Conj (Empty Empty))))
   |}];
 
+  (*
+   * case 42 of
+   *   X when true -> X
+   * end
+   *)
+  print Context.empty (Case (Constant (Number 42), [(PatVar "X", Constant (Atom "true")), Var "X"]));
+  [%expect {|
+     (Ok (
+       (TyVar a)
+       (Conj (
+         (Disj ((
+           Conj (
+             (Subtype
+               (TySingleton (Atom true))
+               (TyUnion
+                 (TySingleton (Atom true))
+                 (TySingleton (Atom false))))
+             (Eq
+               (TyVar a)
+               (TyVar b))
+             (Eq (TySingleton (Number 42)) (TyVar b))
+             Empty
+             Empty
+             Empty))))
+         Empty))))
+  |}];
+
+
+  (*
+   * case {41, 42} of
+   *   {X, Y} when true -> {X, Y}
+   * end
+   *)
+  print Context.empty (Case (Tuple [Constant (Number 41); Constant (Number 42)], [(PatTuple [PatVar "X"; PatVar "Y"], Constant (Atom "true")), Tuple [Var "X"; Var "Y"]]));
+  [%expect {|
+     (Ok (
+       (TyVar a)
+       (Conj (
+         (Disj ((
+           Conj (
+             (Subtype
+               (TySingleton (Atom true))
+               (TyUnion
+                 (TySingleton (Atom true))
+                 (TySingleton (Atom false))))
+             (Eq
+               (TyVar a)
+               (TyTuple (
+                 (TyVar b)
+                 (TyVar c))))
+             (Eq
+               (TyTuple (
+                 (TySingleton (Number 41))
+                 (TySingleton (Number 42))))
+               (TyTuple (
+                 (TyVar b)
+                 (TyVar c))))
+             (Conj (Empty Empty))
+             Empty
+             (Conj (Empty Empty))))))
+         (Conj (Empty Empty))))))
+  |}];
+
+  (*
+   * case 42 of
+   *   X when false -> X;
+   *   X when true -> X
+   * end
+   *)
+  print Context.empty (Case 
+    (Constant (Number 42), 
+      [(PatVar "X", Constant (Atom "false")), Var "X";
+       (PatVar "X", Constant (Atom "true")), Var "X"]));
+  [%expect {|
+     (Ok (
+       (TyVar a)
+       (Conj (
+         (Disj (
+           (Conj (
+             (Subtype
+               (TySingleton (Atom false))
+               (TyUnion
+                 (TySingleton (Atom true))
+                 (TySingleton (Atom false))))
+             (Eq
+               (TyVar a)
+               (TyVar b))
+             (Eq (TySingleton (Number 42)) (TyVar b))
+             Empty
+             Empty
+             Empty))
+           (Conj (
+             (Subtype
+               (TySingleton (Atom true))
+               (TyUnion
+                 (TySingleton (Atom true))
+                 (TySingleton (Atom false))))
+             (Eq
+               (TyVar a)
+               (TyVar c))
+             (Eq (TySingleton (Number 42)) (TyVar c))
+             Empty
+             Empty
+             Empty))))
+         Empty))))
+  |}];
+
   print Context.empty (Abs (["x"], Var "x"));
   [%expect {|
     (Ok (
@@ -45,7 +152,8 @@ let%expect_test "derivation" =
              (TyVar b)
              (TyVar c))
             (TyVar a))
-          Empty)))) |}];
+          Empty)))) 
+   |}];
 
   print Context.empty (App (Constant (Number 57), [Constant (Number 42)]));
   [%expect {|

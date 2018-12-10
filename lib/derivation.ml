@@ -96,5 +96,41 @@ let rec derive context = function
         Subtype (tyvar_mfa, TyAny)] (* cannot be TyFun (.., ..) because the arity is unknown. give up *)
      in
      Ok (tyvar_mfa, Conj cs)
-  | other ->
-     Error (Printf.sprintf "unsupported type: %s" (show_expr other))
+  | Case (e, clauses) ->
+    (* translate pattern to expression *)
+    let rec pattern_to_expr = function
+      | PatVar v -> Var v
+      | PatTuple es -> Tuple (es |> List.map ~f:(fun e -> pattern_to_expr e)) in
+    (* Var(p) *)
+    let rec variables = function
+      | PatVar v -> [(v, new_tyvar ())]
+      | PatTuple es -> es |> List.map ~f:(fun e -> variables e)
+                          |> List.fold_left ~init:[] ~f:(fun a b -> List.append a b) in
+    derive context e >>= fun (ty_e_t, c_e) ->
+    let beta = new_tyvar () in
+    let results = clauses |> result_map_m ~f:(fun ((p_n, g_n), b_n) ->
+      let p_n_tyvars = variables p_n in
+      let p_n_expr = pattern_to_expr p_n in
+      (* A ∪ { ... } *)
+      let added_context = 
+        List.fold_left
+        ~f:(fun context (v, tyvar) -> Context.add (Context.Key.Var v) tyvar context)
+        ~init:context
+        p_n_tyvars in
+      (* |- p_n : alpha_n, c_p *)
+      derive added_context p_n_expr >>= fun(ty_alpha_n, c_p) ->
+      (* PAT *)
+      derive added_context g_n >>= fun(ty_g_n, c_g) ->
+      (* |- b_n : beta_n *)
+      derive added_context b_n >>= fun(ty_beta_n, c_b) ->
+        Ok (Conj [
+          (*
+            In the original paper about success typing, it's assumed that guard are true. However, we consider
+            guards to be boolean type because true type constraint is too strong and not intuitive.
+            Boolean type is true | false.
+           *)
+          Subtype (ty_g_n, TyUnion (TySingleton (Atom "true"), TySingleton (Atom "false")));
+          Eq (beta, ty_beta_n); Eq (ty_e_t, ty_alpha_n); c_p; c_g; c_b
+        ])
+    ) in
+    results >>= fun(cs) -> Ok (beta, Conj [Disj cs; c_e])
