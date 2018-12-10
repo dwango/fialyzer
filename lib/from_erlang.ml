@@ -47,6 +47,8 @@ let rec expr_of_erlang_expr = function
   | ExprFun (_line_t, name, clauses) ->
      (* TODO: support `fun (...) -> ... end` *)
      raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/80")))
+  | ExprLocalCall (_line_t, ExprLit (LitAtom (_line_f, fun_name)), args) ->
+     App (Var fun_name, List.map ~f:expr_of_erlang_expr args)
   | ExprLocalCall (_line_t, f, args) ->
      App (expr_of_erlang_expr f, List.map ~f:expr_of_erlang_expr args)
   | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
