@@ -21,8 +21,6 @@ let rec type_subst (x, ty1): typ -> typ = function
      TyFun (List.map ~f:(type_subst (x, ty1)) tys, type_subst (x, ty1) ty)
   | TyUnion (ty_a, ty_b) ->
      TyUnion(type_subst (x, ty1) ty_a, type_subst (x, ty1) ty_b)
-  | TyConstraint (ty, c) -> (* TODO: for constraint? *)
-     TyConstraint(type_subst (x, ty1) ty, c)
   | TyAny -> TyAny
   | TyBottom -> TyBottom
   | TyNumber -> TyNumber
@@ -30,9 +28,6 @@ let rec type_subst (x, ty1): typ -> typ = function
   | TySingleton const -> TySingleton const
   | TyVar v ->
      if x = v then ty1 else (TyVar v)
-and _type_subst_to_constraint (x, ty1) = function
-  | _ ->
-     failwith "not implemented type_subst_to_constraint"
 
 let type_subst_to_sol (x, ty) sol =
   Map.map ~f:(type_subst (x, ty)) sol
@@ -53,18 +48,25 @@ let rec is_free x = function
      List.for_all ~f:(is_free x) (ty::tys)
   | TyUnion (ty1, ty2) ->
      is_free x ty1 && is_free x ty2
-  | TyConstraint (ty, c) ->
-     is_free x ty (* TODO: for constraint ? *)
   | TyAny | TyBottom | TyNumber | TyAtom | TySingleton _  -> true
 
-(* see TAPL https://dwango.slack.com/messages/CD453S78B/ *)
 let rec solve_eq sol ty1 ty2 =
   match (ty1, ty2) with
   | (ty1, ty2) when ty1 = ty2 -> Ok sol
   | (TyVar x, ty2) when is_free x ty2 ->
-     Ok (add (x, ty2) sol)
+     begin match Map.find sol x with
+     | Some ty' ->
+        solve_eq sol ty' ty2
+     | None ->
+        Ok (add (x, ty2) sol)
+     end
   | (ty1, TyVar y) when is_free y ty1 ->
-     Ok (add (y, ty1) sol)
+     begin match Map.find sol y with
+     | Some ty' ->
+        solve_eq sol ty1 ty'
+     | None ->
+        Ok (add (y, ty1) sol)
+     end
   | (TyVar v, _) | (_, TyVar v) ->
      Error (Failure (Printf.sprintf "not free variable: %s" (Type_variable.show v)))
   | (TyTuple tys1, TyTuple tys2) when List.length tys1 = List.length tys2 ->
@@ -82,9 +84,6 @@ let rec solve_eq sol ty1 ty2 =
   | (TyUnion (ty11, ty12), TyUnion (ty21, ty22)) ->
   (* TODO: equality of unions *)
      Error (Failure ("not implemented: solve_eq with union types"))
-  | (TyConstraint (ty1, c1), TyConstraint (ty2, c2)) ->
-     (* TODO: equality with constraint *)
-     Error (Failure ("not implemented: solve_eq with constraint"))
   | _ ->
      Error (Failure (Printf.sprintf "must not eq type: %s =? %s" (show_typ ty1) (show_typ ty2)))
 
@@ -120,11 +119,6 @@ let rec meet sol ty1 ty2 =
      TyUnion (meet sol tyl ty2, meet sol tyr ty2)
   | _, TyUnion (tyl, tyr) ->
      TyUnion (meet sol ty1 tyl, meet sol ty1 tyr)
-  (* constraint *)
-  | TyConstraint (ty, c), _ ->
-     TyConstraint (meet sol ty ty2, c)
-  | _, TyConstraint (ty, c) ->
-     TyConstraint (meet sol ty1 ty, c)
   (* number *)
   | TyNumber, TyNumber -> TyNumber
   | TyNumber, TySingleton (Number n) -> TySingleton (Number n)
@@ -187,9 +181,6 @@ and solve_sub sol ty1 ty2 =
   | TyUnion (ty11, ty12), _ ->
      let open Result in
      solve_sub sol ty11 ty2 >>= fun sol' -> solve_sub sol' ty12 ty2
-  | TyConstraint (ty, c), _ ->
-     let open Result in
-     solve sol c >>= fun sol' -> solve_sub sol' ty ty2
   | _ ->
      (* TODO: normalize *)
      if is_subtype sol ty1 ty2 then
