@@ -71,10 +71,6 @@ let%expect_test "solver" =
       (a TyNumber)
       (b TyNumber))) |}];
 
-  let [a] = create_vars 1 in
-  print (Subtype (TyConstraint (TyVar a, Eq (TyVar a, TyNumber)), TyAtom));
-  [%expect {| (Error (Failure "there is no solution that satisfies subtype constraints")) |}];
-
   print (Subtype (TyBottom, TyAny));
   [%expect {| (Ok ()) |}];
 

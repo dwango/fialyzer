@@ -97,8 +97,8 @@ let%expect_test "derivation" =
    *   X when true -> X
    * end
    *)
-  print Context.empty (Case 
-    (Constant (Number 42), 
+  print Context.empty (Case
+    (Constant (Number 42),
       [(PatVar "X", Constant (Atom "false")), Var "X";
        (PatVar "X", Constant (Atom "true")), Var "X"]));
   [%expect {|
@@ -135,24 +135,19 @@ let%expect_test "derivation" =
          Empty))))
   |}];
 
-  print Context.empty (Abs (["x"], Var "x"));
+  print Context.empty (Abs (["X"], Var "X"));
   [%expect {|
-    (Ok (
-      (TyVar b) (Eq (TyVar b) (TyConstraint (TyFun ((TyVar a)) (TyVar a)) Empty)))) |}];
+    (Ok ((TyFun ((TyVar a)) (TyVar a)) Empty)) |}];
 
   print Context.empty (Abs (["x"; "y"; "z"], Var "x"));
   [%expect {|
     (Ok (
-      (TyVar d)
-      (Eq
-        (TyVar d)
-        (TyConstraint
-          (TyFun
-            ((TyVar a)
-             (TyVar b)
-             (TyVar c))
-            (TyVar a))
-          Empty)))) 
+      (TyFun
+        ((TyVar a)
+         (TyVar b)
+         (TyVar c))
+        (TyVar a))
+      Empty))
    |}];
 
   print Context.empty (App (Constant (Number 57), [Constant (Number 42)]));
@@ -188,44 +183,43 @@ let%expect_test "derivation" =
         (Subtype (TySingleton (Number 57)) (TyVar b))
         Empty)))) |}];
 
-  print Context.empty (App (Abs (["x"], Var "x"), [Constant (Number 42)]));
+  print Context.empty (App (Abs (["X"], Var "X"), [Constant (Number 42)]));
   [%expect {|
     (Ok (
-      (TyVar e)
-      (Conj (
-        (Eq (TyVar b) (TyFun ((TyVar c)) (TyVar d)))
-        (Subtype
-          (TyVar e)
-          (TyVar d))
-        (Eq (TyVar b) (TyConstraint (TyFun ((TyVar a)) (TyVar a)) Empty))
-        (Subtype (TySingleton (Number 42)) (TyVar c))
-        Empty)))) |}];
-
-  print Context.empty (App (Abs (["x"; "y"], Var "x"), [Constant (Number 42); Constant (Number 57)]));
-  [%expect {|
-    (Ok (
-      (TyVar g)
+      (TyVar d)
       (Conj (
         (Eq
-          (TyVar c)
-          (TyFun
-            ((TyVar d)
-             (TyVar e))
-            (TyVar f)))
+          (TyFun ((TyVar a)) (TyVar a))
+          (TyFun ((TyVar b)) (TyVar c)))
         (Subtype
-          (TyVar g)
-          (TyVar f))
-        (Eq
-          (TyVar c)
-          (TyConstraint
-            (TyFun
-              ((TyVar a)
-               (TyVar b))
-              (TyVar a))
-            Empty))
-        (Subtype (TySingleton (Number 42)) (TyVar d))
+          (TyVar d)
+          (TyVar c))
         Empty
-        (Subtype (TySingleton (Number 57)) (TyVar e))
+        (Subtype (TySingleton (Number 42)) (TyVar b))
+        Empty))))
+    |}];
+
+  print Context.empty (App (Abs (["X"; "Y"], Var "X"), [Constant (Number 42); Constant (Number 57)]));
+  [%expect {|
+    (Ok (
+      (TyVar f)
+      (Conj (
+        (Eq
+          (TyFun
+            ((TyVar a)
+             (TyVar b))
+            (TyVar a))
+          (TyFun
+            ((TyVar c)
+             (TyVar d))
+            (TyVar e)))
+        (Subtype
+          (TyVar f)
+          (TyVar e))
+        Empty
+        (Subtype (TySingleton (Number 42)) (TyVar c))
+        Empty
+        (Subtype (TySingleton (Number 57)) (TyVar d))
         Empty)))) |}];
 
   print Context.empty (Let ("x", Constant (Number 42), Var "x"));
@@ -241,55 +235,43 @@ let%expect_test "derivation" =
     Context.empty
     (Letrec
       ([
-        ("f", Abs (["x"], App (Var "g", [Var "x"])));
-        ("g", Abs (["x"], App (Var "f", [Var "x"])))
+        ("f", Abs (["X"], App (Var "g", [Var "X"])));
+        ("g", Abs (["X"], App (Var "f", [Var "X"])))
       ], App (Var "f", [Constant (Number 42)])));
   [%expect {|
     (Ok (
-      (TyVar o)
+      (TyVar m)
       (Conj (
         (Conj (
-          (Eq (TyVar a) (TyFun ((TyVar m)) (TyVar n)))
+          (Eq (TyVar a) (TyFun ((TyVar k)) (TyVar l)))
           (Subtype
-            (TyVar o)
-            (TyVar n))
+            (TyVar m)
+            (TyVar l))
           Empty
-          (Subtype (TySingleton (Number 42)) (TyVar m))
+          (Subtype (TySingleton (Number 42)) (TyVar k))
           Empty))
-        (Eq
-          (TyVar a)
-          (TyVar g))
-        (Eq
-          (TyVar g)
-          (TyConstraint
-            (TyFun ((TyVar c)) (TyVar f))
-            (Conj (
-              (Eq (TyVar b) (TyFun ((TyVar d)) (TyVar e)))
-              (Subtype
-                (TyVar f)
-                (TyVar e))
-              Empty
-              (Subtype
-                (TyVar c)
-                (TyVar d))
-              Empty))))
-        (Eq
-          (TyVar b)
-          (TyVar l))
-        (Eq
-          (TyVar l)
-          (TyConstraint
-            (TyFun ((TyVar h)) (TyVar k))
-            (Conj (
-              (Eq (TyVar a) (TyFun ((TyVar i)) (TyVar j)))
-              (Subtype
-                (TyVar k)
-                (TyVar j))
-              Empty
-              (Subtype
-                (TyVar h)
-                (TyVar i))
-              Empty)))))))) |}];
+        (Eq (TyVar a) (TyFun ((TyVar c)) (TyVar f)))
+        (Conj (
+          (Eq (TyVar b) (TyFun ((TyVar d)) (TyVar e)))
+          (Subtype
+            (TyVar f)
+            (TyVar e))
+          Empty
+          (Subtype
+            (TyVar c)
+            (TyVar d))
+          Empty))
+        (Eq (TyVar b) (TyFun ((TyVar g)) (TyVar j)))
+        (Conj (
+          (Eq (TyVar a) (TyFun ((TyVar h)) (TyVar i)))
+          (Subtype
+            (TyVar j)
+            (TyVar i))
+          Empty
+          (Subtype
+            (TyVar g)
+            (TyVar h))
+          Empty)))))) |}];
 
   print
     (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TySingleton (Atom "ok"))) Context.empty)
