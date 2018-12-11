@@ -1,9 +1,10 @@
 open Base
 open Ast_intf
+module Format = Caml.Format
 
 module Key = struct
   type t = Var of String.t | MFA of Mfa.t
-  [@@deriving sexp_of]
+  [@@deriving show, sexp_of]
 end
 
 module MapOnKey = Poly_map.Make(Key)

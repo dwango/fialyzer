@@ -49,7 +49,7 @@ let code_of_file beam_filename =
 let check_module beam_filename =
   code_of_file beam_filename >>= fun code ->
   From_erlang.code_to_expr code >>= fun expr ->
-  (Derivation.derive (Context.init ()) expr |> map_error ~f:(fun msg -> Failure msg)) >>= fun (_ty, c) ->
+  Derivation.derive (Context.init ()) expr >>= fun (_ty, c) ->
   Solver.solve Solver.init c >>= fun _sol ->
   Ok ()
 

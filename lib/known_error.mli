@@ -8,6 +8,7 @@ type t =
   | InvalidUsage
   | NoSuchFile of string
   | InvalidBeam of {beam_filename: string; message: string}
+  | UnboundVariable of {filename: string; line: int; variable: Context.Key.t}
   | TypeError of type_error
   | NotImplemented of issue
 [@@deriving show, sexp_of]
