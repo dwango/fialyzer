@@ -7,7 +7,7 @@ type issue
 type t =
   | InvalidUsage
   | NoSuchFile of string
-  | InvalidBeam of string * string
+  | InvalidBeam of {beam_filename: string; message: string}
   | TypeError of type_error
   | NotImplemented of issue
 [@@deriving show, sexp_of]

@@ -3,7 +3,7 @@ open Base
 open Result
 open Fialyzer
 
-let extract_debug_info_buf filename layout =
+let extract_debug_info_buf beam_filename layout =
   let {
     Beam.cl_abst = opt_abst;
     Beam.cl_dbgi = opt_dbgi;
@@ -17,22 +17,22 @@ let extract_debug_info_buf filename layout =
        | Some dbgi ->
           dbgi.Beam.dbgi_buf
        | None ->
-          let msg = "abst and dbgi chunk is not found" in
-          raise Known_error.(FialyzerError (InvalidBeam (filename, msg)))
+          let message = "abst and dbgi chunk is not found" in
+          raise Known_error.(FialyzerError (InvalidBeam {beam_filename; message}))
      end
 
-let beam_to_etf filename beam_buf = match Beam.parse_layout beam_buf with
+let beam_to_etf beam_filename beam_buf = match Beam.parse_layout beam_buf with
   | Ok (layout, _) ->
-     let debug_info_buf = extract_debug_info_buf filename layout in
+     let debug_info_buf = extract_debug_info_buf beam_filename layout in
      begin
        match External_term_format.parse debug_info_buf with
        | Ok (expr, _) ->
           Ok expr
-       | Error (msg, _rest) ->
-          Error Known_error.(FialyzerError (InvalidBeam (filename, msg)))
+       | Error (message, _rest) ->
+          Error Known_error.(FialyzerError (InvalidBeam {beam_filename; message}))
      end
-  | Error (msg, _rest) ->
-     Error Known_error.(FialyzerError (InvalidBeam (filename, msg)))
+  | Error (message, _rest) ->
+     Error Known_error.(FialyzerError (InvalidBeam {beam_filename; message}))
 
 let read_file beam_filename =
   try_with (fun () -> Bitstring.bitstring_of_file beam_filename) >>= fun beam ->
