@@ -43,7 +43,7 @@ let rec expr_of_erlang_expr = function
      (* TODO: support local `fun F/A` *)
      raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/79")))
   | ExprRemoteFunRef (_line_t, m, f, a) ->
-     MFA (expr_of_atom_or_var m, expr_of_atom_or_var f, expr_of_integer_or_var a)
+    MFA {module_name = expr_of_atom_or_var m;  function_name = expr_of_atom_or_var f; arity = expr_of_integer_or_var a}
   | ExprFun (_line_t, name, clauses) ->
      (* TODO: support `fun (...) -> ... end` *)
      raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/80")))
@@ -52,13 +52,20 @@ let rec expr_of_erlang_expr = function
   | ExprLocalCall (_line_t, f, args) ->
      App (expr_of_erlang_expr f, List.map ~f:expr_of_erlang_expr args)
   | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
-     let mfa = MFA (expr_of_erlang_expr m, expr_of_erlang_expr f, Constant (Number (List.length args))) in
+     let mfa = MFA {
+       module_name=expr_of_erlang_expr m;
+       function_name=expr_of_erlang_expr f; 
+       arity=Constant (Number (List.length args))} in
      App (mfa, List.map ~f:expr_of_erlang_expr args)
   | ExprMatch (line_t, pat, e) ->
      (* TODO: support match expr `A = B` *)
      raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/81")))
   | ExprBinOp (_line_t, op, e1, e2) ->
-     let func = Ast_intf.MFA (Constant (Atom "erlang"), Constant (Atom op), Constant (Number 2)) in
+     let func = Ast_intf.MFA {
+        module_name = Constant (Atom "erlang");
+        function_name = Constant (Atom op);
+        arity=Constant (Number 2)
+     } in
      App(func, List.map ~f:expr_of_erlang_expr [e1; e2])
   | ExprTuple (_line_t, es) ->
      Tuple (List.map ~f:expr_of_erlang_expr es)

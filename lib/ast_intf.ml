@@ -24,7 +24,7 @@ type expr =
     | Let of string * expr * expr
     | Letrec of (string * expr) list * expr
     | Case of expr * (pattern * expr) list
-    | MFA of expr * expr * expr
+    | MFA of {module_name: expr; function_name: expr; arity: expr}
 [@@deriving show, sexp_of]
 and pattern = pattern' * expr
 and pattern' =

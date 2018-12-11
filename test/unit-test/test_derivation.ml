@@ -274,8 +274,8 @@ let%expect_test "derivation" =
           Empty)))))) |}];
 
   print
-    (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TySingleton (Atom "ok"))) Context.empty)
-    (App (MFA (Constant (Atom "m"), Constant (Atom "f"), Constant (Number 0)), []));
+    (Context.add (Context.Key.MFA {module_name="m"; function_name="f"; arity=0}) (TyFun ([], TySingleton (Atom "ok"))) Context.empty)
+    (App (MFA {module_name=Constant (Atom "m"); function_name=Constant (Atom "f"); arity=Constant (Number 0)}, []));
   [%expect {|
     (Ok (
       (TyVar b)
@@ -287,11 +287,11 @@ let%expect_test "derivation" =
         Empty)))) |}];
 
   print
-    (Context.add (Context.Key.MFA ("m", "f", 0)) (TyFun ([], TySingleton (Atom "ok"))) Context.empty)
+    (Context.add (Context.Key.MFA {module_name="m"; function_name="f"; arity=0}) (TyFun ([], TySingleton (Atom "ok"))) Context.empty)
     (Let ("M", Constant (Atom "m"),
           Let ("F", Constant (Atom "f"),
                Let ("A", Constant (Number 0),
-                    App (MFA (Var "M", Var "F", Var "A"), [])))));
+                    App (MFA {module_name=Var "M"; function_name=Var "F"; arity=Var "A"}, [])))));
   [%expect {|
     (Ok (
       (TyVar c)
