@@ -4,6 +4,7 @@ module Etf = External_term_format
 module E = Etf_util
 open Common
 open Ast_intf
+open Mfa
 module Format = Caml.Format
 
 (* ==========================================================================
@@ -130,7 +131,7 @@ let mfa_of_etf = function
         Atom func;
         SmallInteger arity;
     ]) ->
-     Ok (module_name, func, arity)
+    Ok {module_name=module_name; function_name=func; arity=arity}
   | other ->
      Error (Failure (!%"mfa_of_etf error: %s" (E.show_etf other)))
 

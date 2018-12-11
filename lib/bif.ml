@@ -1,10 +1,11 @@
+open Mfa
 let type_sigs = [
-    (("erlang", "+", 2),
+    ({module_name="erlang"; function_name="+"; arity=2},
      Ast_intf.(TyFun ([TyNumber; TyNumber], TyNumber)));
-    (("erlang", "-", 2),
+    ({module_name="erlang"; function_name="-"; arity=2},
      Ast_intf.(TyFun ([TyNumber; TyNumber], TyNumber)));
-    (("erlang", "/", 2),
+    ({module_name="erlang"; function_name="/"; arity=2},
      Ast_intf.(TyFun ([TyNumber; TyNumber], TyNumber)));
-    (("erlang", "*", 2),
+    ({module_name="erlang"; function_name="*"; arity=2},
      Ast_intf.(TyFun ([TyNumber; TyNumber], TyNumber)));
   ]

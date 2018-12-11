@@ -4,4 +4,4 @@
 open Base
 module Format = Caml.Format
 
-type t = string * string * int [@@deriving show, sexp_of]
+type t = {module_name: string;  function_name: string; arity: int} [@@deriving show, sexp_of]

@@ -73,15 +73,15 @@ let rec derive context = function
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, Conj (c :: constraints))
-  | MFA (Constant (Atom m), Constant (Atom f), Constant (Number a)) ->
+  | MFA {module_name = Constant (Atom m); function_name = Constant (Atom f); arity = Constant (Number a)} ->
      (* find MFA from context *)
-     begin match Context.find context (Context.Key.MFA (m, f, a)) with
+       begin match Context.find context (Context.Key.MFA {module_name=m; function_name=f; arity=a}) with
      | Some ty ->
         Ok (ty, Empty)
      | None ->
         Error (Printf.sprintf "unknown MFA: %s:%s/%d" m f a)
      end
-  | MFA (m, f, a) ->
+  | MFA {module_name=m; function_name=f; arity=a} ->
      (* few info to find MFA *)
      let tyvar_mfa = new_tyvar () in
      derive context m >>= fun (ty_m, c_m) ->
