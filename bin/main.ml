@@ -35,13 +35,19 @@ let beam_to_etf beam_filename beam_buf = match Beam.parse_layout beam_buf with
      Error Known_error.(FialyzerError (InvalidBeam {beam_filename; message}))
 
 let read_file beam_filename =
-  try_with (fun () -> Bitstring.bitstring_of_file beam_filename) >>= fun beam ->
+  if Caml.Sys.file_exists beam_filename then
+    Ok (Bitstring.bitstring_of_file beam_filename)
+  else
+    Error Known_error.(FialyzerError (NoSuchFile beam_filename))
+
+let code_of_file beam_filename =
+  read_file beam_filename >>= fun beam ->
   beam_to_etf beam_filename beam >>= fun etf ->
   let sf = Simple_term_format.of_etf etf in
   Abstract_format.of_sf sf |> map_error ~f:(fun e -> Failure (Abstract_format.sexp_of_err_t e |> Sexp.to_string))
 
 let check_module beam_filename =
-  read_file beam_filename >>= fun code ->
+  code_of_file beam_filename >>= fun code ->
   From_erlang.code_to_expr code >>= fun expr ->
   (Derivation.derive (Context.init ()) expr |> map_error ~f:(fun msg -> Failure msg)) >>= fun (_ty, c) ->
   Solver.solve Solver.init c >>= fun _sol ->
