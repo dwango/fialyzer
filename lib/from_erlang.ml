@@ -44,9 +44,62 @@ let rec expr_of_erlang_expr = function
      raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/79"}))
   | ExprRemoteFunRef (_line_t, m, f, a) ->
     MFA {module_name = expr_of_atom_or_var m;  function_name = expr_of_atom_or_var f; arity = expr_of_integer_or_var a}
-  | ExprFun (_line_t, name, clauses) ->
-     (* TODO: support `fun (...) -> ... end` *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/80"}))
+  | ExprFun (_line_t, name_option, clauses) ->
+    (* Create a list which have n elements *)
+    let rec fill e = (function
+    | 0 -> []
+    | n -> (e())::(fill e (n - 1))
+    )
+    in
+    let (cs, arities) = clauses |> List.map ~f:(function
+    | F.ClsCase (_, _, _, _) -> failwith "cannot reach here"
+    | F.ClsFun (_, patterns, _, body) ->
+      (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
+      let rec pattern_of_mini_erlang = function
+      | F.PatVar(_, v) -> PatVar v
+      | F.PatUniversal _ -> PatVar "_"
+      | F.PatTuple(_, patterns) -> PatTuple (patterns |> List.map ~f:pattern_of_mini_erlang)
+      | F.PatMap(_, _) -> raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/102"}))
+      | F.PatLit _ -> raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/103"}))
+      in
+      let ps = patterns |> List.map ~f:pattern_of_mini_erlang in
+      let arity = List.length ps in 
+      let tuple_pattern = PatTuple ps in
+      (((tuple_pattern, Constant (Atom ("true"))), expr_of_erlang_expr body), arity)
+    ) |> List.unzip in
+     let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
+     let make_case cs fresh_variables =
+       let fresh_tuple = Tuple (fresh_variables |> List.map ~f:(fun v -> Var v)) in
+       (* letrec $name = fun $name(A1, A2, ...) -> b1; $name(B1, B2, ...)-> b2; ... end in $name *)
+       Case (fresh_tuple, cs)
+     in
+     let function_body = match cs with
+     | ((PatTuple patterns, Constant (Atom ("true"))), body)::[] -> 
+       let all_pattern_is_var = patterns |> List.for_all ~f:(function
+       | PatVar _ -> true
+       | _ -> false
+       ) in 
+       if all_pattern_is_var then
+         let args = patterns |> List.map ~f:(function
+         | PatVar v -> v
+         | _ -> failwith "cannot reach here"
+         ) in
+         Abs (args, body) 
+       else 
+         let arity = List.length patterns in
+         let fresh_variables: string list = (make_fresh_variables arity) in
+         Abs (fresh_variables, make_case cs fresh_variables)
+     | cs -> 
+       (* Assume all arities have the same value *)
+       let arity = List.nth_exn arities 0 in
+       let fresh_variables = (make_fresh_variables arity) in
+       Abs (fresh_variables, make_case cs fresh_variables)
+     in
+     (* If name is omitted, don't create Letrec *)
+     (match name_option with
+     | Some name -> Letrec ([(name, function_body)], Var name)
+     | None -> function_body
+     )
   | ExprLocalCall (_line_t, ExprLit (LitAtom (_line_f, fun_name)), args) ->
      App (Var fun_name, List.map ~f:expr_of_erlang_expr args)
   | ExprLocalCall (_line_t, f, args) ->
