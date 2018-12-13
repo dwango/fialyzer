@@ -2,8 +2,9 @@ open Base
 open Ast
 open Constant
 open Obeam
-
+open Polymorphic_compare
 module F = Abstract_format
+open Common
 
 let unit : expr = Constant (Number 0)
 
@@ -138,13 +139,52 @@ let clauses_to_function = function
      ) in
      let vs = args |> List.map ~f:f in
      (vs, expr_of_erlang_expr body)
+
+let rec typ_of_erlang_type = function
+(*  | F.TyAnn (_line, _, _) ->
+  | TyBitstring ->
+ *)
+  | F.TyPredef (_line, "number", []) -> Ast_intf.TyNumber
+     (*
+  | TyProduct ->
+  | TyBinOp ->
+  | TyUnaryOp ->
+  | TyAnyMap ->
+  | TyMap ->
+ *)
+  | F.TyVar (_line, v) -> Ast_intf.TyVar (Type_variable.of_string v)
+(*  | TyContFun ->
+ *)
+  | TyFun (_line, TyProduct (_, args), range) ->
+     Ast_intf.TyFun(List.map ~f:typ_of_erlang_type args, typ_of_erlang_type range)
+(*
+  | TyAnyTuple ->
+  | TyTuple ->
+  | TyUnion ->
+  | TyUser ->
+ *)
+  | TyLit (LitAtom (_, atom)) -> TySingleton (Atom atom)
+  | other ->
+     failwith(!%"not implemented type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))
+
 let forms_to_functions forms =
+  let find_specs fun_name =
+    List.find_map ~f:(function
+                      | F.SpecFun (_line, _mod_name, fname, arity, specs) when fun_name = fname ->
+                         List.map ~f:(fun ty ->
+                                    match typ_of_erlang_type ty with
+                                    | Ast_intf.TyFun (domains, range) -> (domains, range)
+                                    | _ -> failwith ("unexpected type spec of %s" fname))
+                                  specs
+                         |> Option.return
+                      | _ -> None) forms
+  in
   forms
   |> List.filter_map ~f:(function F.DeclFun(line, name, arity, clauses) -> Some(line, name, arity, clauses) | _ -> None)
   |> List.map ~f:(fun (_line, name, arity, clauses) ->
-                let spec = None in (* TODO : find spec of func *)
+                let specs = find_specs name in
                 let (vs, body) = clauses_to_function (List.hd_exn clauses) (* TODO : multi clauses function *) in
-                (spec, name, vs, body))
+                {specs; fun_name=name; args=vs; body})
 
 let forms_to_module forms =
   let take_file forms =
@@ -168,17 +208,3 @@ let code_to_module (F.AbstractCode form) =
      forms_to_module forms
   | _ ->
      failwith "except for module decl, it is out of support"
-
-let module_to_expr m =
-  let funs =
-    m.functions |> List.map ~f:(fun (_spec, name, args, body) ->
-                              (name, Abs (args, body)))
-  in
-  let fun_names = funs |> List.map ~f:fst in
-  Letrec(funs, Tuple (List.map ~f:(fun name -> Var name) fun_names))
-  |> Result.return
-
-let code_to_expr code =
-  let open Result in
-  code_to_module code >>= fun m ->
-  module_to_expr m

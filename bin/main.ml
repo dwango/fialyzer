@@ -2,6 +2,7 @@ open Obeam
 open Base
 open Result
 open Fialyzer
+open Common
 
 let extract_debug_info_buf beam_filename layout =
   let {
@@ -46,11 +47,32 @@ let code_of_file beam_filename =
   let sf = Simple_term_format.of_etf etf in
   Abstract_format.of_sf sf |> map_error ~f:(fun e -> Failure (Abstract_format.sexp_of_err_t e |> Sexp.to_string))
 
+let add_module_contracts_to_context mod_ ctx =
+  let add_fun_spec ctx decl =
+    match decl.Ast_intf.specs with
+    | Some specs ->
+       let ty =
+         specs
+         |> List.map ~f:(fun (domains, range) -> Ast_intf.TyFun (domains, range))
+         |> List.reduce_exn ~f:(fun ty1 ty2 -> Ast_intf.TyUnion (ty1, ty2))
+       in
+       Context.add (Context.Key.Var decl.fun_name) ty ctx
+    | None -> ctx
+  in
+  mod_.Ast_intf.functions
+  |> List.fold_left ~f:add_fun_spec ~init:ctx
+
 let check_module beam_filename =
   code_of_file beam_filename >>= fun code ->
-  From_erlang.code_to_expr code >>= fun expr ->
-  Derivation.derive (Context.init ()) expr >>= fun (_ty, c) ->
-  Solver.solve Solver.init c >>= fun _sol ->
+  From_erlang.code_to_module code >>= fun mod_ ->
+  let ctx = add_module_contracts_to_context mod_ (Context.init ()) in
+  let typecheck decl =
+    let expr = Ast_intf.Abs (decl.Ast_intf.args, decl.body) in
+    Derivation.derive ctx expr >>= fun (_ty, c) ->
+    Solver.solve Solver.init c >>= fun _sol ->
+    Ok ()
+  in
+  result_map_m ~f:typecheck mod_.functions >>= fun _ ->
   Ok ()
 
 let () =

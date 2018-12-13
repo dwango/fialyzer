@@ -29,9 +29,9 @@ and pattern' =
 let string_of_expr expr =
   [%sexp_of: expr] expr |> Sexplib.Sexp.to_string_hum ~indent:2
 
-type spec_fun = typ list * typ
+type spec_fun = (typ list * typ) list
 [@@deriving show, sexp_of]
-type decl_fun = spec_fun option * string * string list * expr
+type decl_fun = {specs: spec_fun option; fun_name: string; args: string list; body: expr}
 [@@deriving show, sexp_of]
 type module_ = {
     file : string;
