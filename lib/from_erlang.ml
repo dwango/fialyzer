@@ -174,7 +174,7 @@ let forms_to_functions forms =
                          List.map ~f:(fun ty ->
                                     match typ_of_erlang_type ty with
                                     | Ast_intf.TyFun (domains, range) -> (domains, range)
-                                    | _ -> failwith ("unexpected type spec of %s" fname))
+                                    | _ -> failwith (!%"unexpected type spec of %s" fname))
                                   specs
                          |> Option.return
                       | _ -> None) forms
