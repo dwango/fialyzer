@@ -7,14 +7,14 @@ let%expect_test "derivation" =
   let print context term =
     Type_variable.reset_count ();
     derive context term
-    |> [%sexp_of: (typ * constraint_, string) Result.t]
+    |> [%sexp_of: (typ * constraint_, exn) Result.t]
     |> Expect_test_helpers_kernel.print_s in
 
   print Context.empty (Constant (Number 42));
   [%expect {| (Ok ((TySingleton (Number 42)) Empty)) |}];
 
   print Context.empty (Var "x");
-  [%expect {| (Error "unknown type variable: x") |}];
+  [%expect {| (Error ("Fialyzer.Known_error.FialyzerError(_)")) |}];
 
   print (Context.add (Context.Key.Var "x") TyNumber Context.empty) (Var "x");
   [%expect {| (Ok (TyNumber Empty)) |}];
