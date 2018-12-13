@@ -74,18 +74,33 @@ let rec solve_eq sol ty1 ty2 =
      List.zip_exn tys1 tys2
      |> List.fold_left ~init:(Ok sol) ~f:(fun res (ty1,ty2) -> res >>= fun sol -> solve_eq sol ty1 ty2)
   | (TyTuple tys1, TyTuple tys2) ->
-     Error (Failure ("the tuple types are not different length"))
+     let filename = "TODO:filename" in
+     let line = -1 (*TODO:line*) in
+     let actual = ty1 in
+     let expected = ty2 in
+     let message = "the tuple types are not different length" in
+     Error Known_error.(FialyzerError (TypeError {filename; line; actual; expected; message}))
   | (TyFun (tys1, ty1), TyFun (tys2, ty2)) when List.length tys1 = List.length tys2 ->
      let open Result in
      List.zip_exn (ty1::tys1) (ty2::tys2)
      |> List.fold_left ~init:(Ok sol) ~f:(fun res (ty1,ty2) -> res >>= fun sol -> solve_eq sol ty1 ty2)
-  | (TyFun (tys1, ty1), TyFun (tys2, ty2)) ->
-     Error (Failure ("the function types's arugment are not different length"))
+  | (TyFun (tys1, _), TyFun (tys2, _)) ->
+     let filename = "TODO:filename" in
+     let line = -1 (*TODO:line*) in
+     let actual = ty1 in
+     let expected = ty2 in
+     let message = "the function types's arugment are not different length" in
+     Error Known_error.(FialyzerError (TypeError {filename; line; actual; expected; message}))
   | (TyUnion (ty11, ty12), TyUnion (ty21, ty22)) ->
   (* TODO: equality of unions *)
-     Error (Failure ("not implemented: solve_eq with union types"))
+     Error Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/98"}))
   | _ ->
-     Error (Failure (Printf.sprintf "must not eq type: %s =? %s" (show_typ ty1) (show_typ ty2)))
+     let filename = "TODO:filename" in
+     let line = -1 (*TODO:line*) in
+     let actual = ty1 in
+     let expected = ty2 in
+     let message = "must not eq type" in
+     Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
 
 (* τ_1 ⊓ τ_2 *)
 let rec meet sol ty1 ty2 =
@@ -145,7 +160,7 @@ let rec solve sol = function
   | Conj cs ->
      solve_conj sol cs
   | Disj cs ->
-     Error (Failure "not implemented : solving Disjunction of constraints")
+     Error Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/99"}))
 and solve_conj sol = function
   | [] -> Ok sol
   | c :: cs ->
@@ -163,13 +178,23 @@ and solve_sub sol ty1 ty2 =
        if ty != TyBottom then
          Ok (set (v1, ty) sol)
        else
-         Error (Failure "there is no solution that satisfies subtype constraints")
+         let filename = "TODO:filename" in
+         let line = -1 (*TODO:line*) in
+         let actual = ty1 in
+         let expected = ty2 in
+         let message = "there is no solution that satisfies subtype constraints" in
+         Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
   | TyTuple tys1, TyTuple tys2 when List.length tys1 = List.length tys2 ->
      let open Result in
      List.zip_exn tys1 tys2
      |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
   | TyTuple tys1, TyTuple tys2 ->
-     Error (Failure "the tuple types are not different length")
+     let filename = "TODO:filename" in
+     let line = -1 (*TODO:line*) in
+     let actual = ty1 in
+     let expected = ty2 in
+     let message = "the tuple types are not different length" in
+     Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
   | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
      let open Result in
      (* NOTE: `solve_sub arg1 arg2` is the same as type derivation [ABS]. *)
@@ -177,7 +202,12 @@ and solve_sub sol ty1 ty2 =
      List.zip_exn (body1 :: args1) (body2 :: args2)
      |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
   | TyFun (args1, _), TyFun (args2, _) ->
-     Error (Failure "the fun args are not different length")
+     let filename = "TODO:filename" in
+     let line = -1 (*TODO:line*) in
+     let actual = ty1 in
+     let expected = ty2 in
+     let message = "the fun args are not different length" in
+     Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
   | TyUnion (ty11, ty12), _ ->
      let open Result in
      solve_sub sol ty11 ty2 >>= fun sol' -> solve_sub sol' ty12 ty2
@@ -186,4 +216,9 @@ and solve_sub sol ty1 ty2 =
      if is_subtype sol ty1 ty2 then
        Ok sol
      else
-       Error (Failure "there is no solution that satisfies subtype constraints")
+       let filename = "TODO:filename" in
+       let line = -1 (*TODO:line*) in
+       let actual = ty1 in
+       let expected = ty2 in
+       let message = "there is no solution that satisfies subtype constraints" in
+       Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))

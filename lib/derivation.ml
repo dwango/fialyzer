@@ -13,7 +13,9 @@ let rec derive context = function
      | Some ty ->
         Ok (ty, Empty)
      | None ->
-        Error ("unknown type variable: " ^ v)
+        let filename = "TODO:filename" in
+        let line = -1 (*TODO: line*) in
+        Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=Var v}))
      end
   | Tuple exprs ->
      result_map_m ~f:(derive context) exprs
@@ -75,11 +77,14 @@ let rec derive context = function
      Ok (ty, Conj (c :: constraints))
   | MFA {module_name = Constant (Atom m); function_name = Constant (Atom f); arity = Constant (Number a)} ->
      (* find MFA from context *)
-       begin match Context.find context (Context.Key.MFA {module_name=m; function_name=f; arity=a}) with
+     let mfa = Context.Key.MFA {module_name=m; function_name=f; arity=a} in
+     begin match Context.find context mfa with
      | Some ty ->
         Ok (ty, Empty)
      | None ->
-        Error (Printf.sprintf "unknown MFA: %s:%s/%d" m f a)
+        let filename = "TODO:filename" in
+        let line = -1 (*TODO: line*) in
+        Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=mfa}))
      end
   | MFA {module_name=m; function_name=f; arity=a} ->
      (* few info to find MFA *)

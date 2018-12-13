@@ -84,4 +84,4 @@ let%expect_test "solver" =
   [%expect {| (Ok ()) |}];
 
   print (Subtype (TyNumber, TyAtom));
-  [%expect {| (Error (Failure "there is no solution that satisfies subtype constraints")) |}];
+  [%expect {| (Error ("Fialyzer.Known_error.FialyzerError(_)")) |}];

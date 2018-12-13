@@ -10,9 +10,9 @@ let const_of_literal = function
   | F.LitAtom (_line_t, name) -> Atom name
   | LitInteger (_line_t, i) -> Number i
   | LitBigInt (_line_t, z) ->
-     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"TODO: bigint literal")))
+     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/93"}))
   | LitString (_line_t, s) ->
-     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"TODO: string literal")))
+     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/90"}))
 
 (* [e1; e2; ...] という式の列を let _ = e1 in let _ = e2 ... in という１つの式にする *)
 let rec expr_of_exprs = function
@@ -41,12 +41,12 @@ let rec expr_of_erlang_expr = function
     Case (expr_of_erlang_expr e, cs)
   | ExprLocalFunRef (_line_t, name, arity) ->
      (* TODO: support local `fun F/A` *)
-     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/79")))
+     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/79"}))
   | ExprRemoteFunRef (_line_t, m, f, a) ->
     MFA {module_name = expr_of_atom_or_var m;  function_name = expr_of_atom_or_var f; arity = expr_of_integer_or_var a}
   | ExprFun (_line_t, name, clauses) ->
      (* TODO: support `fun (...) -> ... end` *)
-     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/80")))
+     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/80"}))
   | ExprLocalCall (_line_t, ExprLit (LitAtom (_line_f, fun_name)), args) ->
      App (Var fun_name, List.map ~f:expr_of_erlang_expr args)
   | ExprLocalCall (_line_t, f, args) ->
@@ -54,12 +54,12 @@ let rec expr_of_erlang_expr = function
   | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
      let mfa = MFA {
        module_name=expr_of_erlang_expr m;
-       function_name=expr_of_erlang_expr f; 
+       function_name=expr_of_erlang_expr f;
        arity=Constant (Number (List.length args))} in
      App (mfa, List.map ~f:expr_of_erlang_expr args)
   | ExprMatch (line_t, pat, e) ->
      (* TODO: support match expr `A = B` *)
-     raise Known_error.(FialyzerError (NotImplemented (make_issue ~url:"https://github.com/dwango/fialyzer/issues/81")))
+     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/81"}))
   | ExprBinOp (_line_t, op, e1, e2) ->
      let func = Ast_intf.MFA {
         module_name = Constant (Atom "erlang");
