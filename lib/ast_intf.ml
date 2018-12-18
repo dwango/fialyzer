@@ -30,6 +30,8 @@ and pattern = pattern' * expr
 and pattern' =
     | PatVar of string
     | PatTuple of pattern' list
+    | PatNil
+    | PatCons of pattern' * pattern'
 [@@deriving show, sexp_of]
 
 let string_of_expr expr =
