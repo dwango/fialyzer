@@ -151,7 +151,7 @@ let rec meet sol ty1 ty2 =
 let is_subtype sol ty1 ty2 =
   meet sol ty1 ty2 = ty1
 
-let rec solve sol = function
+let rec solve1 sol = function
   | Empty -> Ok sol
   | Eq (ty1, ty2) ->
      solve_eq sol ty1 ty2
@@ -165,7 +165,7 @@ and solve_conj sol = function
   | [] -> Ok sol
   | c :: cs ->
      let open Result in
-     solve sol c >>= fun sol' ->
+     solve1 sol c >>= fun sol' ->
      solve_conj sol' cs
 and solve_sub sol ty1 ty2 =
   match (ty1, ty2) with
@@ -222,3 +222,18 @@ and solve_sub sol ty1 ty2 =
        let expected = ty2 in
        let message = "there is no solution that satisfies subtype constraints" in
        Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
+
+let rec solve sol cs =
+  let open Result in
+  solve1 sol cs >>= fun sol' ->
+  let updated_vars =
+    Map.fold sol' ~init:[] ~f:(fun ~key:var ~data:ty acc ->
+               if (Map.find sol var = Some ty) then
+                 acc
+               else
+                 var :: acc)
+  in
+  if updated_vars = [] then
+    Ok sol'
+  else
+    solve sol' cs
