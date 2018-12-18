@@ -1,6 +1,6 @@
 open Base
 open Obeam
-open Ast_intf
+open Ast
 
 val expr_of_erlang_expr : Abstract_format.expr_t -> expr
 

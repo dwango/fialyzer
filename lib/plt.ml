@@ -3,7 +3,6 @@ open Obeam
 module Etf = External_term_format
 module E = Etf_util
 open Common
-open Ast_intf
 open Mfa
 module Format = Caml.Format
 

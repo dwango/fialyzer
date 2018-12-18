@@ -1,6 +1,7 @@
 open Base
 open Common
-open Ast_intf
+open Ast
+open Type
 open Result
 
 let new_tyvar () = TyVar (Type_variable.create())

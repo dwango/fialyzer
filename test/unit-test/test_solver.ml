@@ -1,6 +1,6 @@
 open Base
 open Fialyzer
-open Ast_intf
+open Type
 open Solver
 
 let%expect_test "meet" =

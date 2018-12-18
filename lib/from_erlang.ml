@@ -1,5 +1,6 @@
 open Base
-open Ast_intf
+open Ast
+open Constant
 open Obeam
 
 module F = Abstract_format
@@ -114,7 +115,7 @@ let rec expr_of_erlang_expr = function
      (* TODO: support match expr `A = B` *)
      raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/81"}))
   | ExprBinOp (_line_t, op, e1, e2) ->
-     let func = Ast_intf.MFA {
+     let func = Ast.MFA {
         module_name = Constant (Atom "erlang");
         function_name = Constant (Atom op);
         arity=Constant (Number 2)
