@@ -26,8 +26,8 @@ let to_message = function
      !%"%s:%d: Unknown function: %s" filename line (Mfa.show mfa)
   | TypeError err ->
      !%"%s:%d: Type error: type mismatch;\n  found   : %s\n  required: %s\n%s" err.filename err.line
-       (Type.show_typ err.actual)
-       (Type.show_typ err.expected)
+       (Type.pp err.actual)
+       (Type.pp err.expected)
        err.message
   | NotImplemented {issue_link} ->
      !%"Not implemented: Please +1 %s" issue_link

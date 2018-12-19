@@ -8,3 +8,4 @@ val create : unit -> t
 val reset_count : unit -> unit
 
 val of_string : string -> t
+val to_string : t -> string
