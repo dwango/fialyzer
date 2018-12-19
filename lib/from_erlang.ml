@@ -65,7 +65,7 @@ let rec expr_of_erlang_expr = function
       | F.PatLit _ -> raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/103"}))
       in
       let ps = patterns |> List.map ~f:pattern_of_mini_erlang in
-      let arity = List.length ps in 
+      let arity = List.length ps in
       let tuple_pattern = PatTuple ps in
       (((tuple_pattern, Constant (Atom ("true"))), expr_of_erlang_expr body), arity)
     ) |> List.unzip in
@@ -76,22 +76,22 @@ let rec expr_of_erlang_expr = function
        Case (fresh_tuple, cs)
      in
      let function_body = match cs with
-     | ((PatTuple patterns, Constant (Atom ("true"))), body)::[] -> 
+     | ((PatTuple patterns, Constant (Atom ("true"))), body)::[] ->
        let all_pattern_is_var = patterns |> List.for_all ~f:(function
        | PatVar _ -> true
        | _ -> false
-       ) in 
+       ) in
        if all_pattern_is_var then
          let args = patterns |> List.map ~f:(function
          | PatVar v -> v
          | _ -> failwith "cannot reach here"
          ) in
-         Abs (args, body) 
-       else 
+         Abs (args, body)
+       else
          let arity = List.length patterns in
          let fresh_variables: string list = (make_fresh_variables arity) in
          Abs (fresh_variables, make_case cs fresh_variables)
-     | cs -> 
+     | cs ->
        (* Assume all arities have the same value *)
        let arity = List.nth_exn arities 0 in
        let fresh_variables = (make_fresh_variables arity) in
@@ -144,7 +144,7 @@ let rec typ_of_erlang_type = function
 (*  | F.TyAnn (_line, _, _) ->
   | TyBitstring ->
  *)
-  | F.TyPredef (_line, "number", []) -> Ast_intf.TyNumber
+  | F.TyPredef (_line, "number", []) -> Type.TyNumber
      (*
   | TyProduct ->
   | TyBinOp ->
@@ -152,11 +152,11 @@ let rec typ_of_erlang_type = function
   | TyAnyMap ->
   | TyMap ->
  *)
-  | F.TyVar (_line, v) -> Ast_intf.TyVar (Type_variable.of_string v)
+  | F.TyVar (_line, v) -> Type.TyVar (Type_variable.of_string v)
 (*  | TyContFun ->
  *)
   | TyFun (_line, TyProduct (_, args), range) ->
-     Ast_intf.TyFun(List.map ~f:typ_of_erlang_type args, typ_of_erlang_type range)
+     Type.TyFun(List.map ~f:typ_of_erlang_type args, typ_of_erlang_type range)
 (*
   | TyAnyTuple ->
   | TyTuple ->
@@ -173,7 +173,7 @@ let forms_to_functions forms =
                       | F.SpecFun (_line, _mod_name, fname, arity, specs) when fun_name = fname ->
                          List.map ~f:(fun ty ->
                                     match typ_of_erlang_type ty with
-                                    | Ast_intf.TyFun (domains, range) -> (domains, range)
+                                    | Type.TyFun (domains, range) -> (domains, range)
                                     | _ -> failwith (!%"unexpected type spec of %s" fname))
                                   specs
                          |> Option.return
