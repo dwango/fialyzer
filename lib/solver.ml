@@ -32,10 +32,6 @@ let rec type_subst (x, ty1): typ -> typ = function
 let type_subst_to_sol (x, ty) sol =
   Map.map ~f:(type_subst (x, ty)) sol
 
-let add (x, ty) sol =
-  let sol' = type_subst_to_sol (x, ty) sol in
-  Map.add_exn sol' ~key:x ~data:ty
-
 let set (x, ty) sol =
   let sol' = type_subst_to_sol (x, ty) sol in
   Map.set sol' ~key:x ~data:ty
@@ -206,6 +202,11 @@ let rec solve_sub sol ty1 ty2 =
        let expected = ty2 in
        let message = "there is no solution that satisfies subtype constraints" in
        Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
+
+let solve_eq sol ty1 ty2 =
+  let open Result in
+  solve_sub sol ty1 ty2 >>= fun sol' ->
+  solve_sub sol' ty2 ty1
 
 let rec solve1 sol = function
   | Empty -> Ok sol
