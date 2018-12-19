@@ -4,6 +4,7 @@ module Map = Base.Map
 module String = Base.String
 module Result = Base.Result
 module Option = Base.Option
+open Common
 
 type solution = typ Map.M(Type_variable).t
 [@@deriving sexp_of]
@@ -32,86 +33,33 @@ let rec type_subst (x, ty1): typ -> typ = function
 let type_subst_to_sol (x, ty) sol =
   Map.map ~f:(type_subst (x, ty)) sol
 
-let add (x, ty) sol =
-  let sol' = type_subst_to_sol (x, ty) sol in
-  Map.add_exn sol' ~key:x ~data:ty
-
 let set (x, ty) sol =
   let sol' = type_subst_to_sol (x, ty) sol in
   Map.set sol' ~key:x ~data:ty
 
-let rec is_free x = function
-  | TyVar y -> (x <> y)
+let rec lookup_type sol = function
   | TyTuple tys ->
-     List.for_all ~f:(is_free x) tys
+     TyTuple(List.map ~f:(lookup_type sol) tys)
   | TyFun (tys, ty) ->
-     List.for_all ~f:(is_free x) (ty::tys)
-  | TyUnion (ty1, ty2) ->
-     is_free x ty1 && is_free x ty2
-  | TyAny | TyBottom | TyNumber | TyAtom | TySingleton _  -> true
-
-let rec solve_eq sol ty1 ty2 =
-  match (ty1, ty2) with
-  | (ty1, ty2) when ty1 = ty2 -> Ok sol
-  | (TyVar x, ty2) when is_free x ty2 ->
-     begin match Map.find sol x with
-     | Some ty' ->
-        solve_eq sol ty' ty2
-     | None ->
-        Ok (add (x, ty2) sol)
+     TyFun (List.map ~f:(lookup_type sol) tys, lookup_type sol ty)
+  | TyUnion (ty_a, ty_b) ->
+     TyUnion(lookup_type sol ty_a, lookup_type sol ty_b)
+  | TyAny -> TyAny
+  | TyBottom -> TyBottom
+  | TyNumber -> TyNumber
+  | TyAtom -> TyAtom
+  | TySingleton const -> TySingleton const
+  | TyVar v ->
+     begin match Map.find sol v with
+     | Some v_ty -> v_ty
+     | None -> TyAny
      end
-  | (ty1, TyVar y) when is_free y ty1 ->
-     begin match Map.find sol y with
-     | Some ty' ->
-        solve_eq sol ty1 ty'
-     | None ->
-        Ok (add (y, ty1) sol)
-     end
-  | (TyVar v, _) | (_, TyVar v) ->
-     Error (Failure (Printf.sprintf "not free variable: %s" (Type_variable.show v)))
-  | (TyTuple tys1, TyTuple tys2) when List.length tys1 = List.length tys2 ->
-     let open Result in
-     List.zip_exn tys1 tys2
-     |> List.fold_left ~init:(Ok sol) ~f:(fun res (ty1,ty2) -> res >>= fun sol -> solve_eq sol ty1 ty2)
-  | (TyTuple tys1, TyTuple tys2) ->
-     let filename = "TODO:filename" in
-     let line = -1 (*TODO:line*) in
-     let actual = ty1 in
-     let expected = ty2 in
-     let message = "the tuple types are not different length" in
-     Error Known_error.(FialyzerError (TypeError {filename; line; actual; expected; message}))
-  | (TyFun (tys1, ty1), TyFun (tys2, ty2)) when List.length tys1 = List.length tys2 ->
-     let open Result in
-     List.zip_exn (ty1::tys1) (ty2::tys2)
-     |> List.fold_left ~init:(Ok sol) ~f:(fun res (ty1,ty2) -> res >>= fun sol -> solve_eq sol ty1 ty2)
-  | (TyFun (tys1, _), TyFun (tys2, _)) ->
-     let filename = "TODO:filename" in
-     let line = -1 (*TODO:line*) in
-     let actual = ty1 in
-     let expected = ty2 in
-     let message = "the function types's arugment are not different length" in
-     Error Known_error.(FialyzerError (TypeError {filename; line; actual; expected; message}))
-  | (TyUnion (ty11, ty12), TyUnion (ty21, ty22)) ->
-  (* TODO: equality of unions *)
-     Error Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/98"}))
-  | _ ->
-     let filename = "TODO:filename" in
-     let line = -1 (*TODO:line*) in
-     let actual = ty1 in
-     let expected = ty2 in
-     let message = "must not eq type" in
-     Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
 
 (* τ_1 ⊓ τ_2 *)
-let rec meet sol ty1 ty2 =
+let rec meet ty1 ty2 =
   match (ty1, ty2) with
   (* var *)
-  | TyVar x, _ ->
-     let ty1 = Option.value (Map.find sol x) ~default:TyAny in
-     meet sol ty1 ty2
-  | _, TyVar y ->
-     let ty2 = Option.value (Map.find sol y) ~default:TyAny in
-     meet sol ty1 ty2
+  | TyVar _, _ | _, TyVar _ -> failwith "cannot reach here"
   (* any *)
   | TyAny, _ -> ty2
   | _, TyAny -> ty1
@@ -121,19 +69,19 @@ let rec meet sol ty1 ty2 =
   (* struct *)
   | TyTuple tys1, TyTuple tys2 when List.length tys1 = List.length tys2 ->
      List.zip_exn tys1 tys2
-     |> List.map ~f:(fun (ty1, ty2) -> meet sol ty1 ty2)
+     |> List.map ~f:(fun (ty1, ty2) -> meet ty1 ty2)
      |> (fun tys -> TyTuple tys)
   (* function *)
   | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
      List.zip_exn args1 args2
      (* NOTE: using `meet` is the same as type derivation [ABS]. perhaps it should be `join` *)
-     |> List.map ~f:(fun (arg1, arg2) -> meet sol arg1 arg2)
-     |> (fun args -> TyFun (args, meet sol body1 body2))
+     |> List.map ~f:(fun (arg1, arg2) -> meet arg1 arg2)
+     |> (fun args -> TyFun (args, meet body1 body2))
   (* union *)
   | TyUnion (tyl, tyr), _ ->
-     TyUnion (meet sol tyl ty2, meet sol tyr ty2)
+     TyUnion (meet tyl ty2, meet tyr ty2)
   | _, TyUnion (tyl, tyr) ->
-     TyUnion (meet sol ty1 tyl, meet sol ty1 tyr)
+     TyUnion (meet ty1 tyl, meet ty1 tyr)
   (* number *)
   | TyNumber, TyNumber -> TyNumber
   | TyNumber, TySingleton (Number n) -> TySingleton (Number n)
@@ -148,35 +96,20 @@ let rec meet sol ty1 ty2 =
   | _ -> TyBottom
 
 (* τ_1 ⊆ τ_2 *)
-let is_subtype sol ty1 ty2 =
-  meet sol ty1 ty2 = ty1
+let is_subtype ty1 ty2 =
+  meet ty1 ty2 = ty1
 
-let rec solve sol = function
-  | Empty -> Ok sol
-  | Eq (ty1, ty2) ->
-     solve_eq sol ty1 ty2
-  | Subtype (ty1, ty2) ->
-     solve_sub sol ty1 ty2
-  | Conj cs ->
-     solve_conj sol cs
-  | Disj cs ->
-     Error Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/99"}))
-and solve_conj sol = function
-  | [] -> Ok sol
-  | c :: cs ->
-     let open Result in
-     solve sol c >>= fun sol' ->
-     solve_conj sol' cs
-and solve_sub sol ty1 ty2 =
-  match (ty1, ty2) with
+let rec solve_sub sol ty1 ty2 =
+  let ty1' = lookup_type sol ty1 in
+  let ty2' = lookup_type sol ty2 in
+  let inf = meet ty1' ty2' in
+  match (ty1, inf) with
   | TyVar v1, _ ->
-     let ty1' = Option.value (Map.find sol v1) ~default:TyAny in
-     if is_subtype sol ty1' ty2 then
+     if is_subtype ty1' ty2' then
        Ok sol
      else
-       let ty = meet sol ty1' ty2 in
-       if ty != TyBottom then
-         Ok (set (v1, ty) sol)
+       if inf != TyBottom then
+         Ok (set (v1, inf) sol)
        else
          let filename = "TODO:filename" in
          let line = -1 (*TODO:line*) in
@@ -191,8 +124,8 @@ and solve_sub sol ty1 ty2 =
   | TyTuple tys1, TyTuple tys2 ->
      let filename = "TODO:filename" in
      let line = -1 (*TODO:line*) in
-     let actual = ty1 in
-     let expected = ty2 in
+     let actual = ty1' in
+     let expected = ty2' in
      let message = "the tuple types are not different length" in
      Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
   | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
@@ -204,8 +137,8 @@ and solve_sub sol ty1 ty2 =
   | TyFun (args1, _), TyFun (args2, _) ->
      let filename = "TODO:filename" in
      let line = -1 (*TODO:line*) in
-     let actual = ty1 in
-     let expected = ty2 in
+     let actual = ty1' in
+     let expected = ty2' in
      let message = "the fun args are not different length" in
      Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
   | TyUnion (ty11, ty12), _ ->
@@ -213,12 +146,42 @@ and solve_sub sol ty1 ty2 =
      solve_sub sol ty11 ty2 >>= fun sol' -> solve_sub sol' ty12 ty2
   | _ ->
      (* TODO: normalize *)
-     if is_subtype sol ty1 ty2 then
+     if is_subtype ty1' ty2' then
        Ok sol
      else
        let filename = "TODO:filename" in
        let line = -1 (*TODO:line*) in
-       let actual = ty1 in
-       let expected = ty2 in
-       let message = "there is no solution that satisfies subtype constraints" in
+       let actual = ty1' in
+       let expected = ty2' in
+       let message = !%"there is no solution that satisfies subtype constraints" in
        Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
+
+let solve_eq sol ty1 ty2 =
+  let open Result in
+  solve_sub sol ty1 ty2 >>= fun sol' ->
+  solve_sub sol' ty2 ty1
+
+let rec solve1 sol = function
+  | Empty -> Ok sol
+  | Eq (ty1, ty2) ->
+     solve_eq sol ty1 ty2
+  | Subtype (ty1, ty2) ->
+     solve_sub sol ty1 ty2
+  | Conj cs ->
+     solve_conj sol cs
+  | Disj cs ->
+     Error Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/99"}))
+and solve_conj sol = function
+  | [] -> Ok sol
+  | c :: cs ->
+     let open Result in
+     solve1 sol c >>= fun sol' ->
+     solve_conj sol' cs
+
+let rec solve sol cs =
+  let open Result in
+  solve1 sol cs >>= fun sol' ->
+  if Map.equal (=) sol sol' then
+    Ok sol'
+  else
+    solve sol' cs
