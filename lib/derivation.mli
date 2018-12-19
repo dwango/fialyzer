@@ -1,4 +1,5 @@
 open Base
-open Ast_intf
+open Ast
+open Type
 
 val derive : Context.t -> expr -> (typ * constraint_, exn) Result.t

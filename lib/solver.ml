@@ -1,4 +1,4 @@
-open Ast_intf
+open Type
 module List = Base.List
 module Map = Base.Map
 module String = Base.String

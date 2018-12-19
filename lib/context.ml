@@ -1,5 +1,5 @@
 open Base
-open Ast_intf
+open Type
 module Format = Caml.Format
 
 module Key = struct

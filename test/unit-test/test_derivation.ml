@@ -1,6 +1,7 @@
 open Base
 open Fialyzer
-open Ast_intf
+open Ast
+open Type
 open Derivation
 
 let%expect_test "derivation" =

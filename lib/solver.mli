@@ -1,4 +1,4 @@
-open Ast_intf
+open Type
 
 type solution
 [@@deriving sexp_of]
