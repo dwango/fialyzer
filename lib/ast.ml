@@ -1,4 +1,5 @@
 open Base
+module Format = Caml.Format
 
 module Z = struct
   type t = Z.t
@@ -6,9 +7,12 @@ module Z = struct
   let pp fmt z = Z.to_string z |> Caml.Format.fprintf fmt "%s"
 end
 
+type line = int
+[@@deriving show, sexp_of]
+
 type t =
-    | Constant of Constant.t
-    | Var of string
+    | Constant of line * Constant.t
+    | Var of line * string
     | Tuple of t list
     | App of t * t list
     | Abs of fun_abst
