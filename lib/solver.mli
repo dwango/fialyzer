@@ -10,4 +10,4 @@ val init : solution
 val solve : solution -> constraint_ -> (solution, exn) result
 
 (* TODO: don't export *)
-val meet : solution -> typ -> typ -> typ
+val meet : typ -> typ -> typ
