@@ -2,7 +2,6 @@ open Obeam
 open Base
 open Result
 open Fialyzer
-open Common
 
 let extract_debug_info_buf beam_filename layout =
   let {
@@ -64,15 +63,9 @@ let add_module_contracts_to_context mod_ ctx =
 
 let check_module beam_filename =
   code_of_file beam_filename >>= fun code ->
-  From_erlang.code_to_module code >>= fun mod_ ->
-  let ctx = add_module_contracts_to_context mod_ (Context.init ()) in
-  let typecheck decl =
-    let expr = Ast_intf.Abs (decl.Ast_intf.args, decl.body) in
-    Derivation.derive ctx expr >>= fun (_ty, c) ->
-    Solver.solve Solver.init c >>= fun _sol ->
-    Ok ()
-  in
-  result_map_m ~f:typecheck mod_.functions >>= fun _ ->
+  From_erlang.code_to_expr code >>= fun expr ->
+  Derivation.derive (Context.init ()) expr >>= fun (_ty, c) ->
+  Solver.solve Solver.init c >>= fun _sol ->
   Ok ()
 
 let () =
