@@ -5,7 +5,7 @@ open Solver
 
 let%expect_test "meet" =
   let print ty1 ty2 =
-    meet init ty1 ty2
+    meet ty1 ty2
     |> [%sexp_of: typ]
     |> Expect_test_helpers_kernel.print_s in
 
