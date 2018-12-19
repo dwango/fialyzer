@@ -181,14 +181,7 @@ and solve_conj sol = function
 let rec solve sol cs =
   let open Result in
   solve1 sol cs >>= fun sol' ->
-  let updated_vars =
-    Map.fold sol' ~init:[] ~f:(fun ~key:var ~data:ty acc ->
-               if (Map.find sol var = Some ty) then
-                 acc
-               else
-                 var :: acc)
-  in
-  if updated_vars = [] then
+  if Map.equal (=) sol sol' then
     Ok sol'
   else
     solve sol' cs
