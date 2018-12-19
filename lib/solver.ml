@@ -151,23 +151,7 @@ let rec meet sol ty1 ty2 =
 let is_subtype sol ty1 ty2 =
   meet sol ty1 ty2 = ty1
 
-let rec solve1 sol = function
-  | Empty -> Ok sol
-  | Eq (ty1, ty2) ->
-     solve_eq sol ty1 ty2
-  | Subtype (ty1, ty2) ->
-     solve_sub sol ty1 ty2
-  | Conj cs ->
-     solve_conj sol cs
-  | Disj cs ->
-     Error Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/99"}))
-and solve_conj sol = function
-  | [] -> Ok sol
-  | c :: cs ->
-     let open Result in
-     solve1 sol c >>= fun sol' ->
-     solve_conj sol' cs
-and solve_sub sol ty1 ty2 =
+let rec solve_sub sol ty1 ty2 =
   match (ty1, ty2) with
   | TyVar v1, _ ->
      let ty1' = Option.value (Map.find sol v1) ~default:TyAny in
@@ -222,6 +206,23 @@ and solve_sub sol ty1 ty2 =
        let expected = ty2 in
        let message = "there is no solution that satisfies subtype constraints" in
        Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
+
+let rec solve1 sol = function
+  | Empty -> Ok sol
+  | Eq (ty1, ty2) ->
+     solve_eq sol ty1 ty2
+  | Subtype (ty1, ty2) ->
+     solve_sub sol ty1 ty2
+  | Conj cs ->
+     solve_conj sol cs
+  | Disj cs ->
+     Error Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/99"}))
+and solve_conj sol = function
+  | [] -> Ok sol
+  | c :: cs ->
+     let open Result in
+     solve1 sol c >>= fun sol' ->
+     solve_conj sol' cs
 
 let rec solve sol cs =
   let open Result in
