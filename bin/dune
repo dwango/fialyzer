@@ -1,7 +1,7 @@
 (executables
  (names main)
  (libraries fialyzer bitstring obeam)
- (preprocess (pps ppx_deriving.std)))
+ (preprocess (pps ppx_deriving.std ppx_here)))
 
 (install
  (section bin)

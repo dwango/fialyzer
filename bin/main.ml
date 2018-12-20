@@ -54,9 +54,11 @@ let check_module beam_filename =
   Ok ()
 
 let () =
+  Log.debug [%here] "=== start fialyzer ===";
   Cui.work (fun param ->
       try
         Result.ok_exn begin
+            Log.debug [%here] "type checking... '%s'" param.Cui.beam_file;
             check_module param.Cui.beam_file
           end;
         Caml.print_endline "done (passed successfully)"
