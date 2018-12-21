@@ -17,6 +17,7 @@ depends: [
   "zarith"
   "ppx_deriving" {build}
   "ppx_expect" {build}
+  "ppx_here" {build}
   "expect_test_helpers_kernel"
 ]
 available: [ ocaml-version >= "4.03.0" ]
