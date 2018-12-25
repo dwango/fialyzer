@@ -170,7 +170,9 @@ let rec solve1 sol = function
   | Conj cs ->
      solve_conj sol cs
   | Disj cs ->
-     Error Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/99"}))
+     let issue_links = ["https://github.com/dwango/fialyzer/issues/99"] in
+     let message = "Solve disjunction of constraints" in
+     Error Known_error.(FialyzerError (NotImplemented {issue_links; message}))
 and solve_conj sol = function
   | [] -> Ok sol
   | c :: cs ->

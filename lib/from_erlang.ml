@@ -12,9 +12,9 @@ let const_of_literal = function
   | F.LitAtom (_line_t, name) -> Atom name
   | LitInteger (_line_t, i) -> Number i
   | LitBigInt (_line_t, z) ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/93"}))
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/93"]; message="support bigint literal"}))
   | LitString (_line_t, s) ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/90"}))
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support string(list) literal"}))
 
 (* [e1; e2; ...] という式の列を let _ = e1 in let _ = e2 ... in という１つの式にする *)
 let rec expr_of_exprs = function
@@ -31,19 +31,36 @@ let expr_of_integer_or_var = function
   | F.IntegerVarInteger (_line_t, i) -> Constant (Number i)
   | IntegerVarVar (_line_t, v) -> Var v
 
+let rec pattern_of_erlang_pattern = function
+  | F.PatVar (_, v) -> Ast.PatVar v
+  | F.PatUniversal _ -> Ast.PatVar "_"
+  | F.PatLit literal ->
+     let _constant = const_of_literal literal in
+     let issue_links = ["https://github.com/dwango/fialyzer/issues/103"] in
+     let message = "support constant pattern" in
+     raise Known_error.(FialyzerError (NotImplemented {issue_links; message}))
+  | F.PatMap _ ->
+     let issue_links = ["https://github.com/dwango/fialyzer/issues/102"] in
+     let message = "support map pattern" in
+     raise Known_error.(FialyzerError (NotImplemented {issue_links; message}))
+  | F.PatTuple (_, patterns) ->
+     PatTuple (patterns |> List.map ~f:pattern_of_erlang_pattern)
+
 let rec expr_of_erlang_expr = function
   | F.ExprBody erlangs ->
      expr_of_exprs (List.map ~f:expr_of_erlang_expr erlangs)
-  | ExprCase (_line_t, e, clauses) ->
-    let cs = clauses |> List.map ~f:(function
-    | F.ClsCase (_, F.PatVar (_, v), _, e) -> ((PatVar v, Constant (Atom "true")), expr_of_erlang_expr e)
-    | F.ClsCase (_, F.PatUniversal _, _, e) -> ((PatVar "_", Constant (Atom "true")), expr_of_erlang_expr e)
-    | F.ClsCase (_, _, _, _) | F.ClsFun (_, _, _, _) -> failwith "not implemented"
+  | ExprCase (line, e, clauses) ->
+     let cs = clauses |> List.map ~f:(function
+       | F.ClsCase (_, pattern, guard, e) ->
+          if Option.is_some guard then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
+          ((pattern_of_erlang_pattern pattern, Constant (Atom "true")), expr_of_erlang_expr e)
+       | F.ClsFun (_, _, _, _) ->
+          failwith "cannot reach here"
     ) in
     Case (expr_of_erlang_expr e, cs)
   | ExprLocalFunRef (_line_t, name, arity) ->
      (* TODO: support local `fun F/A` *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/79"}))
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/79"]; message="support local `fun f/A`"}))
   | ExprRemoteFunRef (_line_t, m, f, a) ->
     MFA {module_name = expr_of_atom_or_var m;  function_name = expr_of_atom_or_var f; arity = expr_of_integer_or_var a}
   | ExprFun (_line_t, name_option, clauses) ->
@@ -57,14 +74,7 @@ let rec expr_of_erlang_expr = function
     | F.ClsCase (_, _, _, _) -> failwith "cannot reach here"
     | F.ClsFun (_, patterns, _, body) ->
       (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
-      let rec pattern_of_mini_erlang = function
-      | F.PatVar(_, v) -> PatVar v
-      | F.PatUniversal _ -> PatVar "_"
-      | F.PatTuple(_, patterns) -> PatTuple (patterns |> List.map ~f:pattern_of_mini_erlang)
-      | F.PatMap(_, _) -> raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/102"}))
-      | F.PatLit _ -> raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/103"}))
-      in
-      let ps = patterns |> List.map ~f:pattern_of_mini_erlang in
+      let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
       let arity = List.length ps in
       let tuple_pattern = PatTuple ps in
       (((tuple_pattern, Constant (Atom ("true"))), expr_of_erlang_expr body), arity)
@@ -114,7 +124,7 @@ let rec expr_of_erlang_expr = function
      App (mfa, List.map ~f:expr_of_erlang_expr args)
   | ExprMatch (line_t, pat, e) ->
      (* TODO: support match expr `A = B` *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_link="https://github.com/dwango/fialyzer/issues/81"}))
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/81"]; message="support match expr `A = B`"}))
   | ExprBinOp (_line_t, op, e1, e2) ->
      let func = Ast.MFA {
         module_name = Constant (Atom "erlang");
@@ -165,7 +175,8 @@ let rec typ_of_erlang_type = function
  *)
   | TyLit (LitAtom (_, atom)) -> TySingleton (Atom atom)
   | other ->
-     failwith(!%"not implemented type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))
+     Log.debug [%here] "not implemented type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
+     Type.TyAny
 
 let forms_to_functions forms =
   let find_specs fun_name =

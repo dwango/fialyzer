@@ -8,7 +8,7 @@ type t =
   | InvalidBeam of {beam_filename: string; message: string}
   | UnboundVariable of {filename: string; line: int; variable: Context.Key.t}
   | TypeError of {filename: string; line: int; actual : Type.typ; expected: Type.typ; message: string}
-  | NotImplemented of {issue_link: string}
+  | NotImplemented of {issue_links: string list; message: string}
 [@@deriving show, sexp_of]
 
 exception FialyzerError of t
@@ -29,5 +29,6 @@ let to_message = function
        (Type.pp err.actual)
        (Type.pp err.expected)
        err.message
-  | NotImplemented {issue_link} ->
-     !%"Not implemented: Please +1 %s" issue_link
+  | NotImplemented {issue_links; message} ->
+     let links = List.map ~f:(!%"- %s") issue_links |> String.concat ~sep:"\n" in
+     !%"Not implemented: %s: See the issues:\n%s" message links
