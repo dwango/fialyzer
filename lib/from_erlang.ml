@@ -165,7 +165,8 @@ let rec typ_of_erlang_type = function
  *)
   | TyLit (LitAtom (_, atom)) -> TySingleton (Atom atom)
   | other ->
-     failwith(!%"not implemented type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))
+     Log.debug [%here] "not implemented type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
+     Type.TyAny
 
 let forms_to_functions forms =
   let find_specs fun_name =
