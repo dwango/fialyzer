@@ -105,12 +105,16 @@ let rec derive context = function
     (* translate pattern to expression *)
     let rec pattern_to_expr = function
       | PatVar v -> Var v
-      | PatTuple es -> Tuple (es |> List.map ~f:(fun e -> pattern_to_expr e)) in
+      | PatTuple es -> Tuple (es |> List.map ~f:(fun e -> pattern_to_expr e)) 
+      | PatConstant c -> Constant c
+    in
     (* Var(p) *)
     let rec variables = function
       | PatVar v -> [(v, new_tyvar ())]
       | PatTuple es -> es |> List.map ~f:(fun e -> variables e)
-                          |> List.fold_left ~init:[] ~f:(fun a b -> List.append a b) in
+                          |> List.fold_left ~init:[] ~f:(fun a b -> List.append a b) 
+      | PatConstant _ -> []
+    in
     derive context e >>= fun (ty_e_t, c_e) ->
     let beta = new_tyvar () in
     let results = clauses |> result_map_m ~f:(fun ((p_n, g_n), b_n) ->
