@@ -19,12 +19,16 @@ type expr =
     | Letrec of (string * expr) list * expr
     | Case of expr * (pattern * expr) list
     | MFA of {module_name: expr; function_name: expr; arity: expr}
+    | ListCons of expr * expr
+    | ListNil
 [@@deriving show, sexp_of]
 and pattern = pattern' * expr
 and pattern' =
     | PatVar of string
     | PatTuple of pattern' list
     | PatConstant of constant
+    | PatCons of pattern' * pattern'
+    | PatNil
 [@@deriving show, sexp_of]
 
 let string_of_expr expr =
