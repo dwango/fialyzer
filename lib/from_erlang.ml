@@ -149,7 +149,8 @@ let rec expr_of_erlang_expr = function
   | ExprListComprehension (_line_t, expr, quals) ->
      (* TODO: support list comprehension *)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"]; message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
-  | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) -> failwith "not implemented"
+  | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/122"]; message="support map-related expression"}))
 
 let clauses_to_function = function
   | F.ClsCase(_line, _pattern, _guards, _body) ->
