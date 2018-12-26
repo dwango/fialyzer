@@ -158,8 +158,10 @@ let clauses_to_function = function
      let f = (function
      | F.PatVar (_, v) -> v
      | F.PatUniversal _ -> "_"
-     | F.PatMap (_, _) | F.PatLit _ | F.PatTuple (_, _)
-     | F.PatCons (_, _, _) | F.PatNil _ -> failwith "not implemented"
+     | F.PatMap (_, _) | F.PatLit _ | F.PatTuple (_, _) | F.PatCons (_, _, _) | F.PatNil _ ->
+        let link = "https://github.com/dwango/fialyzer/issues/121" in
+        let msg = "support map, literal, tuple, and list patterns in top-level function" in
+        raise Known_error.(FialyzerError (NotImplemented {issue_links=[link]; message=msg}))
      ) in
      let vs = args |> List.map ~f:f in
      (vs, expr_of_erlang_expr body)
