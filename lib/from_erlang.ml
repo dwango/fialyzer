@@ -13,8 +13,23 @@ let const_of_literal = function
   | LitInteger (_line_t, i) -> Number i
   | LitBigInt (_line_t, z) ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/93"]; message="support bigint literal"}))
-  | LitString (_line_t, s) ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support string(list) literal"}))
+  | LitString (_line_t, _s) ->
+     (* treat in expr_of_literal, etc *)
+     failwith "cannot reach here"
+
+let expr_of_literal = function
+  | F.LitString (_line_t, s) ->
+     (* string is a list of chars in Erlang *)
+     let l = String.to_list_rev s in
+     List.fold_left l ~init:ListNil ~f:(fun acc c -> ListCons (Constant (Number (Char.to_int c)), acc))
+  | l -> Constant (const_of_literal l)
+
+let pattern_of_literal = function
+  | F.LitString (_line_t, s) ->
+     (* string is a list of chars in Erlang *)
+     let l = String.to_list_rev s in
+     List.fold_left l ~init:PatNil ~f:(fun acc c -> PatCons (PatConstant (Number (Char.to_int c)), acc))
+  | l -> PatConstant (const_of_literal l)
 
 (* [e1; e2; ...] という式の列を let _ = e1 in let _ = e2 ... in という１つの式にする *)
 let rec expr_of_exprs = function
@@ -34,14 +49,16 @@ let expr_of_integer_or_var = function
 let rec pattern_of_erlang_pattern = function
   | F.PatVar (_, v) -> Ast.PatVar v
   | F.PatUniversal _ -> Ast.PatVar "_"
-  | F.PatLit literal ->
-     let _constant = const_of_literal literal in Ast.PatConstant _constant
+  | F.PatLit literal -> pattern_of_literal literal
   | F.PatMap _ ->
      let issue_links = ["https://github.com/dwango/fialyzer/issues/102"] in
      let message = "support map pattern" in
      raise Known_error.(FialyzerError (NotImplemented {issue_links; message}))
   | F.PatTuple (_, patterns) ->
      PatTuple (patterns |> List.map ~f:pattern_of_erlang_pattern)
+  | F.PatNil _ -> PatNil
+  | F.PatCons (_, p1, p2) ->
+     PatCons (pattern_of_erlang_pattern p1, pattern_of_erlang_pattern p2)
 
 let rec expr_of_erlang_expr = function
   | F.ExprBody erlangs ->
@@ -132,8 +149,14 @@ let rec expr_of_erlang_expr = function
   | ExprTuple (_line_t, es) ->
      Tuple (List.map ~f:expr_of_erlang_expr es)
   | ExprVar (_line_t, v) -> Var v
-  | ExprLit literal -> Constant (const_of_literal literal)
-  | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) -> failwith "not implemented"
+  | ExprLit literal -> expr_of_literal literal
+  | ExprCons (_line_t, e1, e2) -> ListCons (expr_of_erlang_expr e1, expr_of_erlang_expr e2)
+  | ExprNil _line_t -> ListNil
+  | ExprListComprehension (_line_t, expr, quals) ->
+     (* TODO: support list comprehension *)
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"]; message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
+  | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/122"]; message="support map-related expression"}))
 
 let clauses_to_function = function
   | F.ClsCase(_line, _pattern, _guards, _body) ->
@@ -142,7 +165,10 @@ let clauses_to_function = function
      let f = (function
      | F.PatVar (_, v) -> v
      | F.PatUniversal _ -> "_"
-     | F.PatMap (_, _) | F.PatLit _ | F.PatTuple (_, _) -> failwith "not implemented"
+     | F.PatMap (_, _) | F.PatLit _ | F.PatTuple (_, _) | F.PatCons (_, _, _) | F.PatNil _ ->
+        let link = "https://github.com/dwango/fialyzer/issues/121" in
+        let msg = "support map, literal, tuple, and list patterns in top-level function" in
+        raise Known_error.(FialyzerError (NotImplemented {issue_links=[link]; message=msg}))
      ) in
      let vs = args |> List.map ~f:f in
      (vs, expr_of_erlang_expr body)
@@ -162,7 +188,7 @@ let rec typ_of_erlang_type = function
   | F.TyVar (_line, v) -> Type.TyVar (Type_variable.of_string v)
 (*  | TyContFun ->
  *)
-  | TyFun (_line, TyProduct (_, args), range) ->
+  | TyFun (_line, _, args, range) ->
      Type.TyFun(List.map ~f:typ_of_erlang_type args, typ_of_erlang_type range)
 (*
   | TyAnyTuple ->

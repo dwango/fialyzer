@@ -32,7 +32,7 @@ let%expect_test "from_erlang" =
    * fun (X) -> X end
    *)
   print (ExprFun(1, None, [
-    ClsFun(1, [PatVar(1, "X")], None, ExprVar(1, "X")) 
+    ClsFun(1, [PatVar(1, "X")], None, ExprVar(1, "X"))
   ]));
   [%expect {|
     (Abs (X) (Var X))
@@ -42,7 +42,7 @@ let%expect_test "from_erlang" =
    * fun F(X) -> F(X) end
    *)
   print (ExprFun(1, Some("F"), [
-    ClsFun(1, [PatVar(1, "X")], None, ExprLocalCall(1, ExprVar(1, "F"), [ExprVar(1, "X")])) 
+    ClsFun(1, [PatVar(1, "X")], None, ExprLocalCall(1, ExprVar(1, "F"), [ExprVar(1, "X")]))
   ]));
   [%expect {|
     (Letrec ((F (Abs (X) (App (Var F) ((Var X)))))) (Var F))
@@ -115,3 +115,68 @@ let%expect_test "from_erlang" =
           ((PatTuple ((PatConstant (Number 42)))) (Constant (Atom true)))
           (Constant (Number 43))))))
   |}];
+
+
+  (*
+   * fun ([]) -> [];
+   *     ([H|T]) -> T
+   * end
+   *)
+  print (ExprFun (1, None, [
+    ClsFun (1, [PatNil 1], None, ExprNil 1);
+    ClsFun (2, [PatCons (2, PatVar (2, "H"), PatVar (2, "T"))], None, ExprVar (2, "T"))
+  ]));
+  [%expect {|
+    (Abs
+      (__A__)
+      (Case
+        (Tuple ((Var __A__)))
+        ((((PatTuple (PatNil)) (Constant (Atom true))) ListNil)
+         (((PatTuple ((
+             PatCons
+             (PatVar H)
+             (PatVar T))))
+           (Constant (Atom true)))
+          (Var T))))) |}];
+
+  (*
+   * fun ("abc") -> ok end
+   *)
+  print (ExprFun (1, None, [
+    ClsFun (1, [PatLit (LitString (1, "abc"))], None, ExprLit (LitAtom (1, "ok")))
+  ]));
+  [%expect {|
+    (Abs
+      (__A__)
+      (Case
+        (Tuple ((Var __A__)))
+        ((
+          ((PatTuple ((
+             PatCons
+             (PatConstant (Number 97))
+             (PatCons
+               (PatConstant (Number 98))
+               (PatCons (PatConstant (Number 99)) PatNil)))))
+           (Constant (Atom true)))
+          (Constant (Atom ok)))))) |}];
+
+  (*
+   * [1,2,3]
+   *)
+  print (ExprCons (1, ExprLit (LitInteger (1, 1)),
+                   ExprCons (1, ExprLit (LitInteger (1, 2)),
+                             ExprCons (1, ExprLit (LitInteger (1, 3)),
+                                       ExprNil 1))));
+  [%expect {|
+    (ListCons
+      (Constant (Number 1))
+      (ListCons (Constant (Number 2)) (ListCons (Constant (Number 3)) ListNil))) |}];
+
+  (*
+   * "abc"
+   *)
+  print (ExprLit (LitString (1, "abc")));
+  [%expect {|
+    (ListCons
+      (Constant (Number 97))
+      (ListCons (Constant (Number 98)) (ListCons (Constant (Number 99)) ListNil))) |}];

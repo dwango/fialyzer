@@ -105,15 +105,19 @@ let rec derive context = function
     (* translate pattern to expression *)
     let rec pattern_to_expr = function
       | PatVar v -> Var v
-      | PatTuple es -> Tuple (es |> List.map ~f:(fun e -> pattern_to_expr e)) 
+      | PatTuple es -> Tuple (es |> List.map ~f:(fun e -> pattern_to_expr e))
       | PatConstant c -> Constant c
+      | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
+      | PatNil -> ListNil
     in
     (* Var(p) *)
     let rec variables = function
       | PatVar v -> [(v, new_tyvar ())]
       | PatTuple es -> es |> List.map ~f:(fun e -> variables e)
-                          |> List.fold_left ~init:[] ~f:(fun a b -> List.append a b) 
+                          |> List.fold_left ~init:[] ~f:(fun a b -> List.append a b)
       | PatConstant _ -> []
+      | PatCons (p1, p2) -> List.append (variables p1) (variables p2)
+      | PatNil -> []
     in
     derive context e >>= fun (ty_e_t, c_e) ->
     let beta = new_tyvar () in
@@ -143,3 +147,9 @@ let rec derive context = function
         ])
     ) in
     results >>= fun(cs) -> Ok (beta, Conj [Disj cs; c_e])
+  | ListCons (_e1, _e2) ->
+     (* TODO: support cons expr *)
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support cons expr"}))
+  | ListNil ->
+     (* TODO: support nil expr *)
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support nil expr"}))
