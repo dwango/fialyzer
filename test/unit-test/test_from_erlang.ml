@@ -140,6 +140,27 @@ let%expect_test "from_erlang" =
           (Var T))))) |}];
 
   (*
+   * fun ("abc") -> ok end
+   *)
+  print (ExprFun (1, None, [
+    ClsFun (1, [PatLit (LitString (1, "abc"))], None, ExprLit (LitAtom (1, "ok")))
+  ]));
+  [%expect {|
+    (Abs
+      (__A__)
+      (Case
+        (Tuple ((Var __A__)))
+        ((
+          ((PatTuple ((
+             PatCons
+             (PatConstant (Number 97))
+             (PatCons
+               (PatConstant (Number 98))
+               (PatCons (PatConstant (Number 99)) PatNil)))))
+           (Constant (Atom true)))
+          (Constant (Atom ok)))))) |}];
+
+  (*
    * [1,2,3]
    *)
   print (ExprCons (1, ExprLit (LitInteger (1, 1)),

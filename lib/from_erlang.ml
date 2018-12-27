@@ -24,6 +24,13 @@ let expr_of_literal = function
      List.fold_left l ~init:ListNil ~f:(fun acc c -> ListCons (Constant (Number (Char.to_int c)), acc))
   | l -> Constant (const_of_literal l)
 
+let pattern_of_literal = function
+  | F.LitString (_line_t, s) ->
+     (* string is a list of chars in Erlang *)
+     let l = String.to_list_rev s in
+     List.fold_left l ~init:PatNil ~f:(fun acc c -> PatCons (PatConstant (Number (Char.to_int c)), acc))
+  | l -> PatConstant (const_of_literal l)
+
 (* [e1; e2; ...] という式の列を let _ = e1 in let _ = e2 ... in という１つの式にする *)
 let rec expr_of_exprs = function
   | [] -> unit
@@ -42,8 +49,7 @@ let expr_of_integer_or_var = function
 let rec pattern_of_erlang_pattern = function
   | F.PatVar (_, v) -> Ast.PatVar v
   | F.PatUniversal _ -> Ast.PatVar "_"
-  | F.PatLit literal ->
-     let _constant = const_of_literal literal in Ast.PatConstant _constant
+  | F.PatLit literal -> pattern_of_literal literal
   | F.PatMap _ ->
      let issue_links = ["https://github.com/dwango/fialyzer/issues/102"] in
      let message = "support map pattern" in
