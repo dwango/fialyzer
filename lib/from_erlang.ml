@@ -35,10 +35,7 @@ let rec pattern_of_erlang_pattern = function
   | F.PatVar (_, v) -> Ast.PatVar v
   | F.PatUniversal _ -> Ast.PatVar "_"
   | F.PatLit literal ->
-     let _constant = const_of_literal literal in
-     let issue_links = ["https://github.com/dwango/fialyzer/issues/103"] in
-     let message = "support constant pattern" in
-     raise Known_error.(FialyzerError (NotImplemented {issue_links; message}))
+     let _constant = const_of_literal literal in Ast.PatConstant _constant
   | F.PatMap _ ->
      let issue_links = ["https://github.com/dwango/fialyzer/issues/102"] in
      let message = "support map pattern" in

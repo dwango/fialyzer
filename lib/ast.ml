@@ -24,6 +24,7 @@ and pattern = pattern' * expr
 and pattern' =
     | PatVar of string
     | PatTuple of pattern' list
+    | PatConstant of constant
 [@@deriving show, sexp_of]
 
 let string_of_expr expr =

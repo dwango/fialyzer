@@ -3,6 +3,7 @@ open Fialyzer
 open Ast
 open Type
 open Derivation
+open Constant
 
 let%expect_test "derivation" =
   let print context term =
@@ -134,6 +135,64 @@ let%expect_test "derivation" =
              Empty
              Empty))))
          Empty))))
+  |}];
+
+  (*
+   * case 42 of
+   *   1 when true -> 1
+   * end
+   *)
+  print Context.empty (Case
+    (Constant (Number 42),
+      [(PatConstant (Number 1), Constant (Atom "true")), Constant (Number 1)]));
+  [%expect {|
+    (Ok (
+      (TyVar a)
+      (Conj (
+        (Disj ((
+          Conj (
+            (Subtype
+              (TySingleton (Atom true))
+              (TyUnion
+                (TySingleton (Atom true))
+                (TySingleton (Atom false))))
+            (Eq (TyVar a) (TySingleton (Number 1)))
+            (Eq
+              (TySingleton (Number 42))
+              (TySingleton (Number 1)))
+            Empty
+            Empty
+            Empty))))
+        Empty))))
+  |}];
+
+  (*
+   * case a of
+   *   b when true -> c
+   * end
+   *)
+  print Context.empty (Case
+    (Constant (Atom "a"),
+      [(PatConstant (Atom "b"), Constant (Atom "true")), Constant (Atom "c")]));
+  [%expect {|
+    (Ok (
+      (TyVar a)
+      (Conj (
+        (Disj ((
+          Conj (
+            (Subtype
+              (TySingleton (Atom true))
+              (TyUnion
+                (TySingleton (Atom true))
+                (TySingleton (Atom false))))
+            (Eq (TyVar a) (TySingleton (Atom c)))
+            (Eq
+              (TySingleton (Atom a))
+              (TySingleton (Atom b)))
+            Empty
+            Empty
+            Empty))))
+        Empty))))
   |}];
 
   print Context.empty (Abs (["X"], Var "X"));
