@@ -4,11 +4,11 @@ open Ast
 open Type
 open Result
 
-let new_tyvar () = TyVar (Type_variable.create())
+let new_tyvar () = Type.of_elem (TyVar (Type_variable.create()))
 
 let rec derive context = function
   | Constant c ->
-     Ok (TySingleton c, Empty)
+     Ok (Type.of_elem (TySingleton c), Empty)
   | Var v ->
      begin match Context.find context (Context.Key.Var v) with
      | Some ty ->
@@ -21,7 +21,7 @@ let rec derive context = function
   | Tuple exprs ->
      result_map_m ~f:(derive context) exprs
      >>| List.unzip
-     >>| fun (tys, cs) -> (TyTuple tys, Conj cs)
+     >>| fun (tys, cs) -> (Type.of_elem (TyTuple tys), Conj cs)
   | App (f, args) ->
      derive context f >>= fun (tyf, cf) ->
      result_map_m
@@ -41,7 +41,7 @@ let rec derive context = function
        |> List.concat
      in
      let constraints =
-         Eq (tyf, TyFun (alphas, alpha)) ::
+         Eq (tyf, Type.of_elem (TyFun (alphas, alpha))) ::
          Subtype (beta, alpha) ::
          cf ::
          args_constraints
@@ -55,7 +55,7 @@ let rec derive context = function
          ~init:context
          new_tyvars in
      derive added_context e >>= fun (ty_e, c) ->
-     Ok (TyFun (List.map ~f:snd new_tyvars, ty_e), c)
+     Ok (Type.of_elem (TyFun (List.map ~f:snd new_tyvars, ty_e)), c)
   | Let (v, e1, e2) ->
      derive context e1 >>= fun (ty_e1, c1) ->
      derive (Context.add (Context.Key.Var v) ty_e1 context) e2 >>= fun (ty_e2, c2) ->
@@ -95,9 +95,9 @@ let rec derive context = function
      derive context a >>= fun (ty_a, c_a) ->
      let cs =
        [c_m; c_f; c_a;
-        Subtype (ty_m, TyAtom);
-        Subtype (ty_f, TyAtom);
-        Subtype (ty_a, TyNumber);
+        Subtype (ty_m, Type.of_elem TyAtom);
+        Subtype (ty_f, Type.of_elem TyAtom);
+        Subtype (ty_a, Type.of_elem TyNumber);
         Subtype (tyvar_mfa, TyAny)] (* cannot be TyFun (.., ..) because the arity is unknown. give up *)
      in
      Ok (tyvar_mfa, Conj cs)
@@ -142,7 +142,7 @@ let rec derive context = function
             guards to be boolean type because true type constraint is too strong and not intuitive.
             Boolean type is true | false.
            *)
-          Subtype (ty_g_n, TyUnion (TySingleton (Atom "true"), TySingleton (Atom "false")));
+          Subtype (ty_g_n, Type.bool);
           Eq (beta, ty_beta_n); Eq (ty_e_t, ty_alpha_n); c_p; c_g; c_b
         ])
     ) in

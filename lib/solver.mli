@@ -7,5 +7,4 @@ val init : solution
 
 val solve : solution -> Type.constraint_ -> (solution, exn) result
 
-(* TODO: don't export *)
-val meet : Type.t -> Type.t -> Type.t
+val lookup_type : solution -> t -> t

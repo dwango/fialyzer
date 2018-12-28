@@ -142,7 +142,7 @@ let rec of_erlang = function
   | F.TyUnion (_line, ts) ->
      TyUnion (List.map ~f:elem_of_erlang ts)
   | t ->
-     of_elem [elem_of_erlang t]
+     of_elem (elem_of_erlang t)
 and elem_of_erlang = function
   | F.TyPredef (_line, "number", []) -> TyNumber
   | F.TyLit (LitAtom (_, atom)) -> TySingleton (Atom atom)
