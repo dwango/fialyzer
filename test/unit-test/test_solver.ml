@@ -3,43 +3,15 @@ open Fialyzer
 open Type
 open Solver
 
-let%expect_test "meet" =
-  let print ty1 ty2 =
-    meet ty1 ty2
-    |> [%sexp_of: Type.t]
-    |> Expect_test_helpers_kernel.print_s in
-
-  print TyAny TyAny;
-  [%expect {| TyAny |}];
-
-  print TyBottom TyAny;
-  [%expect {| TyBottom |}];
-
-  print (TySingleton (Number 1)) (TySingleton (Number 2));
-  [%expect {| TyBottom |}];
-
-  print (TyUnion (TyUnion (TySingleton (Number 1), TySingleton (Number 2)), TySingleton (Number 3)))
-        (TyUnion (TyUnion (TySingleton (Number 2), TySingleton (Number 3)), TySingleton (Number 4)));
-  (* TODO: normalize *)
-  [%expect {|
-    (TyUnion
-      (TyUnion
-        (TyUnion (TyUnion TyBottom TyBottom) TyBottom)
-        (TyUnion (TyUnion (TySingleton (Number 2)) TyBottom) TyBottom))
-      (TyUnion (TyUnion TyBottom (TySingleton (Number 3))) TyBottom)) |}];
-
-  print (TyUnion (TyUnion (TySingleton (Number 1), TySingleton (Number 2)), TySingleton (Number 3))) TyNumber;
-  [%expect {|
-    (TyUnion
-      (TyUnion
-        (TySingleton (Number 1))
-        (TySingleton (Number 2)))
-      (TySingleton (Number 3))) |}]
+let sexp_of_solution sol =
+  Map.map ~f:pp sol
+  |> [%sexp_of: string Map.M(Type_variable).t]
 
 let%expect_test "solver" =
   let print c =
     solve init c
-    |> [%sexp_of: (solution, exn) Result.t]
+    |> Result.map ~f:sexp_of_solution
+    |> [%sexp_of: (Sexp.t, exn) Result.t]
     |> Expect_test_helpers_kernel.print_s in
 
   let create_vars n =
@@ -50,27 +22,29 @@ let%expect_test "solver" =
   [%expect {| (Ok ()) |}];
 
   let [a] = create_vars 1 in
-  print (Eq (TyVar a, TyNumber));
-  [%expect {| (Ok ((a TyNumber))) |}];
+  print (Eq (Type.of_elem (TyVar a), Type.of_elem TyNumber));
+  [%expect {| (Ok ((a "number()"))) |}];
 
   let [a] = create_vars 1 in
-  print (Subtype (TyVar a, TyNumber));
-  [%expect {| (Ok ((a TyNumber))) |}];
+  print (Subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber));
+  [%expect {| (Ok ((a "number()"))) |}];
 
   let [a; b] = create_vars 2 in
-  print (Subtype (TyTuple [TyVar a; TyVar b], TyTuple [TyNumber; TyAtom]));
+  print (Subtype
+           (Type.of_elem (TyTuple [Type.of_elem (TyVar a); Type.of_elem (TyVar b)]),
+            Type.of_elem (TyTuple [Type.of_elem TyNumber; Type.of_elem TyAtom])));
   [%expect {|
     (Ok (
-      (a TyNumber)
-      (b TyAtom))) |}];
-
+      (a "number()")
+      (b "atom()"))) |}];
+(*
   let [a; b] = create_vars 2 in
-  print (Subtype (TyUnion (TyVar a, TyVar b), TyNumber));
+  print (Subtype (TyUnion [TyVar a; TyVar b], TyNumber));
   [%expect {|
     (Ok (
       (a TyNumber)
       (b TyNumber))) |}];
-
+ *)
   print (Subtype (TyBottom, TyAny));
   [%expect {| (Ok ()) |}];
 
@@ -83,5 +57,5 @@ let%expect_test "solver" =
   print (Subtype (TyBottom, TyBottom));
   [%expect {| (Ok ()) |}];
 
-  print (Subtype (TyNumber, TyAtom));
+  print (Subtype (Type.of_elem TyNumber, Type.of_elem TyAtom));
   [%expect {| (Error ("Fialyzer.Known_error.FialyzerError(_)")) |}];
