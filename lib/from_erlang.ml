@@ -1,16 +1,15 @@
 open Base
 open Ast
-open Constant
 open Obeam
 open Polymorphic_compare
 module F = Abstract_format
 open Common
 
-let unit : expr = Constant (Number 0)
+let unit : Ast.t = Constant (Number 0)
 
 let const_of_literal = function
-  | F.LitAtom (_line_t, name) -> Atom name
-  | LitInteger (_line_t, i) -> Number i
+  | F.LitAtom (_line_t, name) -> Constant.Atom name
+  | LitInteger (_line_t, i) -> Constant.Number i
   | LitBigInt (_line_t, z) ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/93"]; message="support bigint literal"}))
   | LitString (_line_t, _s) ->

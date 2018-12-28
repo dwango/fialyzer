@@ -1,6 +1,5 @@
 open Base
 open Fialyzer
-open Ast
 open From_erlang
 open Obeam.Abstract_format
 
@@ -8,7 +7,7 @@ let%expect_test "from_erlang" =
   let print abstract_format =
     Variable.reset_count ();
     expr_of_erlang_expr abstract_format
-    |> [%sexp_of: expr]
+    |> [%sexp_of: Ast.t]
     |> Expect_test_helpers_kernel.print_s in
 
 

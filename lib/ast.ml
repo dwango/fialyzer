@@ -1,47 +1,44 @@
 open Base
-module Format = Caml.Format
-open Constant
-open Type
 
 module Z = struct
   type t = Z.t
   let sexp_of_t z = Z.to_string z |> sexp_of_string
-  let pp fmt z = Z.to_string z |> Format.fprintf fmt "%s"
+  let pp fmt z = Z.to_string z |> Caml.Format.fprintf fmt "%s"
 end
 
-type expr =
-    | Constant of constant
+type t =
+    | Constant of Constant.t
     | Var of string
-    | Tuple of expr list
-    | App of expr * expr list
-    | Abs of string list * expr
-    | Let of string * expr * expr
-    | Letrec of (string * expr) list * expr
-    | Case of expr * (pattern * expr) list
-    | MFA of {module_name: expr; function_name: expr; arity: expr}
-    | ListCons of expr * expr
+    | Tuple of t list
+    | App of t * t list
+    | Abs of string list * t
+    | Let of string * t * t
+    | Letrec of (string * t) list * t
+    | Case of t * (pattern * t) list
+    | MFA of {module_name: t; function_name: t; arity: t}
+    | ListCons of t * t
     | ListNil
-[@@deriving show, sexp_of]
-and pattern = pattern' * expr
+[@@deriving sexp_of]
+and pattern = pattern' * t
 and pattern' =
     | PatVar of string
     | PatTuple of pattern' list
-    | PatConstant of constant
+    | PatConstant of Constant.t
     | PatCons of pattern' * pattern'
     | PatNil
-[@@deriving show, sexp_of]
+[@@deriving sexp_of]
 
-let string_of_expr expr =
-  [%sexp_of: expr] expr |> Sexplib.Sexp.to_string_hum ~indent:2
+let string_of_t t =
+  [%sexp_of: t] t |> Sexplib.Sexp.to_string_hum ~indent:2
 
-type spec_fun = (typ list * typ) list
-[@@deriving show, sexp_of]
-type decl_fun = {specs: spec_fun option; fun_name: string; args: string list; body: expr}
-[@@deriving show, sexp_of]
+type spec_fun = (Type.t list * Type.t) list
+[@@deriving sexp_of]
+type decl_fun = {specs: spec_fun option; fun_name: string; args: string list; body: t}
+[@@deriving sexp_of]
 type module_ = {
     file : string;
     name : string;
     export : (string * int) list;
     functions : decl_fun list;
   }
-[@@deriving show, sexp_of]
+[@@deriving sexp_of]

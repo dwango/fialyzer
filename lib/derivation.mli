@@ -1,5 +1,3 @@
 open Base
-open Ast
-open Type
 
-val derive : Context.t -> expr -> (typ * constraint_, exn) Result.t
+val derive : Context.t -> Ast.t -> (Type.t * Type.constraint_, exn) Result.t

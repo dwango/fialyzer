@@ -1,5 +1,4 @@
 open Base
-open Type
 module Format = Caml.Format
 
 module Key : sig
@@ -10,6 +9,6 @@ end
 type t
 
 val empty : t
-val find : t -> Key.t -> typ option
-val add : Key.t -> typ -> t -> t
+val find : t -> Key.t -> Type.t option
+val add : Key.t -> Type.t -> t -> t
 val init : unit -> t

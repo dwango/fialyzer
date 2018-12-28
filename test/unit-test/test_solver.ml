@@ -6,7 +6,7 @@ open Solver
 let%expect_test "meet" =
   let print ty1 ty2 =
     meet ty1 ty2
-    |> [%sexp_of: typ]
+    |> [%sexp_of: Type.t]
     |> Expect_test_helpers_kernel.print_s in
 
   print TyAny TyAny;
