@@ -59,3 +59,19 @@ let%expect_test "solver" =
 
   print (Subtype (Type.of_elem TyNumber, Type.of_elem TyAtom));
   [%expect {| (Error ("Fialyzer.Known_error.FialyzerError(_)")) |}];
+
+  (*
+   * [N : a] |- case N of 0 -> 'foo'; 'ok' -> 123 end
+   *)
+  let [a; b] = create_vars 2 in
+  print (Disj [
+             Conj [Eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Atom "foo")));
+                   Eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 0)))];
+             Conj [Eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Number 123)));
+                   Eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Atom "ok")))];
+        ]);
+  [%expect {|
+            (Ok (
+              (a "'ok' | 0")
+              (b "123 | 'foo'")))
+            |}];

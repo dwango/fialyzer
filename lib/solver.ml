@@ -10,7 +10,9 @@ type solution = Type.t Map.M(Type_variable).t
 [@@deriving sexp_of]
 
 let string_of_sol sol =
-  [%sexp_of: solution] sol |> Sexplib.Sexp.to_string_hum ~indent:2
+  Map.to_alist sol
+  |> List.map ~f:(fun (k,v) -> (!%"%s |-> %s" (Type_variable.show k) (Type.pp v)))
+  |> String.concat ~sep:"\n"
 
 let init : solution = Map.empty (module Type_variable)
 
@@ -89,6 +91,15 @@ let solve_eq sol ty1 ty2 =
   solve_sub sol ty1 ty2 >>= fun sol' ->
   solve_sub sol' ty2 ty1
 
+let merge_solutions sol1 sol2 =
+  let f ~key = function
+    | `Left ty1  -> Some ty1
+    | `Right ty2 -> Some ty2
+    | `Both (ty1, ty2) when ty1 = ty2 -> Some ty1
+    | `Both (ty1, ty2) -> Some (sup ty1 ty2)
+  in
+  Map.merge sol1 sol2 ~f
+
 let rec solve1 sol = function
   | Empty -> Ok sol
   | Eq (ty1, ty2) ->
@@ -98,15 +109,20 @@ let rec solve1 sol = function
   | Conj cs ->
      solve_conj sol cs
   | Disj cs ->
-     let issue_links = ["https://github.com/dwango/fialyzer/issues/99"] in
-     let message = "Solve disjunction of constraints" in
-     Error Known_error.(FialyzerError (NotImplemented {issue_links; message}))
+     solve_disj sol cs
 and solve_conj sol = function
   | [] -> Ok sol
   | c :: cs ->
      let open Result in
      solve1 sol c >>= fun sol' ->
      solve_conj sol' cs
+and solve_disj sol cs =
+  match List.filter_map ~f:(solve1 sol >>> Result.ok) cs with
+  | [] ->
+     let err0 = solve1 sol (List.hd_exn cs) in
+     err0
+  | sols ->
+     Ok (List.fold_left ~f:merge_solutions ~init:sol sols)
 
 let rec solve sol cs =
   let open Result in
