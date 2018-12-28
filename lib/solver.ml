@@ -6,7 +6,7 @@ module Result = Base.Result
 module Option = Base.Option
 open Common
 
-type solution = typ Map.M(Type_variable).t
+type solution = Type.t Map.M(Type_variable).t
 [@@deriving sexp_of]
 
 let string_of_sol sol =
@@ -15,7 +15,7 @@ let string_of_sol sol =
 let init : solution = Map.empty (module Type_variable)
 
 (* type_subst (X, τ_1) τ_2 := [X ↦ τ_1]τ_2 *)
-let rec type_subst (x, ty1): typ -> typ = function
+let rec type_subst (x, ty1): Type.t -> Type.t = function
   | TyTuple tys ->
      TyTuple(List.map ~f:(type_subst (x, ty1)) tys)
   | TyFun (tys, ty) ->

@@ -1,5 +1,4 @@
 open Base
-module Format = Caml.Format
 open Common
 
 type t =
@@ -7,9 +6,9 @@ type t =
   | NoSuchFile of string
   | InvalidBeam of {beam_filename: string; message: string}
   | UnboundVariable of {filename: string; line: int; variable: Context.Key.t}
-  | TypeError of {filename: string; line: int; actual : Type.typ; expected: Type.typ; message: string}
+  | TypeError of {filename: string; line: int; actual : Type.t; expected: Type.t; message: string}
   | NotImplemented of {issue_links: string list; message: string}
-[@@deriving show, sexp_of]
+[@@deriving sexp_of]
 
 exception FialyzerError of t
 

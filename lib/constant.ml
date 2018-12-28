@@ -1,10 +1,9 @@
 open Base
-module Format = Caml.Format
 
-type constant =
+type t =
     | Number of int
     | Atom of string
-[@@deriving show, sexp_of]
+[@@deriving sexp_of]
 
 let pp = function
   | Number n -> Int.to_string n
