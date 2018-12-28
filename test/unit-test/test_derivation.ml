@@ -9,7 +9,7 @@ let%expect_test "derivation" =
   let print context term =
     Type_variable.reset_count ();
     derive context term
-    |> [%sexp_of: (typ * constraint_, exn) Result.t]
+    |> [%sexp_of: (Type.t * constraint_, exn) Result.t]
     |> Expect_test_helpers_kernel.print_s in
 
   print Context.empty (Constant (Number 42));
