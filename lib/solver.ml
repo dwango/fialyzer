@@ -14,28 +14,8 @@ let string_of_sol sol =
 
 let init : solution = Map.empty (module Type_variable)
 
-(* type_subst (X, τ_1) τ_2 := [X ↦ τ_1]τ_2 *)
-let rec type_subst (x, ty1): Type.t -> Type.t = function
-  | TyTuple tys ->
-     TyTuple(List.map ~f:(type_subst (x, ty1)) tys)
-  | TyFun (tys, ty) ->
-     TyFun (List.map ~f:(type_subst (x, ty1)) tys, type_subst (x, ty1) ty)
-  | TyUnion (ty_a, ty_b) ->
-     TyUnion(type_subst (x, ty1) ty_a, type_subst (x, ty1) ty_b)
-  | TyAny -> TyAny
-  | TyBottom -> TyBottom
-  | TyNumber -> TyNumber
-  | TyAtom -> TyAtom
-  | TySingleton const -> TySingleton const
-  | TyVar v ->
-     if x = v then ty1 else (TyVar v)
-
-let type_subst_to_sol (x, ty) sol =
-  Map.map ~f:(type_subst (x, ty)) sol
-
 let set (x, ty) sol =
-  let sol' = type_subst_to_sol (x, ty) sol in
-  Map.set sol' ~key:x ~data:ty
+  Map.set sol ~key:x ~data:ty
 
 let rec lookup_type sol = function
   | TyTuple tys ->
