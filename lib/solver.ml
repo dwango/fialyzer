@@ -35,49 +35,9 @@ let rec lookup_type sol = function
      | None -> TyAny
      end
 
-(* τ_1 ⊓ τ_2 *)
-let rec meet ty1 ty2 =
-  match (ty1, ty2) with
-  (* var *)
-  | TyVar _, _ | _, TyVar _ -> failwith "cannot reach here"
-  (* any *)
-  | TyAny, _ -> ty2
-  | _, TyAny -> ty1
-  (* none *)
-  | TyBottom, _ -> TyBottom
-  | _, TyBottom -> TyBottom
-  (* struct *)
-  | TyTuple tys1, TyTuple tys2 when List.length tys1 = List.length tys2 ->
-     List.zip_exn tys1 tys2
-     |> List.map ~f:(fun (ty1, ty2) -> meet ty1 ty2)
-     |> (fun tys -> TyTuple tys)
-  (* function *)
-  | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
-     List.zip_exn args1 args2
-     (* NOTE: using `meet` is the same as type derivation [ABS]. perhaps it should be `join` *)
-     |> List.map ~f:(fun (arg1, arg2) -> meet arg1 arg2)
-     |> (fun args -> TyFun (args, meet body1 body2))
-  (* union *)
-  | TyUnion (tyl, tyr), _ ->
-     TyUnion (meet tyl ty2, meet tyr ty2)
-  | _, TyUnion (tyl, tyr) ->
-     TyUnion (meet ty1 tyl, meet ty1 tyr)
-  (* number *)
-  | TyNumber, TyNumber -> TyNumber
-  | TyNumber, TySingleton (Number n) -> TySingleton (Number n)
-  | TySingleton (Number n), TyNumber -> TySingleton (Number n)
-  | TySingleton (Number n), TySingleton (Number m) when n = m -> TySingleton (Number n)
-  (* atom *)
-  | TyAtom, TyAtom -> TyAtom
-  | TySingleton (Atom a), TyAtom -> TySingleton (Atom a)
-  | TyAtom, TySingleton (Atom a) -> TySingleton (Atom a)
-  | TySingleton (Atom a), TySingleton (Atom b) when a = b -> TySingleton (Atom a)
-  (* otherwise *)
-  | _ -> TyBottom
-
 (* τ_1 ⊆ τ_2 *)
 let is_subtype ty1 ty2 =
-  meet ty1 ty2 = ty1
+  Type.inf ty1 ty2 = ty1
 
 let rec solve_sub sol ty1 ty2 =
   let ty1' = lookup_type sol ty1 in
