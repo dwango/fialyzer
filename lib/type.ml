@@ -16,9 +16,6 @@ type t =
     | TyFun of t list * t
 [@@deriving sexp_of]
 
-type typ = t
-[@@deriving sexp_of]
-
 type constraint_ =
     | Eq of t * t
     | Subtype of t * t
