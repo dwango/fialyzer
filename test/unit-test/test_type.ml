@@ -86,3 +86,33 @@ let%expect_test "inf" =
       (TySingleton (Number 2))
       (TySingleton (Number 1))))
             |}]
+
+let%expect_test "sup" =
+  let print ty1 ty2 =
+    sup ty1 ty2
+    |> [%sexp_of: Type.t]
+    |> Expect_test_helpers_kernel.print_s in
+
+  print TyAny TyAny;
+  [%expect {| TyAny |}];
+
+  print TyBottom TyAny;
+  [%expect {| TyAny |}];
+
+  print (of_elem (TySingleton (Number 1))) (of_elem (TySingleton (Number 2)));
+  [%expect {|
+    (TyUnion (
+      (TySingleton (Number 2))
+      (TySingleton (Number 1)))) |}];
+
+  print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3); ])
+        (TyUnion [TySingleton (Number 2); TySingleton (Number 3); TySingleton (Number 4); ]);
+  [%expect {|
+    (TyUnion (
+      (TySingleton (Number 4))
+      (TySingleton (Number 1))
+      (TySingleton (Number 2))
+      (TySingleton (Number 3)))) |}];
+
+  print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3);]) (of_elem TyNumber);
+  [%expect {| (TyUnion (TyNumber)) |}]
