@@ -1,4 +1,4 @@
-type solution = typ Base.Map.M(Type_variable).t (* public for test *)
+type solution = Type.t Base.Map.M(Type_variable).t (* public for test *)
 
 [@@deriving sexp_of]
 

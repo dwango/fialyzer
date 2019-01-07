@@ -14,11 +14,10 @@ type t =
     | TyVar of Type_variable.t
     | TyTuple of t list
     | TyFun of t list * t
-[@@deriving show, sexp_of]
+[@@deriving sexp_of]
 
 type typ = t
-[@@deriving show, sexp_of]
->>>>>>> [issue-123] `typ` type make 2 level mutual recursion
+[@@deriving sexp_of]
 
 type constraint_ =
     | Eq of t * t
