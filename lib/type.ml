@@ -44,6 +44,10 @@ and pp_t_union_elem = function
 let bool = TyUnion [TySingleton (Atom "true"); TySingleton (Atom "false")]
 let of_elem e = TyUnion [e]
 
+(**
+   supremum of two types: ty1 ∪ ty2
+   assume no type variable in the arguments
+ *)
 let rec sup ty1 ty2 =
   match (ty1, ty2) with
   | _ when ty1 = ty2 -> ty1
@@ -102,6 +106,10 @@ and sup_elems_to_list store = function
 let union_list tys =
   List.reduce_exn ~f:sup tys
 
+(**
+   infimum of two types: ty1 ∩ ty2
+   assume no type variable in the arguments
+ *)
 let rec inf ty1 ty2 =  (* ty1 and ty2 should be a TyAny, TyBottom, TyVar or TyUnion *)
   match (ty1, ty2) with
   | _ when ty1 = ty2 -> ty1
