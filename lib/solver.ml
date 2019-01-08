@@ -51,7 +51,7 @@ and unify_elem elem inf =
   match (elem, inf) with
   | (TyNumber, _) | (TyAtom, _) | (TySingleton _, _) -> []
   | (TyVar v, _) ->
-     [v, inf]
+     [(v, inf)]
   | (TyTuple tys1, TyUnion [TyTuple tys2]) when List.length tys1 = List.length tys2 ->
      List.map2_exn ~f:unify tys1 tys2
      |> List.concat
