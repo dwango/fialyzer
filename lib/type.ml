@@ -127,7 +127,7 @@ and inf_elem ty1 ty2 =  (* ty1 and ty2 should be a TyNumber, TySingleton, TyAtom
   | (TyTuple tys1, TyTuple tys2) when List.length tys1 = List.length tys2 ->
      List.map2_exn ~f:inf tys1 tys2
      |> fun tys -> Some (TyTuple tys)
-  | (TyFun (args1, range1), TyFun (args2, range2)) ->
+  | (TyFun (args1, range1), TyFun (args2, range2)) when List.length args1 = List.length args2 ->
      let args' = List.map2_exn ~f:inf args1 args2 in
      let range' = inf range1 range2 in
      Some (TyFun (args', range'))
