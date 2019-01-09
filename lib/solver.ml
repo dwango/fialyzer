@@ -124,10 +124,44 @@ and solve_disj sol cs =
   | sols ->
      Ok (List.fold_left ~f:merge_solutions ~init:sol sols)
 
+(*
+  After calculating success typing, it is finally checked whether all branches pass type checking.
+  Note that this process is outside of the success typing algorithm.
+ *)
+let rec find_error_clauses sol = function
+  | Empty -> []
+  | Eq (ty1,ty2) ->
+     find_error_clauses sol (Subtype (ty1, ty2))
+     @ find_error_clauses sol (Subtype (ty2, ty1))
+  | Subtype (ty1, ty2) ->
+     begin match solve_sub sol ty1 ty2 with
+     | Ok _ -> []
+     | Error e -> [e]
+     end
+  | Disj cs ->
+     List.map ~f:(find_error_clauses sol) cs
+     |> List.concat
+  | Conj cs ->
+     find_conj sol cs
+and find_conj sol cs =
+  let f sol' c =
+    match (find_error_clauses sol' c, solve1 sol' c) with
+    | ([], Ok sol'') -> (sol'', [])
+    | ([], Error _)  -> failwith "cannot reach here"
+    | (es, Ok sol'') -> (sol'', es)
+    | (es, Error _)  -> (sol', es)
+  in
+  List.folding_map cs ~init:sol ~f
+  |> List.concat
+
 let rec solve sol cs =
   let open Result in
   solve1 sol cs >>= fun sol' ->
   if Map.equal (=) sol sol' then
-    Ok sol'
+    begin match find_error_clauses sol' cs with
+    | [] -> Ok sol'
+    | e :: _es ->
+       Error e
+    end
   else
     solve sol' cs
