@@ -164,13 +164,6 @@ and extract_match_expr e =
   let (es, _) = extract_match_expr' [] true e in
   List.rev es
 
-(* [e1; e2; ...] という式の列を let _ = e1 in let _ = e2 ... in という１つの式にする *)
-let rec expr_of_exprs = function
-  | [] -> unit
-  | [e] -> e
-  | e :: es ->
-     Let ("_", e, expr_of_exprs es)
-
 let expr_of_atom_or_var = function
   | F.AtomVarAtom (_line_t, a) -> Constant (Atom a)
   | AtomVarVar (_line_t, v) -> Var v
@@ -193,9 +186,22 @@ let rec pattern_of_erlang_pattern = function
   | F.PatCons (_, p1, p2) ->
      PatCons (pattern_of_erlang_pattern p1, pattern_of_erlang_pattern p2)
 
-let rec expr_of_erlang_expr = function
+
+(* converts a secuence of expressions `[e1; e2; ...]` to an expression `let _ = e1 in let _ = e2 in ...` *)
+(* assume `extract_toplevel` is applied to the argument *)
+let rec expr_of_erlang_exprs = function
+  | [] -> unit
+  | [e] -> expr_of_erlang_expr e
+  | F.ExprMatch (_line, p, e) :: es ->
+     (* no match expression in `e` by extract_match_expr *)
+     let e' = expr_of_erlang_expr e in
+     let es' = expr_of_erlang_exprs es in
+     Case (e', [((pattern_of_erlang_pattern p, Constant (Atom "true")), es')])
+  | e :: es ->
+     Let ("_", expr_of_erlang_expr e, expr_of_erlang_exprs es)
+and expr_of_erlang_expr = function
   | F.ExprBody erlangs ->
-     expr_of_exprs (List.map ~f:expr_of_erlang_expr erlangs)
+     expr_of_erlang_exprs erlangs
   | ExprCase (line, e, clauses) ->
      let cs = clauses |> List.map ~f:(function
        | F.ClsCase (_, pattern, guard, e) ->
