@@ -191,26 +191,26 @@ let rec pattern_of_erlang_pattern = function
 (* assume `extract_toplevel` is applied to the argument *)
 let rec expr_of_erlang_exprs = function
   | [] -> unit
-  | [e] -> expr_of_erlang_expr e
+  | [e] -> expr_of_erlang_expr' e
   | F.ExprMatch (_line, p, e) :: es ->
      (* no match expression in `e` by extract_match_expr *)
-     let e' = expr_of_erlang_expr e in
+     let e' = expr_of_erlang_expr' e in
      let es' = expr_of_erlang_exprs es in
      Case (e', [((pattern_of_erlang_pattern p, Constant (Atom "true")), es')])
   | e :: es ->
-     Let ("_", expr_of_erlang_expr e, expr_of_erlang_exprs es)
-and expr_of_erlang_expr = function
+     Let ("_", expr_of_erlang_expr' e, expr_of_erlang_exprs es)
+and expr_of_erlang_expr' = function
   | F.ExprBody erlangs ->
      expr_of_erlang_exprs erlangs
   | ExprCase (line, e, clauses) ->
      let cs = clauses |> List.map ~f:(function
        | F.ClsCase (_, pattern, guard, e) ->
           if Option.is_some guard then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
-          ((pattern_of_erlang_pattern pattern, Constant (Atom "true")), expr_of_erlang_expr e)
+          ((pattern_of_erlang_pattern pattern, Constant (Atom "true")), expr_of_erlang_expr' e)
        | F.ClsFun (_, _, _, _) ->
           failwith "cannot reach here"
     ) in
-    Case (expr_of_erlang_expr e, cs)
+    Case (expr_of_erlang_expr' e, cs)
   | ExprLocalFunRef (_line_t, name, arity) ->
      (* TODO: support local `fun F/A` *)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/79"]; message="support local `fun f/A`"}))
@@ -230,7 +230,7 @@ and expr_of_erlang_expr = function
       let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
       let arity = List.length ps in
       let tuple_pattern = PatTuple ps in
-      (((tuple_pattern, Constant (Atom ("true"))), expr_of_erlang_expr body), arity)
+      (((tuple_pattern, Constant (Atom ("true"))), expr_of_erlang_expr' body), arity)
     ) |> List.unzip in
      let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
      let make_case cs fresh_variables =
@@ -266,22 +266,22 @@ and expr_of_erlang_expr = function
      | None -> function_body
      )
   | ExprLocalCall (_line_t, ExprLit (LitAtom (_line_f, fun_name)), args) ->
-     App (Var fun_name, List.map ~f:expr_of_erlang_expr args)
+     App (Var fun_name, List.map ~f:expr_of_erlang_expr' args)
   | ExprLocalCall (_line_t, f, args) ->
-     App (expr_of_erlang_expr f, List.map ~f:expr_of_erlang_expr args)
+     App (expr_of_erlang_expr' f, List.map ~f:expr_of_erlang_expr' args)
   | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
      let mfa = MFA {
-       module_name=expr_of_erlang_expr m;
-       function_name=expr_of_erlang_expr f;
+       module_name=expr_of_erlang_expr' m;
+       function_name=expr_of_erlang_expr' f;
        arity=Constant (Number (List.length args))} in
-     App (mfa, List.map ~f:expr_of_erlang_expr args)
+     App (mfa, List.map ~f:expr_of_erlang_expr' args)
   | ExprMatch (line_t, pat, e) ->
      (* There is no match expression in `e` by `extract_match_expr`.
       * Futhermore, this match expression is single or the last of expr sequence because
       * a match expression which has subsequent expressions is caught in `expr_of_erlang_exprs`.
       * Therefore, we can put right-hand side expr of match expression to the return value of case expr.
       *)
-     let e' = expr_of_erlang_expr e in
+     let e' = expr_of_erlang_expr' e in
      Case (e', [((pattern_of_erlang_pattern pat, Constant (Atom "true")), e')])
   | ExprBinOp (_line_t, op, e1, e2) ->
      let func = Ast.MFA {
@@ -289,18 +289,21 @@ and expr_of_erlang_expr = function
         function_name = Constant (Atom op);
         arity=Constant (Number 2)
      } in
-     App(func, List.map ~f:expr_of_erlang_expr [e1; e2])
+     App(func, List.map ~f:expr_of_erlang_expr' [e1; e2])
   | ExprTuple (_line_t, es) ->
-     Tuple (List.map ~f:expr_of_erlang_expr es)
+     Tuple (List.map ~f:expr_of_erlang_expr' es)
   | ExprVar (_line_t, v) -> Var v
   | ExprLit literal -> expr_of_literal literal
-  | ExprCons (_line_t, e1, e2) -> ListCons (expr_of_erlang_expr e1, expr_of_erlang_expr e2)
+  | ExprCons (_line_t, e1, e2) -> ListCons (expr_of_erlang_expr' e1, expr_of_erlang_expr' e2)
   | ExprNil _line_t -> ListNil
   | ExprListComprehension (_line_t, expr, quals) ->
      (* TODO: support list comprehension *)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"]; message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
   | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/122"]; message="support map-related expression"}))
+
+let expr_of_erlang_expr e =
+  e |> extract_toplevel |> expr_of_erlang_expr'
 
 let clauses_to_function = function
   | F.ClsCase(_line, _pattern, _guards, _body) ->

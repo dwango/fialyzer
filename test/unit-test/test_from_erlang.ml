@@ -178,7 +178,47 @@ let%expect_test "from_erlang" =
   [%expect {|
     (ListCons
       (Constant (Number 97))
-      (ListCons (Constant (Number 98)) (ListCons (Constant (Number 99)) ListNil))) |}]
+      (ListCons (Constant (Number 98)) (ListCons (Constant (Number 99)) ListNil))) |}];
+
+  (*
+   * A = B = 1
+   *)
+  print (ExprMatch (1, PatVar (1, "A"), ExprMatch (1, PatVar (1, "B"), ExprLit (LitInteger (1, 1)))));
+  [%expect {|
+    (Case
+      (Constant (Number 1))
+      ((
+        ((PatVar B) (Constant (Atom true)))
+        (Case
+          (Constant (Number 1))
+          ((((PatVar A) (Constant (Atom true))) (Constant (Number 1)))))))) |}];
+
+  (*
+   * fun () -> A = 1, B = 2, A + B end
+   *)
+  print (ExprFun (1, None,
+                  [ClsFun (1, [], None,
+                           ExprBody [ExprMatch (1, PatVar (1, "A"), ExprLit (LitInteger (1, 1)));
+                                     ExprMatch (1, PatVar (1, "B"), ExprLit (LitInteger (1, 2)));
+                                     ExprBinOp (1, "+", ExprVar (1, "A"), ExprVar (1, "B"))])]));
+  [%expect {|
+    (Abs
+      ()
+      (Case
+        (Constant (Number 1))
+        ((
+          ((PatVar A) (Constant (Atom true)))
+          (Case
+            (Constant (Number 2))
+            ((
+              ((PatVar B) (Constant (Atom true)))
+              (App
+                (MFA
+                  (module_name   (Constant (Atom   erlang)))
+                  (function_name (Constant (Atom   +)))
+                  (arity         (Constant (Number 2))))
+                ((Var A)
+                 (Var B)))))))))) |}]
 
 let%expect_test "extract_match_expr" =
   let print expr =
