@@ -37,10 +37,16 @@ and lookup_elem sol = function
      | None -> TyAny
      end
 
-(* τ_1 ⊆ τ_2 *)
+(**
+  τ_1 ⊆ τ_2
+  assume no type variable in [ty1] and [ty2]
+ *)
 let is_subtype ty1 ty2 =
   Type.inf ty1 ty2 = ty1
 
+(**
+  assume no type variable in the 2nd argument [inf]
+ *)
 let rec unify ty inf =
   match ty with
   | TyUnion [elem] ->
