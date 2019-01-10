@@ -276,8 +276,13 @@ and expr_of_erlang_expr = function
        arity=Constant (Number (List.length args))} in
      App (mfa, List.map ~f:expr_of_erlang_expr args)
   | ExprMatch (line_t, pat, e) ->
-     (* TODO: support match expr `A = B` *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/81"]; message="support match expr `A = B`"}))
+     (* There is no match expression in `e` by `extract_match_expr`.
+      * Futhermore, this match expression is single or the last of expr sequence because
+      * a match expression which has subsequent expressions is caught in `expr_of_erlang_exprs`.
+      * Therefore, we can put right-hand side expr of match expression to the return value of case expr.
+      *)
+     let e' = expr_of_erlang_expr e in
+     Case (e', [((pattern_of_erlang_pattern pat, Constant (Atom "true")), e')])
   | ExprBinOp (_line_t, op, e1, e2) ->
      let func = Ast.MFA {
         module_name = Constant (Atom "erlang");
