@@ -11,43 +11,108 @@ let%expect_test "pp" =
   print TyBottom;
   [%expect {| none() |}];
 
-  print TyAtom;
+  print (of_elem TyAtom);
   [%expect {| atom() |}];
 
-  print TyNumber;
+  print (of_elem TyNumber);
   [%expect {| number() |}];
 
-  print (TySingleton (Number 1));
+  print (of_elem (TySingleton (Number 1)));
   [%expect {| 1 |}];
 
-  print (TySingleton (Atom "ok"));
+  print (of_elem (TySingleton (Atom "ok")));
   [%expect {| 'ok' |}];
 
   (* single union *)
-  print (TyUnion (TyAtom, TyNumber));
+  print (TyUnion [TyAtom; TyNumber]);
   [%expect {| atom() | number() |}];
 
   (* multi union *)
-  print (TyUnion (TyUnion (TyUnion (TySingleton (Number 1), TySingleton (Number 2)), TySingleton (Number 3)),
-                  TyUnion (TyUnion (TySingleton (Number 4), TySingleton (Number 5)), TySingleton (Number 6))));
+  print (TyUnion [ TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3);
+                   TySingleton (Number 4); TySingleton (Number 5); TySingleton (Number 6); ]);
   [%expect {| 1 | 2 | 3 | 4 | 5 | 6 |}];
 
-  print (TyVar (Type_variable.of_string "T"));
+  print (of_elem (TyVar (Type_variable.of_string "T")));
   [%expect {| T |}];
 
-  print (TyTuple [TyAny; TyTuple [TyBottom; TyBottom]]);
+  print (of_elem (TyTuple [TyAny; of_elem (TyTuple [TyBottom; TyBottom])]));
   [%expect {| {any(), {none(), none()}} |}];
 
   (* fun with no args *)
-  print (TyFun ([], TySingleton (Atom "ok")));
+  print (of_elem (TyFun ([], (of_elem (TySingleton (Atom "ok"))))));
   [%expect {| fun(() -> 'ok') |}];
 
   (* fun with some args *)
-  print (TyFun ([TyNumber; TyNumber], TyNumber));
+  print (of_elem (TyFun ([of_elem TyNumber; of_elem TyNumber], of_elem TyNumber)));
   [%expect {| fun((number(), number()) -> number()) |}];
 
   (* complex example *)
-  print (TyFun ([TyFun ([TyNumber; TyAtom], TyVar (Type_variable.of_string "A")); TyTuple [TyNumber; TyAtom]],
-                TyUnion (TyTuple [TySingleton (Atom "ok"); TyVar (Type_variable.of_string "A")],
-                         TyTuple [TySingleton (Atom "error"); TyAny])));
-  [%expect {| fun((fun((number(), atom()) -> A), {number(), atom()}) -> {'ok', A} | {'error', any()}) |}];
+  print (of_elem (TyFun (
+                      [
+                        of_elem (TyFun ([of_elem TyNumber; of_elem TyAtom], of_elem (TyVar (Type_variable.of_string "A"))));
+                        of_elem (TyTuple [of_elem TyNumber; of_elem TyAtom])
+                      ],
+                      TyUnion [TyTuple [of_elem (TySingleton (Atom "ok")); of_elem (TyVar (Type_variable.of_string "A"))];
+                               TyTuple [of_elem (TySingleton (Atom "error")); TyAny]])));
+  [%expect {| fun((fun((number(), atom()) -> A), {number(), atom()}) -> {'ok', A} | {'error', any()}) |}]
+
+let%expect_test "inf" =
+  let print ty1 ty2 =
+    inf ty1 ty2
+    |> [%sexp_of: Type.t]
+    |> Expect_test_helpers_kernel.print_s in
+
+  print TyAny TyAny;
+  [%expect {| TyAny |}];
+
+  print TyBottom TyAny;
+  [%expect {| TyBottom |}];
+
+  print (of_elem (TySingleton (Number 1))) (of_elem (TySingleton (Number 2)));
+  [%expect {| TyBottom |}];
+
+  print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3); ])
+        (TyUnion [TySingleton (Number 2); TySingleton (Number 3); TySingleton (Number 4); ]);
+  [%expect {|
+    (TyUnion (
+      (TySingleton (Number 3))
+      (TySingleton (Number 2))))
+ |}];
+
+  print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3);]) (of_elem TyNumber);
+  [%expect {|
+    (TyUnion (
+      (TySingleton (Number 3))
+      (TySingleton (Number 2))
+      (TySingleton (Number 1))))
+            |}]
+
+let%expect_test "sup" =
+  let print ty1 ty2 =
+    sup ty1 ty2
+    |> [%sexp_of: Type.t]
+    |> Expect_test_helpers_kernel.print_s in
+
+  print TyAny TyAny;
+  [%expect {| TyAny |}];
+
+  print TyBottom TyAny;
+  [%expect {| TyAny |}];
+
+  print (of_elem (TySingleton (Number 1))) (of_elem (TySingleton (Number 2)));
+  [%expect {|
+    (TyUnion (
+      (TySingleton (Number 2))
+      (TySingleton (Number 1)))) |}];
+
+  print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3); ])
+        (TyUnion [TySingleton (Number 2); TySingleton (Number 3); TySingleton (Number 4); ]);
+  [%expect {|
+    (TyUnion (
+      (TySingleton (Number 4))
+      (TySingleton (Number 1))
+      (TySingleton (Number 2))
+      (TySingleton (Number 3)))) |}];
+
+  print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3);]) (of_elem TyNumber);
+  [%expect {| (TyUnion (TyNumber)) |}]

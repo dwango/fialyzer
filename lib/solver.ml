@@ -14,147 +14,75 @@ let string_of_sol sol =
 
 let init : solution = Map.empty (module Type_variable)
 
-(* type_subst (X, τ_1) τ_2 := [X ↦ τ_1]τ_2 *)
-let rec type_subst (x, ty1): Type.t -> Type.t = function
-  | TyTuple tys ->
-     TyTuple(List.map ~f:(type_subst (x, ty1)) tys)
-  | TyFun (tys, ty) ->
-     TyFun (List.map ~f:(type_subst (x, ty1)) tys, type_subst (x, ty1) ty)
-  | TyUnion (ty_a, ty_b) ->
-     TyUnion(type_subst (x, ty1) ty_a, type_subst (x, ty1) ty_b)
-  | TyAny -> TyAny
-  | TyBottom -> TyBottom
-  | TyNumber -> TyNumber
-  | TyAtom -> TyAtom
-  | TySingleton const -> TySingleton const
-  | TyVar v ->
-     if x = v then ty1 else (TyVar v)
-
-let type_subst_to_sol (x, ty) sol =
-  Map.map ~f:(type_subst (x, ty)) sol
-
 let set (x, ty) sol =
-  let sol' = type_subst_to_sol (x, ty) sol in
-  Map.set sol' ~key:x ~data:ty
+  Map.set sol ~key:x ~data:ty
 
 let rec lookup_type sol = function
-  | TyTuple tys ->
-     TyTuple(List.map ~f:(lookup_type sol) tys)
-  | TyFun (tys, ty) ->
-     TyFun (List.map ~f:(lookup_type sol) tys, lookup_type sol ty)
-  | TyUnion (ty_a, ty_b) ->
-     TyUnion(lookup_type sol ty_a, lookup_type sol ty_b)
   | TyAny -> TyAny
   | TyBottom -> TyBottom
-  | TyNumber -> TyNumber
-  | TyAtom -> TyAtom
-  | TySingleton const -> TySingleton const
+  | TyUnion tys ->
+     List.map ~f:(lookup_elem sol) tys
+     |> List.reduce_exn ~f:Type.sup
+and lookup_elem sol = function
+  | TyTuple tys ->
+     TyUnion [TyTuple(List.map ~f:(lookup_type sol) tys)]
+  | TyFun (tys, ty) ->
+     TyUnion [TyFun (List.map ~f:(lookup_type sol) tys, lookup_type sol ty)]
+  | TyNumber -> TyUnion [TyNumber]
+  | TyAtom -> TyUnion [TyAtom]
+  | TySingleton const -> TyUnion [TySingleton const]
   | TyVar v ->
      begin match Map.find sol v with
      | Some v_ty -> v_ty
      | None -> TyAny
      end
 
-(* τ_1 ⊓ τ_2 *)
-let rec meet ty1 ty2 =
-  match (ty1, ty2) with
-  (* var *)
-  | TyVar _, _ | _, TyVar _ -> failwith "cannot reach here"
-  (* any *)
-  | TyAny, _ -> ty2
-  | _, TyAny -> ty1
-  (* none *)
-  | TyBottom, _ -> TyBottom
-  | _, TyBottom -> TyBottom
-  (* struct *)
-  | TyTuple tys1, TyTuple tys2 when List.length tys1 = List.length tys2 ->
-     List.zip_exn tys1 tys2
-     |> List.map ~f:(fun (ty1, ty2) -> meet ty1 ty2)
-     |> (fun tys -> TyTuple tys)
-  (* function *)
-  | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
-     List.zip_exn args1 args2
-     (* NOTE: using `meet` is the same as type derivation [ABS]. perhaps it should be `join` *)
-     |> List.map ~f:(fun (arg1, arg2) -> meet arg1 arg2)
-     |> (fun args -> TyFun (args, meet body1 body2))
-  (* union *)
-  | TyUnion (tyl, tyr), _ ->
-     TyUnion (meet tyl ty2, meet tyr ty2)
-  | _, TyUnion (tyl, tyr) ->
-     TyUnion (meet ty1 tyl, meet ty1 tyr)
-  (* number *)
-  | TyNumber, TyNumber -> TyNumber
-  | TyNumber, TySingleton (Number n) -> TySingleton (Number n)
-  | TySingleton (Number n), TyNumber -> TySingleton (Number n)
-  | TySingleton (Number n), TySingleton (Number m) when n = m -> TySingleton (Number n)
-  (* atom *)
-  | TyAtom, TyAtom -> TyAtom
-  | TySingleton (Atom a), TyAtom -> TySingleton (Atom a)
-  | TyAtom, TySingleton (Atom a) -> TySingleton (Atom a)
-  | TySingleton (Atom a), TySingleton (Atom b) when a = b -> TySingleton (Atom a)
-  (* otherwise *)
-  | _ -> TyBottom
-
-(* τ_1 ⊆ τ_2 *)
+(**
+  τ_1 ⊆ τ_2
+  assume no type variable in [ty1] and [ty2]
+ *)
 let is_subtype ty1 ty2 =
-  meet ty1 ty2 = ty1
+  Type.inf ty1 ty2 = ty1
 
-let rec solve_sub sol ty1 ty2 =
+(**
+  assume no type variable in the 2nd argument [inf]
+ *)
+let rec unify ty inf =
+  match ty with
+  | TyUnion [elem] ->
+     unify_elem elem inf
+  | TyUnion _ -> [] (* TODO:??? *)
+  | TyAny | TyBottom -> []
+and unify_elem elem inf =
+  match (elem, inf) with
+  | (TyNumber, _) | (TyAtom, _) | (TySingleton _, _) -> []
+  | (TyVar v, _) ->
+     [(v, inf)]
+  | (TyTuple tys1, TyUnion [TyTuple tys2]) when List.length tys1 = List.length tys2 ->
+     List.map2_exn ~f:unify tys1 tys2
+     |> List.concat
+  | TyFun (args1, body1), TyUnion [TyFun (args2, body2)] when List.length args1 = List.length args2 ->
+     List.map2_exn ~f:unify (body1::args1) (body2::args2)
+     |> List.concat
+  | _ -> []
+
+let solve_sub sol ty1 ty2 =
   let ty1' = lookup_type sol ty1 in
   let ty2' = lookup_type sol ty2 in
-  let inf = meet ty1' ty2' in
-  match (ty1, inf) with
-  | TyVar v1, _ ->
-     if is_subtype ty1' ty2' then
-       Ok sol
-     else
-       if inf != TyBottom then
-         Ok (set (v1, inf) sol)
-       else
-         let filename = "TODO:filename" in
-         let line = -1 (*TODO:line*) in
-         let actual = ty1 in
-         let expected = ty2 in
-         let message = "there is no solution that satisfies subtype constraints" in
-         Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
-  | TyTuple tys1, TyTuple tys2 when List.length tys1 = List.length tys2 ->
-     let open Result in
-     List.zip_exn tys1 tys2
-     |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
-  | TyTuple tys1, TyTuple tys2 ->
-     let filename = "TODO:filename" in
-     let line = -1 (*TODO:line*) in
-     let actual = ty1' in
-     let expected = ty2' in
-     let message = "the tuple types are not different length" in
-     Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
-  | TyFun (args1, body1), TyFun (args2, body2) when List.length args1 = List.length args2 ->
-     let open Result in
-     (* NOTE: `solve_sub arg1 arg2` is the same as type derivation [ABS]. *)
-     (* perhaps it should be `solve_sub arg2 arg1` *)
-     List.zip_exn (body1 :: args1) (body2 :: args2)
-     |> List.fold_left ~init:(Ok sol) ~f:(fun acc (ty1, ty2) -> acc >>= fun sol -> solve_sub sol ty1 ty2)
-  | TyFun (args1, _), TyFun (args2, _) ->
-     let filename = "TODO:filename" in
-     let line = -1 (*TODO:line*) in
-     let actual = ty1' in
-     let expected = ty2' in
-     let message = "the fun args are not different length" in
-     Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
-  | TyUnion (ty11, ty12), _ ->
-     let open Result in
-     solve_sub sol ty11 ty2 >>= fun sol' -> solve_sub sol' ty12 ty2
-  | _ ->
-     (* TODO: normalize *)
-     if is_subtype ty1' ty2' then
-       Ok sol
-     else
-       let filename = "TODO:filename" in
-       let line = -1 (*TODO:line*) in
-       let actual = ty1' in
-       let expected = ty2' in
-       let message = !%"there is no solution that satisfies subtype constraints" in
-       Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
+  let inf = inf ty1' ty2' in
+  if is_subtype ty1' ty2' then
+    Ok sol
+  else if inf = TyBottom then
+    let filename = "TODO:filename" in
+    let line = -1 (*TODO:line*) in
+    let actual = ty1' in
+    let expected = ty2' in
+    let message = !%"there is no solution that satisfies subtype constraints" in
+    Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
+  else
+    unify ty1 inf
+    |> List.fold_left ~f:(fun sol (v,ty) -> set (v, ty) sol) ~init:sol
+    |> Result.return
 
 let solve_eq sol ty1 ty2 =
   let open Result in

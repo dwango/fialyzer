@@ -172,41 +172,13 @@ let clauses_to_function = function
      let vs = args |> List.map ~f:f in
      (vs, expr_of_erlang_expr body)
 
-let rec typ_of_erlang_type = function
-(*  | F.TyAnn (_line, _, _) ->
-  | TyBitstring ->
- *)
-  | F.TyPredef (_line, "number", []) -> Type.TyNumber
-     (*
-  | TyProduct ->
-  | TyBinOp ->
-  | TyUnaryOp ->
-  | TyAnyMap ->
-  | TyMap ->
- *)
-  | F.TyVar (_line, v) -> Type.TyVar (Type_variable.of_string v)
-(*  | TyContFun ->
- *)
-  | TyFun (_line, _, args, range) ->
-     Type.TyFun(List.map ~f:typ_of_erlang_type args, typ_of_erlang_type range)
-(*
-  | TyAnyTuple ->
-  | TyTuple ->
-  | TyUnion ->
-  | TyUser ->
- *)
-  | TyLit (LitAtom (_, atom)) -> TySingleton (Atom atom)
-  | other ->
-     Log.debug [%here] "not implemented type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
-     Type.TyAny
-
 let forms_to_functions forms =
   let find_specs fun_name =
     List.find_map ~f:(function
                       | F.SpecFun (_line, _mod_name, fname, arity, specs) when fun_name = fname ->
                          List.map ~f:(fun ty ->
-                                    match typ_of_erlang_type ty with
-                                    | Type.TyFun (domains, range) -> (domains, range)
+                                    match Type.of_erlang ty with
+                                    | Type.(TyUnion [Type.TyFun (domains, range)]) -> (domains, range)
                                     | _ -> failwith (!%"unexpected type spec of %s" fname))
                                   specs
                          |> Option.return
