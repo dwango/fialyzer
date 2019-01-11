@@ -1,9 +1,12 @@
+type type_error = {filename: string; line: int; actual : Type.t; expected: Type.t; message: string}
+[@@deriving sexp_of]
+
 type t =
   | InvalidUsage
   | NoSuchFile of string
   | InvalidBeam of {beam_filename: string; message: string}
   | UnboundVariable of {filename: string; line: int; variable: Context.Key.t}
-  | TypeError of {filename: string; line: int; actual : Type.t; expected: Type.t; message: string}
+  | TypeError of type_error list
   | NotImplemented of {issue_links: string list; message: string}
 [@@deriving sexp_of]
 

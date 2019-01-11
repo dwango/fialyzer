@@ -80,7 +80,7 @@ let solve_sub sol ty1 ty2 =
     let actual = ty1' in
     let expected = ty2' in
     let message = !%"there is no solution that satisfies subtype constraints" in
-    Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
+    Error Known_error.(FialyzerError(TypeError [{filename; line; actual; expected; message}]))
   else
     unify ty1 inf
     |> List.fold_left ~f:(fun sol (v,ty) -> set (v, ty) sol) ~init:sol
@@ -100,6 +100,28 @@ let merge_solutions sol1 sol2 =
   in
   Map.merge sol1 sol2 ~f
 
+let merge_errors errs =
+  let open Known_error in
+  let rec iter store = function
+    | [] -> `AllTypeError (List.rev store)
+    | FialyzerError (TypeError type_errors) :: errors ->
+       iter (type_errors :: store) errors
+    | FialyzerError (NotImplemented _ as err) :: _ ->
+       `NotImplementedExists err
+    | FialyzerError InvalidUsage :: _ | FialyzerError (NoSuchFile _) :: _
+      | FialyzerError (InvalidBeam _) :: _ | FialyzerError (UnboundVariable _) :: _ ->
+       failwith "cannot reach here"
+    | other :: _ -> (* general errors *)
+       `GeneralError other
+  in
+  match iter [] errs with
+  | `AllTypeError type_errors ->
+     FialyzerError (TypeError (List.concat type_errors))
+  | `NotImplementedExists err ->
+     FialyzerError err
+  | `GeneralError exn ->
+     exn
+
 let rec solve1 sol = function
   | Empty -> Ok sol
   | Eq (ty1, ty2) ->
@@ -117,10 +139,12 @@ and solve_conj sol = function
      solve1 sol c >>= fun sol' ->
      solve_conj sol' cs
 and solve_disj sol cs =
-  match List.filter_map ~f:(solve1 sol >>> Result.ok) cs with
-  | [] ->
-     let err0 = solve1 sol (List.hd_exn cs) in
-     err0
+  let results = List.map ~f:(solve1 sol) cs in
+  let valid_solutions = List.filter_map ~f:Result.ok results in
+  match valid_solutions with
+  | [] -> (* the all elements in results are error *)
+     let errors = List.map ~f:(function Error e -> e | _ -> failwith "cannot reach here") results in
+     Error (merge_errors errors)
   | sols ->
      Ok (List.fold_left ~f:merge_solutions ~init:sol sols)
 
@@ -160,8 +184,8 @@ let rec solve sol cs =
   if Map.equal (=) sol sol' then
     begin match find_error_clauses sol' cs with
     | [] -> Ok sol'
-    | e :: _es ->
-       Error e
+    | _ :: _ as es ->
+       Error (merge_errors es)
     end
   else
     solve sol' cs
