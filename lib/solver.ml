@@ -10,7 +10,9 @@ type solution = Type.t Map.M(Type_variable).t
 [@@deriving sexp_of]
 
 let string_of_sol sol =
-  [%sexp_of: solution] sol |> Sexplib.Sexp.to_string_hum ~indent:2
+  Map.to_alist sol
+  |> List.map ~f:(fun (k,v) -> (!%"%s |-> %s" (Type_variable.show k) (Type.pp v)))
+  |> String.concat ~sep:"\n"
 
 let init : solution = Map.empty (module Type_variable)
 
@@ -78,7 +80,7 @@ let solve_sub sol ty1 ty2 =
     let actual = ty1' in
     let expected = ty2' in
     let message = !%"there is no solution that satisfies subtype constraints" in
-    Error Known_error.(FialyzerError(TypeError {filename; line; actual; expected; message}))
+    Error Known_error.(FialyzerError(TypeError [{filename; line; actual; expected; message}]))
   else
     unify ty1 inf
     |> List.fold_left ~f:(fun sol (v,ty) -> set (v, ty) sol) ~init:sol
@@ -89,6 +91,37 @@ let solve_eq sol ty1 ty2 =
   solve_sub sol ty1 ty2 >>= fun sol' ->
   solve_sub sol' ty2 ty1
 
+let merge_solutions sol1 sol2 =
+  let f ~key = function
+    | `Left ty1  -> Some ty1
+    | `Right ty2 -> Some ty2
+    | `Both (ty1, ty2) when ty1 = ty2 -> Some ty1
+    | `Both (ty1, ty2) -> Some (sup ty1 ty2)
+  in
+  Map.merge sol1 sol2 ~f
+
+let merge_errors errs =
+  let open Known_error in
+  let rec iter store = function
+    | [] -> `AllTypeError (List.rev store)
+    | FialyzerError (TypeError type_errors) :: errors ->
+       iter (type_errors :: store) errors
+    | FialyzerError (NotImplemented _ as err) :: _ ->
+       `NotImplementedExists err
+    | FialyzerError InvalidUsage :: _ | FialyzerError (NoSuchFile _) :: _
+      | FialyzerError (InvalidBeam _) :: _ | FialyzerError (UnboundVariable _) :: _ ->
+       failwith "cannot reach here"
+    | other :: _ -> (* general errors *)
+       `GeneralError other
+  in
+  match iter [] errs with
+  | `AllTypeError type_errors ->
+     FialyzerError (TypeError (List.concat type_errors))
+  | `NotImplementedExists err ->
+     FialyzerError err
+  | `GeneralError exn ->
+     exn
+
 let rec solve1 sol = function
   | Empty -> Ok sol
   | Eq (ty1, ty2) ->
@@ -98,20 +131,61 @@ let rec solve1 sol = function
   | Conj cs ->
      solve_conj sol cs
   | Disj cs ->
-     let issue_links = ["https://github.com/dwango/fialyzer/issues/99"] in
-     let message = "Solve disjunction of constraints" in
-     Error Known_error.(FialyzerError (NotImplemented {issue_links; message}))
+     solve_disj sol cs
 and solve_conj sol = function
   | [] -> Ok sol
   | c :: cs ->
      let open Result in
      solve1 sol c >>= fun sol' ->
      solve_conj sol' cs
+and solve_disj sol cs =
+  let results = List.map ~f:(solve1 sol) cs in
+  let valid_solutions = List.filter_map ~f:Result.ok results in
+  match valid_solutions with
+  | [] -> (* the all elements in results are error *)
+     let errors = List.map ~f:(function Error e -> e | _ -> failwith "cannot reach here") results in
+     Error (merge_errors errors)
+  | sols ->
+     Ok (List.fold_left ~f:merge_solutions ~init:sol sols)
+
+(*
+  After calculating success typing, it is finally checked whether all branches pass type checking.
+  Note that this process is outside of the success typing algorithm.
+ *)
+let rec find_error_clauses sol = function
+  | Empty -> []
+  | Eq (ty1,ty2) ->
+     find_error_clauses sol (Subtype (ty1, ty2))
+     @ find_error_clauses sol (Subtype (ty2, ty1))
+  | Subtype (ty1, ty2) ->
+     begin match solve_sub sol ty1 ty2 with
+     | Ok _ -> []
+     | Error e -> [e]
+     end
+  | Disj cs ->
+     List.map ~f:(find_error_clauses sol) cs
+     |> List.concat
+  | Conj cs ->
+     find_conj sol cs
+and find_conj sol cs =
+  let f sol' c =
+    match (find_error_clauses sol' c, solve1 sol' c) with
+    | ([], Ok sol'') -> (sol'', [])
+    | ([], Error _)  -> failwith "cannot reach here"
+    | (es, Ok sol'') -> (sol'', es)
+    | (es, Error _)  -> (sol', es)
+  in
+  List.folding_map cs ~init:sol ~f
+  |> List.concat
 
 let rec solve sol cs =
   let open Result in
   solve1 sol cs >>= fun sol' ->
   if Map.equal (=) sol sol' then
-    Ok sol'
+    begin match find_error_clauses sol' cs with
+    | [] -> Ok sol'
+    | _ :: _ as es ->
+       Error (merge_errors es)
+    end
   else
     solve sol' cs
