@@ -2,3 +2,11 @@ TODO:filename:-1: Type error: type mismatch;
   found   : 'ok'
   required: 1
 there is no solution that satisfies subtype constraints
+TODO:filename:-1: Type error: type mismatch;
+  found   : 1
+  required: 'ok'
+there is no solution that satisfies subtype constraints
+TODO:filename:-1: Type error: type mismatch;
+  found   : 'foo'
+  required: number()
+there is no solution that satisfies subtype constraints
