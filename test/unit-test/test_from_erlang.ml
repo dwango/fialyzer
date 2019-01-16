@@ -3,6 +3,62 @@ open Fialyzer
 open From_erlang
 open Obeam.Abstract_format
 
+let%expect_test "code_to_module" =
+  let print code =
+    Variable.reset_count();
+    code_to_module code
+    |> Result.ok_exn
+    |> [%sexp_of: Ast.module_]
+    |> Expect_test_helpers_kernel.print_s
+  in
+
+  let line = 111 in
+
+  (* simple module *)
+  print (AbstractCode(ModDecl [
+                          AttrFile(line, "test.erl", line);
+                          AttrMod(line, "test");
+                          AttrExport(line, [("f", 1)]);
+                          DeclFun(line, "f", 0, [
+                                      ClsFun(line, [PatVar(line, "X")], None, ExprBody[ExprVar(line, "X")])
+                                 ]);
+                          FormEof
+        ]));
+  [%expect {|
+     ((file test.erl)
+      (name test)
+      (export ())
+      (functions (((specs ()) (fun_name f) (args (X)) (body (Var X))))))
+  |}];
+
+  (* patterns in toplevel *)
+  print (AbstractCode(ModDecl [
+                          AttrFile(line, "patterns.erl", line);
+                          AttrMod(line, "patterns");
+                          AttrExport(line, [("f", 1)]);
+                          DeclFun(line, "f", 0, [
+                                      ClsFun(line, [PatLit(LitAtom(line, "a"))], None, ExprBody[ExprLit(LitInteger(line, 10))]);
+                                      ClsFun(line, [PatLit(LitAtom(line, "b"))], None, ExprBody[ExprLit(LitInteger(line, 20))]);
+                                 ]);
+                          FormEof;
+        ]));
+  [%expect {|
+     ((file patterns.erl)
+      (name patterns)
+      (export ())
+      (functions ((
+        (specs ())
+        (fun_name f)
+        (args (__A__))
+        (body (
+          Case
+          (Tuple ((Var __A__)))
+          ((((PatTuple ((PatConstant (Atom a)))) (Constant (Atom true)))
+            (Constant (Number 10)))
+           (((PatTuple ((PatConstant (Atom b)))) (Constant (Atom true)))
+            (Constant (Number 20))))))))))
+  |}]
+
 let%expect_test "from_erlang" =
   let print abstract_format =
     Variable.reset_count ();
