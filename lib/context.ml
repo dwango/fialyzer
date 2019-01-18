@@ -13,7 +13,12 @@ type t = Type.t MapOnKey.t
 
 let empty : t = MapOnKey.empty
 let find = Map.find
-let add key data = Map.add_exn ~key ~data
+let add key data t =
+  match Map.add ~key ~data t with
+  | `Ok t' -> t'
+  | `Duplicate ->
+     Log.debug [%here] "variable '%s' shadowed" (Key.show key);
+     t
 
 let add_bif_signatures ctx0 : t =
   Bif.type_sigs
