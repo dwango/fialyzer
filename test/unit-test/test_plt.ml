@@ -32,8 +32,8 @@ let%expect_test "Plt.of_file" =
                (elem_type (
                  Number (
                    IntRange
-                   (min (IntOrNegInfInt 0))
-                   (max (IntOrPosInfInt 1114111)))))
+                   (min (Min 0))
+                   (max (Max 1114111)))))
                (term_type   Nil)
                (is_nonempty false))))
            ())))

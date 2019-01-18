@@ -26,13 +26,13 @@ let qualifier_of_etf etf =
   qual_of_atom atom
 
 type number =
-  | IntRange of {min: int_or_neg_inf; max: int_or_pos_inf}
+  | IntRange of {min: min; max: max}
   | IntSet of {set: int list}
   | Integer (* integer() *)
   | Float   (* float()   *)
   | All     (* number()  *)
-and int_or_neg_inf = IntOrNegInfInt of int | IntOrNegInfNegInf
-and int_or_pos_inf = IntOrPosInfInt of int | IntOrPosInfPosInf
+and min = Min of int | NegativeInfinity
+and max = Max of int | Infinity
 [@@deriving show, sexp_of]
 
 
@@ -116,7 +116,7 @@ type t =
   | Map of t_map_pair list * t * t
   | Opaque of {opaques_union: opaque list}
   | Var of {id: var_id}
-  | Tuple of {tuple: tuple_or_any_tuple}
+  | Tuple of {tuple_or_any_tuple: tuple_or_any_tuple}
   | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
@@ -132,7 +132,7 @@ and tuple = {
     arity : int;         (* size *)
     tag : string option; (* first element's tag (may be record name) *)
   }
-and tuple_or_any_tuple = TupleOrAnyTupleTuple of tuple | TupleOrAnyTupleAnyTuple
+and tuple_or_any_tuple = Tup of tuple | AnyTuple
 and n_tuples = {
   n: int;
   tuples: tuple list
@@ -226,12 +226,12 @@ let rec of_etf = function
               Ok (Number (IntSet {set}))
            | [Atom "int_rng"; min_etf; max_etf] ->
               begin match min_etf with
-              | Atom "neg_inf" -> Result.Ok IntOrNegInfNegInf
-              | _ -> Result.map ~f:(fun min -> IntOrNegInfInt min) (E.int_of_etf min_etf)
+              | Atom "neg_inf" -> Result.Ok NegativeInfinity
+              | _ -> Result.map ~f:(fun min -> Min min) (E.int_of_etf min_etf)
               end >>= fun min ->
               begin match max_etf with
-              | Atom "pos_inf" -> Result.Ok IntOrPosInfPosInf
-              | _ -> Result.map ~f:(fun max -> IntOrPosInfInt max) (E.int_of_etf max_etf)
+              | Atom "pos_inf" -> Result.Ok Infinity
+              | _ -> Result.map ~f:(fun max -> Max max) (E.int_of_etf max_etf)
               end >>= fun max ->
               Ok (Number (IntRange {min; max}))
            | _ ->
@@ -260,7 +260,7 @@ let rec of_etf = function
         E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
         begin match elements, arity_etf, tag_etf with
         | Etf.Atom "any", Etf.Atom "any", Etf.Atom "any" -> (* tuple() *)
-            Ok (Tuple {tuple=TupleOrAnyTupleAnyTuple})
+            Ok (Tuple {tuple_or_any_tuple=AnyTuple})
         | _ ->
            E.list_of_etf elements >>= fun elems ->
            result_map_m ~f:of_etf elems >>= fun types ->
@@ -268,9 +268,9 @@ let rec of_etf = function
            of_etf tag_etf >>= fun tag_t ->
            begin match tag_t with
            | Any ->
-              Ok (Tuple {tuple=TupleOrAnyTupleTuple {types; arity; tag=None}})
+              Ok (Tuple {tuple_or_any_tuple=Tup {types; arity; tag=None}})
            | Atom {atoms_union=[atom]} ->
-              Ok (Tuple {tuple=TupleOrAnyTupleTuple {types; arity; tag=Some atom}})
+              Ok (Tuple {tuple_or_any_tuple=Tup {types; arity; tag=Some atom}})
            | other ->
               Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (E.show_etf tag_etf)))
            end
@@ -286,7 +286,7 @@ let rec of_etf = function
         let tuple_of_etf etf =
           Result.(
             of_etf etf >>= function
-            | Tuple {tuple=TupleOrAnyTupleTuple tuple} -> Ok tuple
+            | Tuple {tuple_or_any_tuple=Tup tuple} -> Ok tuple
             | _ -> Error (Failure (!%"Please report: an element of tuple_set is not a tuple: %s" (E.show_etf etf)))
           )
         in

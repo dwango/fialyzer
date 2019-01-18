@@ -15,8 +15,8 @@ type var_id
 [@@deriving show, sexp_of]
 
 type number
-and int_or_neg_inf
-and int_or_pos_inf
+and min
+and max
 [@@deriving show, sexp_of]
 
 (**
@@ -43,7 +43,7 @@ type t =
   | Map of t_map_pair list * t * t
   | Opaque of {opaques_union: opaque list}
   | Var of {id: var_id}
-  | Tuple of {tuple: tuple_or_any_tuple}
+  | Tuple of {tuple_or_any_tuple: tuple_or_any_tuple}
   | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
