@@ -11,5 +11,6 @@ type t =
 [@@deriving sexp_of]
 
 exception FialyzerError of t
+[@@deriving sexp_of]
 
 val to_message : t -> string

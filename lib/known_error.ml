@@ -14,6 +14,7 @@ type t =
 [@@deriving sexp_of]
 
 exception FialyzerError of t
+[@@deriving sexp_of]
 
 let to_message = function
   | InvalidUsage ->

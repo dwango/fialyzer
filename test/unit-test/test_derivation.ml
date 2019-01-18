@@ -29,7 +29,13 @@ let%expect_test "derivation" =
   [%expect {| (Ok (42 Empty)) |}];
 
   print Context.empty (Var "x");
-  [%expect {| (Error ("Fialyzer.Known_error.FialyzerError(_)")) |}];
+  [%expect {|
+    (Error (
+      lib/known_error.ml.FialyzerError (
+        UnboundVariable
+        (filename TODO:filename)
+        (line     -1)
+        (variable (Var x))))) |}];
 
   print (Context.add (Context.Key.Var "x") (Type.of_elem TyNumber) Context.empty) (Var "x");
   [%expect {| (Ok ("number()" Empty)) |}];

@@ -58,7 +58,15 @@ let%expect_test "solver" =
   [%expect {| (Ok ()) |}];
 
   print (Subtype (Type.of_elem TyNumber, Type.of_elem TyAtom));
-  [%expect {| (Error ("Fialyzer.Known_error.FialyzerError(_)")) |}];
+  [%expect {|
+    (Error (
+      lib/known_error.ml.FialyzerError (
+        TypeError ((
+          (filename TODO:filename)
+          (line     -1)
+          (actual   (TyUnion (TyNumber)))
+          (expected (TyUnion (TyAtom)))
+          (message "there is no solution that satisfies subtype constraints")))))) |}];
 
   (*
    * [N : a] |- case N of 0 -> 'foo'; 'ok' -> 123 end
