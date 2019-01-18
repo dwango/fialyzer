@@ -47,13 +47,14 @@ let rec derive context = function
          args_constraints
      in
      Ok (beta, Conj constraints)
-  | Abs (vs, e) ->
+  | Abs {args=vs; body=e} ->
      let new_tyvars = List.map ~f:(fun v -> (v, (new_tyvar ()))) vs in
      let added_context =
        List.fold_left
          ~f:(fun context (v, tyvar) -> Context.add (Context.Key.Var v) tyvar context)
          ~init:context
-         new_tyvars in
+         new_tyvars
+     in
      derive added_context e >>= fun (ty_e, c) ->
      Ok (Type.of_elem (TyFun (List.map ~f:snd new_tyvars, ty_e)), c)
   | Let (v, e1, e2) ->
@@ -64,18 +65,30 @@ let rec derive context = function
      let new_tyvars = List.map ~f:(fun (v, f) -> (v, f, (new_tyvar ()))) lets in
      let added_context =
        List.fold_left
-         ~f:(fun context (v, _, tyvar) -> Context.add (Context.Key.Var v) tyvar context)
+         ~f:(fun ctx (fname, {args; _}, tyvar) ->
+           let key = Context.Key.LocalFun {function_name=fname; arity=List.length args} in
+           Context.add key tyvar ctx)
          ~init:context
-         new_tyvars in
+         new_tyvars
+     in
      let constraints_result =
        new_tyvars
-       |> result_map_m ~f:(fun (_, f, tyvar) -> derive added_context f >>| fun(ty, c) -> (ty, c, tyvar))
+       |> result_map_m ~f:(fun (_, f, tyvar) -> derive added_context (Abs f) >>| fun(ty, c) -> (ty, c, tyvar))
        >>| List.map ~f:(fun (ty, c, tyvar) -> [Eq (tyvar, ty); c])
        >>| List.concat
      in
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, Conj (c :: constraints))
+  | LocalFun {function_name; arity} ->
+     let key = Context.Key.LocalFun {function_name; arity} in
+     begin match Context.find context key with
+     | Some ty -> Ok (ty, Empty)
+     | None ->
+        let filename = "TODO:filename" in
+        let line = -1 (*TODO: line*) in
+        Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=key}))
+     end
   | MFA {module_name = Constant (Atom m); function_name = Constant (Atom f); arity = Constant (Number a)} ->
      (* find MFA from context *)
      let mfa = Context.Key.MFA {module_name=m; function_name=f; arity=a} in

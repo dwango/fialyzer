@@ -11,14 +11,15 @@ type t =
     | Var of string
     | Tuple of t list
     | App of t * t list
-    | Abs of string list * t
+    | Abs of fun_abst
     | Let of string * t * t
-    | Letrec of (string * t) list * t
+    | Letrec of (string * fun_abst) list * t
     | Case of t * (pattern * t) list
+    | LocalFun of {function_name : string; arity: int}
     | MFA of {module_name: t; function_name: t; arity: t}
     | ListCons of t * t
     | ListNil
-[@@deriving sexp_of]
+and fun_abst = {args: string list; body: t}
 and pattern = pattern' * t
 and pattern' =
     | PatVar of string
@@ -33,7 +34,7 @@ let string_of_t t =
 
 type spec_fun = (Type.t list * Type.t) list
 [@@deriving sexp_of]
-type decl_fun = {specs: spec_fun option; fun_name: string; args: string list; body: t}
+type decl_fun = {specs: spec_fun option; fun_name: string; fun_abst: fun_abst}
 [@@deriving sexp_of]
 type module_ = {
     file : string;
