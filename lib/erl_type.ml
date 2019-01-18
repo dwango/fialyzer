@@ -26,12 +26,15 @@ let qualifier_of_etf etf =
   qual_of_atom atom
 
 type number =
-  | IntRange of int option * int option (* (min or -infinity, max or infinity) *)
-  | IntSet of int list
+  | IntRange of {min: int_or_neg_inf; max: int_or_pos_inf}
+  | IntSet of {set: int list}
   | Integer (* integer() *)
   | Float   (* float()   *)
   | All     (* number()  *)
+and int_or_neg_inf = IntOrNegInfInt of int | IntOrNegInfNegInf
+and int_or_pos_inf = IntOrPosInfInt of int | IntOrPosInfPosInf
 [@@deriving show, sexp_of]
+
 
 type t_map_mandatoriness = Mandatory | Optional
 [@@deriving show, sexp_of]
@@ -102,37 +105,38 @@ v}
 type t =
   | Any
   | None
-  | Unit
-  | Atom of string list
-  | Binary of int * int (*(unit, base)*)
-  | Function of t list * t
-  | Identifier of ident_type list
-  | List of t * t * qualifier
+  | Unit (* no_return *)
+  | Atom of {atoms_union: string list}
+  | Binary of {unit: int; base:int}
+  | Function of {params: t list; ret: t}
+  | Identifier of {idents_union: ident_type list}
+  | List of {elem_type: t; term_type: t; is_nonempty: bool}
   | Nil
   | Number of number
   | Map of t_map_pair list * t * t
-  | Opaque of opaque list
-  | Product of t list
-  | Var of var_id
-  | Tuple of tuple option
-  | TupleSet of (int * tuple list) list (* union of tuple *)
+  | Opaque of {opaques_union: opaque list}
+  | Var of {id: var_id}
+  | Tuple of {tuple: tuple_or_any_tuple}
+  | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
-[@@deriving show, sexp_of]
 and t_map_pair = t * t_map_mandatoriness * t
-[@@deriving show, sexp_of]
 and opaque = {
     mod_ : string;
     name : string;
     args : t list;
     struct_ : t;
   }
-[@@deriving show, sexp_of]
 and tuple = {
     types : t list;      (* type of elements *)
     arity : int;         (* size *)
     tag : string option; (* first element's tag (may be record name) *)
   }
+and tuple_or_any_tuple = TupleOrAnyTupleTuple of tuple | TupleOrAnyTupleAnyTuple
+and n_tuples = {
+  n: int;
+  tuples: tuple list
+}
 [@@deriving show, sexp_of]
 
 let rec of_etf = function
@@ -151,47 +155,55 @@ let rec of_etf = function
      | AtomTag ->
         begin match elements with
         | Etf.Atom "any" ->
-           Ok (Atom ["any"])
+            Ok (Atom {atoms_union=["any"]})
         | _ ->
            E.list_of_etf elements>>= fun elems ->
-           result_map_m ~f:E.atom_of_etf elems >>= fun atoms ->
-           Ok (Atom atoms)
+           result_map_m ~f:E.atom_of_etf elems >>= fun atoms_union ->
+            Ok (Atom {atoms_union})
         end
      | BinaryTag ->
         E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:E.int_of_etf elems >>= fun pair ->
         begin match pair with
         | [unit; base] ->
-           Ok (Binary (unit, base))
+            Ok (Binary {unit; base})
         | _ -> Error (Failure (!%"Please report: unexpected binary type '%s' in a type contract" (E.show_etf etf)))
         end
      | FunctionTag ->
         E.list_of_etf elements >>= fun elems ->
         result_guard ~error:(Failure "erl_type_of_erl:FunctionTag") (List.length elems = 2) >>= fun _ ->
-        let domain_etf = List.nth_exn elems 0 in
-        let range_etf = List.nth_exn elems 1 in
-        of_etf domain_etf >>= fun domain_ty ->
-        of_etf range_etf >>= fun range ->
-        begin match domain_ty with
-        | Product domain ->
-           Ok (Function(domain, range))
-        | Any ->
-           Ok (Function([], range))
+        let params_etf = List.nth_exn elems 0 in
+        let ret_etf = List.nth_exn elems 1 in
+        of_etf ret_etf >>= fun ret ->
+        begin match params_etf with
+        | SmallTuple(4, [Etf.Atom "c";
+                         Etf.Atom "product";
+                         params_list_etf;
+                         _]) ->
+           E.list_of_etf params_list_etf >>= fun params_etf ->
+           result_map_m ~f:of_etf params_etf >>= fun params ->
+           Ok (Function {params; ret})
+        | Atom "any" ->
+           Ok (Function {params=[]; ret})
         | other ->
            Error(Failure (!%"tyfun_of_etf: unsupported"))
         end
      | IdentifierTag ->
         (E.list_of_etf elements @? "Identifier") >>= fun elems ->
-        result_map_m ~f:ident_type_of_etf elems >>= fun ident_types ->
-        Ok (Identifier ident_types)
+        result_map_m ~f:ident_type_of_etf elems >>= fun idents_union ->
+        Ok (Identifier {idents_union})
      | ListTag ->
         E.list_of_etf elements >>= fun elems ->
         begin match elems with
-        | [types_etf; term_etf] ->
-           of_etf types_etf >>= fun types ->
-           of_etf term_etf >>= fun term ->
-           (qualifier_of_etf qualifier_etf @? "ListTag") >>= fun size ->
-           Ok (List (types, term, size))
+        | [elem_type_etf; term_type_etf] ->
+           of_etf elem_type_etf >>= fun elem_type ->
+           of_etf term_type_etf >>= fun term_type ->
+           qualifier_of_etf qualifier_etf >>= fun qualifier ->
+           let is_nonempty = begin match qualifier with
+           | NonemptyQual -> true
+           | _ -> false
+           end in
+           Ok (List {elem_type; term_type; is_nonempty})
         | _ ->
            Error (Failure (!%"ListTag:%s" (E.show_etf elements)))
         end
@@ -211,12 +223,17 @@ let rec of_etf = function
            begin match elems with
            | [Atom "int_set"; set_etf] ->
               (E.list_of_etf set_etf >>= result_map_m ~f:E.int_of_etf) >>= fun set ->
-              Ok (Number (IntSet set))
+              Ok (Number (IntSet {set}))
            | [Atom "int_rng"; min_etf; max_etf] ->
-              let min = E.int_of_etf min_etf |> Result.ok in
-              let max = E.int_of_etf max_etf |> Result.ok in
-              result_guard (Option.is_some min || min_etf = Atom "neg_inf") >>= fun () ->
-              Ok (Number (IntRange (min, max)))
+              begin match min_etf with
+              | Atom "neg_inf" -> Result.Ok IntOrNegInfNegInf
+              | _ -> Result.map ~f:(fun min -> IntOrNegInfInt min) (E.int_of_etf min_etf)
+              end >>= fun min ->
+              begin match max_etf with
+              | Atom "pos_inf" -> Result.Ok IntOrPosInfPosInf
+              | _ -> Result.map ~f:(fun max -> IntOrPosInfInt max) (E.int_of_etf max_etf)
+              end >>= fun max ->
+              Ok (Number (IntRange {min; max}))
            | _ ->
               Error (Failure (!%"NumberTag: unexpected int elem: %s" (E.show_etf elements)))
            end
@@ -237,17 +254,13 @@ let rec of_etf = function
         end
      | OpaqueTag ->
         E.list_of_etf elements >>= fun elems ->
-        result_map_m ~f:opaque_of_etf elems >>= fun opaques ->
-        Ok (Opaque opaques)
-     | ProductTag ->
-        E.list_of_etf elements >>= fun elems ->
-        result_map_m ~f:of_etf elems >>= fun tys ->
-        Ok (Product tys)
+        result_map_m ~f:opaque_of_etf elems >>= fun opaques_union ->
+        Ok (Opaque {opaques_union})
      | TupleTag ->
         E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
         begin match elements, arity_etf, tag_etf with
         | Etf.Atom "any", Etf.Atom "any", Etf.Atom "any" -> (* tuple() *)
-           Ok (Tuple None)
+            Ok (Tuple {tuple=TupleOrAnyTupleAnyTuple})
         | _ ->
            E.list_of_etf elements >>= fun elems ->
            result_map_m ~f:of_etf elems >>= fun types ->
@@ -255,9 +268,9 @@ let rec of_etf = function
            of_etf tag_etf >>= fun tag_t ->
            begin match tag_t with
            | Any ->
-              Ok (Tuple (Some{types; arity; tag=None}))
-           | Atom [atom] ->
-              Ok (Tuple (Some{types; arity; tag=Some atom}))
+              Ok (Tuple {tuple=TupleOrAnyTupleTuple {types; arity; tag=None}})
+           | Atom {atoms_union=[atom]} ->
+              Ok (Tuple {tuple=TupleOrAnyTupleTuple {types; arity; tag=Some atom}})
            | other ->
               Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (E.show_etf tag_etf)))
            end
@@ -266,28 +279,28 @@ let rec of_etf = function
         result_or
           (E.int_of_etf elements >>| fun i -> VInt i)
           (E.atom_of_etf elements >>| fun id -> VAtom id)
-        >>= fun var_id ->
-        Ok (Var var_id)
+        >>= fun id ->
+        Ok (Var {id})
      | TupleSetTag ->
         E.list_of_etf elements >>= fun elems ->
         let tuple_of_etf etf =
           Result.(
             of_etf etf >>= function
-            | Tuple (Some tuple) -> Ok tuple
+            | Tuple {tuple=TupleOrAnyTupleTuple tuple} -> Ok tuple
             | _ -> Error (Failure (!%"Please report: an element of tuple_set is not a tuple: %s" (E.show_etf etf)))
           )
         in
-        let tuples_of_etf etf =
+        let n_tuples_of_etf etf =
           Result.(
             E.pair_of_etf etf >>= fun (arity_etf, tuples_etf) ->
-            E.int_of_etf arity_etf >>= fun arity ->
+            E.int_of_etf arity_etf >>= fun n ->
             E.list_of_etf tuples_etf >>= fun etfs ->
-            result_map_m ~f:tuple_of_etf etfs >>= fun tups ->
-            Ok (arity, tups)
+            result_map_m ~f:tuple_of_etf etfs >>= fun tuples ->
+            Ok {n; tuples}
           )
         in
-        result_map_m ~f:tuples_of_etf elems >>= fun tuples ->
-        Ok (TupleSet tuples)
+        result_map_m ~f:n_tuples_of_etf elems >>= fun n_tuples_union ->
+          Ok (TupleSet {n_tuples_union})
      | UnionTag ->
         E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:of_etf elems >>= fun tys ->
