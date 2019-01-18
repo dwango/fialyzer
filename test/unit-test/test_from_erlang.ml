@@ -90,7 +90,7 @@ let%expect_test "from_erlang" =
     ClsFun(1, [PatVar(1, "X")], None, ExprVar(1, "X"))
   ]));
   [%expect {|
-    (Abs (X) (Var X))
+    (Abs ((args (X)) (body (Var X))))
   |}];
 
   (*
@@ -100,7 +100,7 @@ let%expect_test "from_erlang" =
     ClsFun(1, [PatVar(1, "X")], None, ExprLocalCall(1, ExprVar(1, "F"), [ExprVar(1, "X")]))
   ]));
   [%expect {|
-    (Letrec ((F (Abs (X) (App (Var F) ((Var X)))))) (Var F))
+    (Letrec ((F ((args (X)) (body (App (Var F) ((Var X))))))) (Var F))
   |}];
 
   (*
@@ -113,9 +113,10 @@ let%expect_test "from_erlang" =
     ClsFun(1, [PatVar(1, "X"); PatVar(1, "Y")], None, ExprTuple(1, [ExprVar(1, "X"); ExprVar(1, "Y")]))
   ]));
   [%expect {|
-    (Abs
-      (__A__ __B__)
-      (Case
+    (Abs (
+      (args (__A__ __B__))
+      (body (
+        Case
         (Tuple (
           (Var __A__)
           (Var __B__)))
@@ -135,7 +136,7 @@ let%expect_test "from_erlang" =
            (Constant (Atom true)))
           (Tuple (
             (Var X)
-            (Var Y)))))))
+            (Var Y)))))))))
   |}];
 
   (*
@@ -145,13 +146,14 @@ let%expect_test "from_erlang" =
     ClsFun(1, [PatLit (LitAtom(1, "x"))], None, ExprLit(LitAtom(1, "y")))
   ]));
   [%expect {|
-    (Abs
-      (__A__)
-      (Case
+    (Abs (
+      (args (__A__))
+      (body (
+        Case
         (Tuple ((Var __A__)))
         ((
           ((PatTuple ((PatConstant (Atom x)))) (Constant (Atom true)))
-          (Constant (Atom y))))))
+          (Constant (Atom y))))))))
   |}];
 
 
@@ -162,13 +164,14 @@ let%expect_test "from_erlang" =
     ClsFun(1, [PatLit (LitInteger(1, 42))], None, ExprLit(LitInteger(1, 43)))
   ]));
   [%expect {|
-    (Abs
-      (__A__)
-      (Case
+    (Abs (
+      (args (__A__))
+      (body (
+        Case
         (Tuple ((Var __A__)))
         ((
           ((PatTuple ((PatConstant (Number 42)))) (Constant (Atom true)))
-          (Constant (Number 43))))))
+          (Constant (Number 43))))))))
   |}];
 
 
@@ -182,9 +185,10 @@ let%expect_test "from_erlang" =
     ClsFun (2, [PatCons (2, PatVar (2, "H"), PatVar (2, "T"))], None, ExprVar (2, "T"))
   ]));
   [%expect {|
-    (Abs
-      (__A__)
-      (Case
+    (Abs (
+      (args (__A__))
+      (body (
+        Case
         (Tuple ((Var __A__)))
         ((((PatTuple (PatNil)) (Constant (Atom true))) ListNil)
          (((PatTuple ((
@@ -192,7 +196,7 @@ let%expect_test "from_erlang" =
              (PatVar H)
              (PatVar T))))
            (Constant (Atom true)))
-          (Var T))))) |}];
+          (Var T))))))) |}];
 
   (*
    * fun ("abc") -> ok end
@@ -201,9 +205,10 @@ let%expect_test "from_erlang" =
     ClsFun (1, [PatLit (LitString (1, "abc"))], None, ExprLit (LitAtom (1, "ok")))
   ]));
   [%expect {|
-    (Abs
-      (__A__)
-      (Case
+    (Abs (
+      (args (__A__))
+      (body (
+        Case
         (Tuple ((Var __A__)))
         ((
           ((PatTuple ((
@@ -213,7 +218,7 @@ let%expect_test "from_erlang" =
                (PatConstant (Number 98))
                (PatCons (PatConstant (Number 99)) PatNil)))))
            (Constant (Atom true)))
-          (Constant (Atom ok)))))) |}];
+          (Constant (Atom ok)))))))) |}];
 
   (*
    * [1,2,3]
@@ -258,9 +263,10 @@ let%expect_test "from_erlang" =
                                      ExprMatch (1, PatVar (1, "B"), ExprLit (LitInteger (1, 2)));
                                      ExprBinOp (1, "+", ExprVar (1, "A"), ExprVar (1, "B"))])]));
   [%expect {|
-    (Abs
-      ()
-      (Case
+    (Abs (
+      (args ())
+      (body (
+        Case
         (Constant (Number 1))
         ((
           ((PatVar A) (Constant (Atom true)))
@@ -274,7 +280,7 @@ let%expect_test "from_erlang" =
                   (function_name (Constant (Atom   +)))
                   (arity         (Constant (Number 2))))
                 ((Var A)
-                 (Var B)))))))))) |}]
+                 (Var B)))))))))))) |}]
 
 let%expect_test "extract_match_expr" =
   let print expr =
