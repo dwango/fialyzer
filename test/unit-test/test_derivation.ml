@@ -167,6 +167,31 @@ let%expect_test "derivation" =
           Empty))))
   |}];
 
+  (*
+   * [X : number()] |-
+   * case 123 of
+   *   X when X
+   * end
+   *)
+  let ctx = Context.empty |> Context.add (Context.Key.Var "X") (Type.of_elem TyNumber) in
+  print ctx (Case
+    (Constant (Number 123),
+      [(PatVar "X", Constant (Atom "true")), Var "X"]));
+  [%expect {|
+    (Ok (
+      a (
+        Conj (
+          (Disj ((
+            Conj (
+              (Subtype 'true' "'true' | 'false'")
+              (Eq      a      "number()")
+              (Eq      123    "number()")
+              Empty
+              Empty
+              Empty))))
+          Empty))))
+  |}];
+
   print Context.empty (Abs (["X"], Var "X"));
   [%expect {|
     (Ok ("fun((a) -> a)" Empty)) |}];
