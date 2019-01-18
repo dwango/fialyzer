@@ -106,7 +106,7 @@ type t =
   | Any
   | None
   | Unit (* no_return *)
-  | Atom of {atoms_union: string list}
+  | Atom of {atoms_union_or_any_atom: atoms_union_or_any_atom}
   | Binary of {unit: int; base:int}
   | Function of {params: t list; ret: t}
   | Identifier of {idents_union: ident_type list}
@@ -120,6 +120,7 @@ type t =
   | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
+and atoms_union_or_any_atom = AtomsUnion of string list | AnyAtom
 and t_map_pair = t * t_map_mandatoriness * t
 and opaque = {
     mod_ : string;
@@ -155,11 +156,11 @@ let rec of_etf = function
      | AtomTag ->
         begin match elements with
         | Etf.Atom "any" ->
-            Ok (Atom {atoms_union=["any"]})
+            Ok (Atom {atoms_union_or_any_atom=AnyAtom})
         | _ ->
            E.list_of_etf elements>>= fun elems ->
            result_map_m ~f:E.atom_of_etf elems >>= fun atoms_union ->
-            Ok (Atom {atoms_union})
+           Ok (Atom {atoms_union_or_any_atom=AtomsUnion atoms_union})
         end
      | BinaryTag ->
         E.list_of_etf elements >>= fun elems ->
@@ -269,7 +270,7 @@ let rec of_etf = function
            begin match tag_t with
            | Any ->
               Ok (Tuple {tuple_or_any_tuple=Tup {types; arity; tag=None}})
-           | Atom {atoms_union=[atom]} ->
+           | Atom {atoms_union_or_any_atom=AtomsUnion [atom]} ->
               Ok (Tuple {tuple_or_any_tuple=Tup {types; arity; tag=Some atom}})
            | other ->
               Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (E.show_etf tag_etf)))

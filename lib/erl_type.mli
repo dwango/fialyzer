@@ -33,7 +33,7 @@ type t =
   | Any
   | None
   | Unit (* no_return *)
-  | Atom of {atoms_union: string list}
+  | Atom of {atoms_union_or_any_atom: atoms_union_or_any_atom}
   | Binary of {unit: int; base:int}
   | Function of {params: t list; ret: t}
   | Identifier of {idents_union: ident_type list}
@@ -47,6 +47,7 @@ type t =
   | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
+and atoms_union_or_any_atom
 and t_map_pair = t * t_map_mandatoriness * t
 and opaque = {
     mod_ : string;

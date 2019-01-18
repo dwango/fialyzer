@@ -57,7 +57,10 @@ let%expect_test "Plt.of_file" =
           (function_name f_any)
           (arity         1))
          ((contracts ((
-            (Function (params (Any)) (ret (Atom (atoms_union (ok))))) ())))
+            (Function
+              (params (Any))
+              (ret (Atom (atoms_union_or_any_atom (AtomsUnion (ok))))))
+            ())))
           (args (Any))
           (forms ())))
         (((module_name   specs)
@@ -69,7 +72,7 @@ let%expect_test "Plt.of_file" =
                 Binary
                 (unit 1)
                 (base 0))))
-              (ret (Atom (atoms_union (ok)))))
+              (ret (Atom (atoms_union_or_any_atom (AtomsUnion (ok))))))
             ())))
           (args ((
             Binary
@@ -85,7 +88,7 @@ let%expect_test "Plt.of_file" =
                 Binary
                 (unit 8)
                 (base 0))))
-              (ret (Atom (atoms_union (ok)))))
+              (ret (Atom (atoms_union_or_any_atom (AtomsUnion (ok))))))
             ())))
           (args ((
             Binary
@@ -101,7 +104,7 @@ let%expect_test "Plt.of_file" =
                 Binary
                 (unit 2222)
                 (base 1111))))
-              (ret (Atom (atoms_union (ok)))))
+              (ret (Atom (atoms_union_or_any_atom (AtomsUnion (ok))))))
             ())))
           (args ((
             Binary
@@ -117,7 +120,7 @@ let%expect_test "Plt.of_file" =
                 Binary
                 (unit 0)
                 (base 0))))
-              (ret (Atom (atoms_union (ok)))))
+              (ret (Atom (atoms_union_or_any_atom (AtomsUnion (ok))))))
             ())))
           (args ((
             Binary
