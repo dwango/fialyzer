@@ -159,15 +159,15 @@ and inf_elem ty1 ty2 =  (* ty1 and ty2 should be a TyNumber, TySingleton, TyAtom
      None
 
 let rec of_erlang = function
-  | F.TyUnion (_line, ts) ->
-     TyUnion (List.map ~f:elem_of_erlang ts)
+  | F.TyUnion {elements; _} ->
+     TyUnion (List.map ~f:elem_of_erlang elements)
   | t ->
      of_elem (elem_of_erlang t)
 and elem_of_erlang = function
-  | F.TyPredef (_line, "number", []) -> TyNumber
-  | F.TyLit (LitAtom (_, atom)) -> TySingleton (Atom atom)
-  | F.TyVar (_line, v) -> TyVar (Type_variable.of_string v)
-  | TyFun (_line, _, args, range) ->
-     TyFun(List.map ~f:of_erlang args, of_erlang range)
+  | F.TyPredef {name="number"; args=[]; _} -> TyNumber
+  | F.TyLit {lit=LitAtom {atom; _}} -> TySingleton (Atom atom)
+  | F.TyVar {id; _} -> TyVar (Type_variable.of_string id)
+  | TyFun {params; ret; _} ->
+     TyFun(List.map ~f:of_erlang params, of_erlang ret)
   | other ->
      failwith (!%"not implemented conversion from type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))

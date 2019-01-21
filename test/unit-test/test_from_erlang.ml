@@ -69,13 +69,13 @@ let%expect_test "from_erlang" =
 
 
   (* X *)
-  print (ExprVar(1, "X"));
+  print (ExprVar {line=1; id="X"});
   [%expect {|
     (Var X)
   |}];
 
   (* {X, Y, Z} *)
-  print (ExprTuple(1, [ExprVar(1, "X"); ExprVar(1, "Y"); ExprVar(1, "Z")]));
+  print (ExprTuple {line=1; elements=[ExprVar {line=1; id="X"}; ExprVar {line=1; id="Y"}; ExprVar {line=1; id="Z"}]});
   [%expect {|
     (Tuple (
       (Var X)
@@ -87,9 +87,9 @@ let%expect_test "from_erlang" =
   (*
    * fun (X) -> X end
    *)
-  print (ExprFun(1, None, [
-    ClsFun(1, [PatVar(1, "X")], None, ExprVar(1, "X"))
-  ]));
+  print (ExprFun {line=1; name=None; clauses=[
+    ClsFun {line=1; patterns=[PatVar {line=1; id="X"}]; guard_sequence=None; body=ExprVar {line=1; id="X"}}
+  ]});
   [%expect {|
     (Abs ((args (X)) (body (Var X))))
   |}];
@@ -97,9 +97,12 @@ let%expect_test "from_erlang" =
   (*
    * fun F(X) -> F(X) end
    *)
-  print (ExprFun(1, Some("F"), [
-    ClsFun(1, [PatVar(1, "X")], None, ExprLocalCall(1, ExprVar(1, "F"), [ExprVar(1, "X")]))
-  ]));
+  print (ExprFun {line=1; name=Some("F"); clauses=[
+    ClsFun {line=1;
+            patterns=[PatVar {line=1; id="X"}];
+            guard_sequence=None;
+            body=ExprLocalCall {line=1; function_expr=ExprVar {line=1; id="F"}; args=[ExprVar {line=1; id="X"}]}}
+  ]});
   [%expect {|
     (Letrec ((F ((args (X)) (body (App (Var F) ((Var X))))))) (Var F))
   |}];
@@ -109,10 +112,16 @@ let%expect_test "from_erlang" =
    *     (X, Y) -> {X, Y}
    * end
    *)
-  print (ExprFun(1, None, [
-    ClsFun(1, [PatVar(1, "X"); PatTuple(1, [PatVar(1, "Y"); PatVar(1, "Z")])], None, ExprTuple(1, [ExprVar(1, "X"); ExprVar(1, "Y"); ExprVar(1, "Z")]));
-    ClsFun(1, [PatVar(1, "X"); PatVar(1, "Y")], None, ExprTuple(1, [ExprVar(1, "X"); ExprVar(1, "Y")]))
-  ]));
+  print (ExprFun {line=1; name=None; clauses=[
+    ClsFun {line=1;
+            patterns=[PatVar {line=1; id="X"}; PatTuple {line=1; pats=[PatVar {line=1; id="Y"}; PatVar {line=1; id="Z"}]}];
+            guard_sequence=None;
+            body=ExprTuple {line=1; elements=[ExprVar {line=1; id="X"}; ExprVar {line=1; id="Y"}; ExprVar {line=1; id="Z"}]}};
+    ClsFun {line=1;
+            patterns=[PatVar {line=1; id="X"}; PatVar {line=1; id="Y"}];
+            guard_sequence=None;
+            body=ExprTuple {line=1; elements=[ExprVar {line=1; id="X"}; ExprVar {line=1; id="Y"}]}}
+  ]});
   [%expect {|
     (Abs (
       (args (__A__ __B__))
@@ -143,9 +152,9 @@ let%expect_test "from_erlang" =
   (*
    * fun (x) -> y  end
    *)
-  print (ExprFun(1, None, [
-    ClsFun(1, [PatLit (LitAtom(1, "x"))], None, ExprLit(LitAtom(1, "y")))
-  ]));
+  print (ExprFun {line=1; name=None; clauses=[
+    ClsFun {line=1; patterns=[PatLit {lit=LitAtom {line=1; atom="x"}}]; guard_sequence=None; body=ExprLit {lit=LitAtom {line=1; atom="y"}}}
+  ]});
   [%expect {|
     (Abs (
       (args (__A__))
@@ -161,9 +170,9 @@ let%expect_test "from_erlang" =
   (*
    * fun (1) -> 2  end
    *)
-  print (ExprFun(1, None, [
-    ClsFun(1, [PatLit (LitInteger(1, 42))], None, ExprLit(LitInteger(1, 43)))
-  ]));
+  print (ExprFun {line=1; name=None; clauses=[
+    ClsFun {line=1; patterns=[PatLit {lit=LitInteger {line=1; integer=42}}]; guard_sequence=None; body=ExprLit {lit=LitInteger {line=1; integer=43}}}
+  ]});
   [%expect {|
     (Abs (
       (args (__A__))
@@ -181,10 +190,10 @@ let%expect_test "from_erlang" =
    *     ([H|T]) -> T
    * end
    *)
-  print (ExprFun (1, None, [
-    ClsFun (1, [PatNil 1], None, ExprNil 1);
-    ClsFun (2, [PatCons (2, PatVar (2, "H"), PatVar (2, "T"))], None, ExprVar (2, "T"))
-  ]));
+  print (ExprFun {line=1; name=None; clauses=[
+    ClsFun {line=1; patterns=[PatNil {line=1}]; guard_sequence=None; body=ExprNil {line=1}};
+    ClsFun {line=2; patterns=[PatCons {line=2; head=PatVar {line=2; id="H"}; tail=PatVar {line=2; id="T"}}]; guard_sequence=None; body=ExprVar {line=2; id="T"}}
+  ]});
   [%expect {|
     (Abs (
       (args (__A__))
@@ -202,9 +211,9 @@ let%expect_test "from_erlang" =
   (*
    * fun ("abc") -> ok end
    *)
-  print (ExprFun (1, None, [
-    ClsFun (1, [PatLit (LitString (1, "abc"))], None, ExprLit (LitAtom (1, "ok")))
-  ]));
+  print (ExprFun {line=1; name=None; clauses=[
+    ClsFun {line=1; patterns=[PatLit {lit=LitString {line=1; str="abc"}}]; guard_sequence=None; body=ExprLit {lit=LitAtom {line=1; atom="ok"}}}
+  ]});
   [%expect {|
     (Abs (
       (args (__A__))
@@ -224,10 +233,10 @@ let%expect_test "from_erlang" =
   (*
    * [1,2,3]
    *)
-  print (ExprCons (1, ExprLit (LitInteger (1, 1)),
-                   ExprCons (1, ExprLit (LitInteger (1, 2)),
-                             ExprCons (1, ExprLit (LitInteger (1, 3)),
-                                       ExprNil 1))));
+  print (ExprCons {line=1; head=ExprLit {lit=LitInteger {line=1; integer=1}};
+                   tail=ExprCons {line=1; head=ExprLit {lit=LitInteger {line=1; integer=2}};
+                                  tail=ExprCons {line=1; head=ExprLit {lit=LitInteger {line=1; integer=3}};
+                                                 tail=ExprNil {line=1}}}});
   [%expect {|
     (ListCons
       (Constant (Number 1))
@@ -236,7 +245,7 @@ let%expect_test "from_erlang" =
   (*
    * "abc"
    *)
-  print (ExprLit (LitString (1, "abc")));
+  print (ExprLit {lit=LitString {line=1; str="abc"}});
   [%expect {|
     (ListCons
       (Constant (Number 97))
@@ -245,7 +254,7 @@ let%expect_test "from_erlang" =
   (*
    * A = B = 1
    *)
-  print (ExprMatch (1, PatVar (1, "A"), ExprMatch (1, PatVar (1, "B"), ExprLit (LitInteger (1, 1)))));
+  print (ExprMatch {line=1; pattern=PatVar {line=1; id="A"}; body=ExprMatch {line=1; pattern=PatVar {line=1; id="B"}; body=ExprLit {lit=LitInteger {line=1; integer=1}}}});
   [%expect {|
     (Case
       (Constant (Number 1))
@@ -258,11 +267,11 @@ let%expect_test "from_erlang" =
   (*
    * fun () -> A = 1, B = 2, A + B end
    *)
-  print (ExprFun (1, None,
-                  [ClsFun (1, [], None,
-                           ExprBody [ExprMatch (1, PatVar (1, "A"), ExprLit (LitInteger (1, 1)));
-                                     ExprMatch (1, PatVar (1, "B"), ExprLit (LitInteger (1, 2)));
-                                     ExprBinOp (1, "+", ExprVar (1, "A"), ExprVar (1, "B"))])]));
+  print (ExprFun {line=1; name=None;
+                  clauses=[ClsFun {line=1; patterns=[]; guard_sequence=None;
+                                   body=ExprBody {exprs=[ExprMatch {line=1; pattern=PatVar {line=1; id="A"}; body=ExprLit {lit=LitInteger {line=1; integer=1}}};
+                                                         ExprMatch {line=1; pattern=PatVar {line=1; id="B"}; body=ExprLit {lit=LitInteger {line=1; integer=2}}};
+                                                         ExprBinOp {line=1; op="+"; lhs=ExprVar {line=1; id="A"}; rhs=ExprVar {line=1; id="B"}}]}}]});
   [%expect {|
     (Abs (
       (args ())
@@ -292,89 +301,152 @@ let%expect_test "extract_match_expr" =
 
   (* input: A = B *)
   (* output: A = B *)
-  print (ExprMatch (1, PatVar (2, "A"), ExprVar (3, "B")));
+  print (ExprMatch {line=1; pattern=PatVar {line=2; id="A"}; body=ExprVar {line=3; id="B"}});
   [%expect {|
     ((
-      ExprMatch 1
-      (PatVar  2 A)
-      (ExprVar 3 B))) |}];
+      ExprMatch
+      (line 1)
+      (pattern (PatVar  (line 2) (id A)))
+      (body    (ExprVar (line 3) (id B))))) |}];
 
   (* input: A = B = C *)
   (* output: B = C, A = B *)
-  print (ExprMatch (1, PatVar (2, "A"), ExprMatch (3, PatVar (4, "B"), ExprVar (5, "C"))));
+  print (ExprMatch {line=1; pattern=PatVar {line=2; id="A"}; body=ExprMatch {line=3; pattern=PatVar {line=4; id="B"}; body=ExprVar {line=5; id="C"}}});
   [%expect {|
-    ((ExprMatch 3
-       (PatVar  4 B)
-       (ExprVar 5 C))
-     (ExprMatch 1
-       (PatVar  2 A)
-       (ExprVar 5 C))) |}];
+    ((ExprMatch
+       (line 3)
+       (pattern (PatVar  (line 4) (id B)))
+       (body    (ExprVar (line 5) (id C))))
+     (ExprMatch
+       (line 1)
+       (pattern (PatVar  (line 2) (id A)))
+       (body    (ExprVar (line 5) (id C))))) |}];
 
   (* input: ExprBody [A = B = C, A] *)
   (* output: ExprBody [B = C, A = C, A] *)
-  print (ExprBody [ExprMatch (1, PatVar (2, "A"), ExprMatch (3, PatVar (4, "B"), ExprVar (5, "C")));
-                   ExprVar (6, "A")]);
+  print (ExprBody {exprs=[ExprMatch {line=1; pattern=PatVar {line=2; id="A"}; body=ExprMatch {line=3; pattern=PatVar {line=4; id="B"}; body=ExprVar {line=5; id="C"}}};
+                          ExprVar {line=6; id="A"}]});
   [%expect {|
     ((
       ExprBody (
-        (ExprMatch 3
-          (PatVar  4 B)
-          (ExprVar 5 C))
-        (ExprMatch 1
-          (PatVar  2 A)
-          (ExprVar 5 C))
-        (ExprVar 6 A)))) |}];
+        exprs (
+          (ExprMatch
+            (line 3)
+            (pattern (PatVar  (line 4) (id B)))
+            (body    (ExprVar (line 5) (id C))))
+          (ExprMatch
+            (line 1)
+            (pattern (PatVar  (line 2) (id A)))
+            (body    (ExprVar (line 5) (id C))))
+          (ExprVar
+            (line 6)
+            (id   A)))))) |}];
 
   (* input: case A = B of C -> D = E = F; G -> H = I = J end *)
   (* output: A = B, case B of C -> E = F, D = F; G -> I = J, H = J end *)
-  print (ExprCase (1, ExprMatch (2, PatVar (3, "A"), ExprVar (4, "B")),
-                   [ClsCase (5, PatVar (6, "C"), None,
-                             ExprMatch (7, PatVar (8, "D"), ExprMatch (9, PatVar (10, "E"), ExprVar (11, "F"))));
-                    ClsCase (5, PatVar (12, "G"), None,
-                             ExprMatch (13, PatVar (14, "H"), ExprMatch (15, PatVar (16, "I"), ExprVar (17, "J"))))]));
+  print (ExprCase {line=1; expr=ExprMatch {line=2; pattern=PatVar {line=3; id="A"}; body=ExprVar {line=4; id="B"}};
+                   clauses=[ClsCase {line=5; pattern=PatVar {line=6; id="C"}; guard_sequence=None;
+                                     body=ExprMatch {line=7; pattern=PatVar {line=8; id="D"}; body=ExprMatch {line=9; pattern=PatVar {line=10; id="E"}; body=ExprVar {line=11; id="F"}}}};
+                            ClsCase {line=5; pattern=PatVar {line=12; id="G"}; guard_sequence=None;
+                                     body=ExprMatch {line=13; pattern=PatVar {line=14; id="H"}; body=ExprMatch {line=15; pattern=PatVar {line=16; id="I"}; body=ExprVar {line=17; id="J"}}}}]});
   [%expect {|
-    ((ExprMatch 2
-       (PatVar  3 A)
-       (ExprVar 4 B))
-     (ExprCase 1
-       (ExprVar 4 B)
-       ((ClsCase 5
-          (PatVar 6 C)
-          ()
-          (ExprBody (
-            (ExprMatch 9
-              (PatVar  10 E)
-              (ExprVar 11 F))
-            (ExprMatch 7
-              (PatVar  8  D)
-              (ExprVar 11 F)))))
-        (ClsCase 5
-          (PatVar 12 G)
-          ()
-          (ExprBody (
-            (ExprMatch 15
-              (PatVar  16 I)
-              (ExprVar 17 J))
-            (ExprMatch 13
-              (PatVar  14 H)
-              (ExprVar 17 J)))))))) |}];
+    ((ExprMatch
+       (line 2)
+       (pattern (PatVar  (line 3) (id A)))
+       (body    (ExprVar (line 4) (id B))))
+     (ExprCase
+       (line 1)
+       (expr (
+         ExprVar
+         (line 4)
+         (id   B)))
+       (clauses (
+         (ClsCase
+           (line 5)
+           (pattern (
+             PatVar
+             (line 6)
+             (id   C)))
+           (guard_sequence ())
+           (body (
+             ExprBody (
+               exprs (
+                 (ExprMatch
+                   (line 9)
+                   (pattern (PatVar  (line 10) (id E)))
+                   (body    (ExprVar (line 11) (id F))))
+                 (ExprMatch
+                   (line 7)
+                   (pattern (PatVar  (line 8)  (id D)))
+                   (body    (ExprVar (line 11) (id F)))))))))
+         (ClsCase
+           (line 5)
+           (pattern (
+             PatVar
+             (line 12)
+             (id   G)))
+           (guard_sequence ())
+           (body (
+             ExprBody (
+               exprs (
+                 (ExprMatch
+                   (line 15)
+                   (pattern (PatVar  (line 16) (id I)))
+                   (body    (ExprVar (line 17) (id J))))
+                 (ExprMatch
+                   (line 13)
+                   (pattern (PatVar  (line 14) (id H)))
+                   (body    (ExprVar (line 17) (id J))))))))))))) |}];
 
   (* input: [ N = 1 | M = 2 ] *)
   (* output: N = 1, M = 2, [ 1 | 2 ] *)
-  print (ExprCons (1,
-                   ExprMatch (2, PatVar (3, "N"), ExprLit (LitInteger (4, 1))),
-                   ExprMatch (5, PatVar (6, "M"), ExprLit (LitInteger (7, 2)))));
+  print (ExprCons {line=1;
+                   head=ExprMatch {line=2; pattern=PatVar {line=3; id="N"}; body=ExprLit {lit=LitInteger {line=4; integer=1}}};
+                   tail=ExprMatch {line=5; pattern=PatVar {line=6; id="M"}; body=ExprLit {lit=LitInteger {line=7; integer=2}}}});
   [%expect {|
-    ((ExprMatch 2 (PatVar 3 N) (ExprLit (LitInteger 4 1)))
-     (ExprMatch 5 (PatVar 6 M) (ExprLit (LitInteger 7 2)))
-     (ExprCons 1
-       (ExprLit (LitInteger 4 1))
-       (ExprLit (LitInteger 7 2)))) |}];
+    ((ExprMatch
+       (line 2)
+       (pattern (
+         PatVar
+         (line 3)
+         (id   N)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    4)
+             (integer 1))))))
+     (ExprMatch
+       (line 5)
+       (pattern (
+         PatVar
+         (line 6)
+         (id   M)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    7)
+             (integer 2))))))
+     (ExprCons
+       (line 1)
+       (head (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    4)
+             (integer 1)))))
+       (tail (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    7)
+             (integer 2))))))) |}];
 
   (* input: [] *)
   (* output: [] *)
-  print (ExprNil 1);
-  [%expect {| ((ExprNil 1)) |}];
+  print (ExprNil {line=1});
+  [%expect {| ((ExprNil (line 1))) |}];
 
   (* TODO *)
   (* input: [ A = B || B <- [C = D = 1], (E = 2) =:= (F = 3) ] *)
@@ -382,178 +454,582 @@ let%expect_test "extract_match_expr" =
 
   (* input: fun f/0 *)
   (* output: fun f/0 *)
-  print (ExprLocalFunRef (1, "f", 0));
-  [%expect {| ((ExprLocalFunRef 1 f 0)) |}];
+  print (ExprLocalFunRef {line=1; function_name="f"; arity=0});
+  [%expect {|
+    ((
+      ExprLocalFunRef
+      (line          1)
+      (function_name f)
+      (arity         0))) |}];
 
   (* input: fun m:f/0 *)
   (* output: fun m:f/0 *)
-  print (ExprRemoteFunRef (1, AtomVarAtom (2, "m"), AtomVarAtom (3, "f"), IntegerVarInteger (4, 0)));
+  print (ExprRemoteFunRef {line=1; module_name=AtomVarAtom {line=2; atom="m"}; function_name=AtomVarAtom {line=3; atom="f"}; arity=IntegerVarInteger {line=4; integer=0}});
   [%expect {|
     ((
-      ExprRemoteFunRef 1
-      (AtomVarAtom       2 m)
-      (AtomVarAtom       3 f)
-      (IntegerVarInteger 4 0))) |}];
+      ExprRemoteFunRef
+      (line 1)
+      (module_name   (AtomVarAtom       (line 2) (atom    m)))
+      (function_name (AtomVarAtom       (line 3) (atom    f)))
+      (arity         (IntegerVarInteger (line 4) (integer 0))))) |}];
 
   (* input: fun () -> A = B = C; () -> D = E = F end *)
   (* output: fun () -> B = C, A = C; () -> E = F, D = F end *)
-  print (ExprFun (1, None,
-                  [ClsFun (2, [], None, ExprMatch (3, PatVar (4, "A"), ExprMatch (5, PatVar (6, "B"), ExprVar (7, "C"))));
-                   ClsFun (8, [], None, ExprMatch (9, PatVar (10, "D"), ExprMatch (11, PatVar (12, "E"), ExprVar (13, "F"))))]));
+  print (ExprFun {line=1; name=None;
+                  clauses=[ClsFun {line=2; patterns=[]; guard_sequence=None; body=ExprMatch {line=3; pattern=PatVar {line=4; id="A"}; body=ExprMatch {line=5; pattern=PatVar {line=6; id="B"}; body=ExprVar {line=7; id="C"}}}};
+                           ClsFun {line=8; patterns=[]; guard_sequence=None; body=ExprMatch {line=9; pattern=PatVar {line=10; id="D"}; body=ExprMatch {line=11; pattern=PatVar {line=12; id="E"}; body=ExprVar {line=13; id="F"}}}}]});
   [%expect {|
     ((
-      ExprFun 1
-      ()
-      ((ClsFun 2
-         ()
-         ()
-         (ExprBody (
-           (ExprMatch 5
-             (PatVar  6 B)
-             (ExprVar 7 C))
-           (ExprMatch 3
-             (PatVar  4 A)
-             (ExprVar 7 C)))))
-       (ClsFun 8
-         ()
-         ()
-         (ExprBody (
-           (ExprMatch 11
-             (PatVar  12 E)
-             (ExprVar 13 F))
-           (ExprMatch 9
-             (PatVar  10 D)
-             (ExprVar 13 F)))))))) |}];
+      ExprFun
+      (line 1)
+      (name ())
+      (clauses (
+        (ClsFun
+          (line 2)
+          (patterns       ())
+          (guard_sequence ())
+          (body (
+            ExprBody (
+              exprs (
+                (ExprMatch
+                  (line 5)
+                  (pattern (PatVar  (line 6) (id B)))
+                  (body    (ExprVar (line 7) (id C))))
+                (ExprMatch
+                  (line 3)
+                  (pattern (PatVar  (line 4) (id A)))
+                  (body    (ExprVar (line 7) (id C)))))))))
+        (ClsFun
+          (line 8)
+          (patterns       ())
+          (guard_sequence ())
+          (body (
+            ExprBody (
+              exprs (
+                (ExprMatch
+                  (line 11)
+                  (pattern (PatVar  (line 12) (id E)))
+                  (body    (ExprVar (line 13) (id F))))
+                (ExprMatch
+                  (line 9)
+                  (pattern (PatVar  (line 10) (id D)))
+                  (body    (ExprVar (line 13) (id F))))))))))))) |}];
 
   (* input: f(N = 1, M = 2) *)
   (* output: M = 2, N = 1, f(1, 2) *)
-  print (ExprLocalCall (1, ExprVar (2, "f"), [ExprMatch (3, PatVar (4, "N"), ExprLit (LitInteger (6, 1)));
-                                              ExprMatch (7, PatVar (8, "M"), ExprLit (LitInteger (10, 2)))]));
+  print (ExprLocalCall {line=1; function_expr=ExprVar {line=2; id="f"}; args=[ExprMatch {line=3; pattern=PatVar {line=4; id="N"}; body=ExprLit {lit=LitInteger {line=6; integer=1}}};
+                                                                              ExprMatch {line=7; pattern=PatVar {line=8; id="M"}; body=ExprLit {lit=LitInteger {line=10; integer=2}}}]});
   [%expect {|
-    ((ExprMatch 7 (PatVar 8 M) (ExprLit (LitInteger 10 2)))
-     (ExprMatch 3 (PatVar 4 N) (ExprLit (LitInteger 6 1)))
-     (ExprLocalCall 1
-       (ExprVar 2 f)
-       ((ExprLit (LitInteger 6  1))
-        (ExprLit (LitInteger 10 2))))) |}];
+    ((ExprMatch
+       (line 7)
+       (pattern (
+         PatVar
+         (line 8)
+         (id   M)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    10)
+             (integer 2))))))
+     (ExprMatch
+       (line 3)
+       (pattern (
+         PatVar
+         (line 4)
+         (id   N)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    6)
+             (integer 1))))))
+     (ExprLocalCall
+       (line 1)
+       (function_expr (
+         ExprVar
+         (line 2)
+         (id   f)))
+       (args (
+         (ExprLit (
+           lit (
+             LitInteger
+             (line    6)
+             (integer 1))))
+         (ExprLit (
+           lit (
+             LitInteger
+             (line    10)
+             (integer 2)))))))) |}];
 
   (* input: (M = m):(F = f)(A = 1, B = 2) *)
   (* output: M = m, F = f, B = 2, A = 1, m:f(1, 2) *)
-  print (ExprRemoteCall (1, 2,
-                         ExprMatch (3, PatVar (4, "M"), ExprLit (LitAtom (5, "m"))),
-                         ExprMatch (6, PatVar (7, "F"), ExprLit (LitAtom (8, "f"))),
-                         [ExprMatch (9, PatVar (10, "A"), ExprLit (LitInteger (11, 1)));
-                          ExprMatch (12, PatVar (13, "B"), ExprLit (LitInteger (14, 2)))]));
+  print (ExprRemoteCall {line=1; line_remote=2;
+                         module_expr=ExprMatch {line=3; pattern=PatVar {line=4; id="M"}; body=ExprLit {lit=LitAtom {line=5; atom="m"}}};
+                         function_expr=ExprMatch {line=6; pattern=PatVar {line=7; id="F"}; body=ExprLit {lit=LitAtom {line=8; atom="f"}}};
+                         args=[ExprMatch {line=9; pattern=PatVar {line=10; id="A"}; body=ExprLit {lit=LitInteger {line=11; integer=1}}};
+                               ExprMatch {line=12; pattern=PatVar {line=13; id="B"}; body=ExprLit {lit=LitInteger {line=14; integer=2}}}]});
   [%expect {|
-    ((ExprMatch 3 (PatVar 4 M) (ExprLit (LitAtom 5 m)))
-     (ExprMatch 6 (PatVar 7 F) (ExprLit (LitAtom 8 f)))
-     (ExprMatch 12 (PatVar 13 B) (ExprLit (LitInteger 14 2)))
-     (ExprMatch 9 (PatVar 10 A) (ExprLit (LitInteger 11 1)))
-     (ExprRemoteCall 1 2
-       (ExprLit (LitAtom 5 m))
-       (ExprLit (LitAtom 8 f))
-       ((ExprLit (LitInteger 11 1))
-        (ExprLit (LitInteger 14 2))))) |}];
+    ((ExprMatch
+       (line 3)
+       (pattern (
+         PatVar
+         (line 4)
+         (id   M)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 5)
+             (atom m))))))
+     (ExprMatch
+       (line 6)
+       (pattern (
+         PatVar
+         (line 7)
+         (id   F)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 8)
+             (atom f))))))
+     (ExprMatch
+       (line 12)
+       (pattern (
+         PatVar
+         (line 13)
+         (id   B)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    14)
+             (integer 2))))))
+     (ExprMatch
+       (line 9)
+       (pattern (
+         PatVar
+         (line 10)
+         (id   A)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    11)
+             (integer 1))))))
+     (ExprRemoteCall
+       (line        1)
+       (line_remote 2)
+       (module_expr (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 5)
+             (atom m)))))
+       (function_expr (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 8)
+             (atom f)))))
+       (args (
+         (ExprLit (
+           lit (
+             LitInteger
+             (line    11)
+             (integer 1))))
+         (ExprLit (
+           lit (
+             LitInteger
+             (line    14)
+             (integer 2)))))))) |}];
 
   (* input: #{K1 = k1 => V1 = v1, K2 = k2 := V2 = v2} *)
   (* output: K2 = k2, V2 = v2, K1 = k1, V1 = v1, #{k1 => v1, k2 := v2} *)
-  print (ExprMapCreation (1,
-                          [ExprAssoc (2,
-                                      ExprMatch (3, PatVar (4, "K1"), ExprLit (LitAtom (5, "k1"))),
-                                      ExprMatch (6, PatVar (7, "V1"), ExprLit (LitAtom (8, "v1"))));
-                           ExprAssocExact (9,
-                                           ExprMatch (10, PatVar (11, "K2"), ExprLit (LitAtom (12, "k2"))),
-                                           ExprMatch (15, PatVar (14, "V2"), ExprLit (LitAtom (13, "v2"))))]));
+  print (ExprMapCreation {line=1;
+                          assocs=[ExprAssoc {line=2;
+                                             key=ExprMatch {line=3; pattern=PatVar {line=4; id="K1"}; body=ExprLit {lit=LitAtom {line=5; atom="k1"}}};
+                                             value=ExprMatch {line=6; pattern=PatVar {line=7; id="V1"}; body=ExprLit {lit=LitAtom {line=8; atom="v1"}}}};
+                                  ExprAssocExact {line=9;
+                                                  key=ExprMatch {line=10; pattern=PatVar {line=11; id="K2"}; body=ExprLit {lit=LitAtom {line=12; atom="k2"}}};
+                                                  value=ExprMatch {line=15; pattern=PatVar {line=14; id="V2"}; body=ExprLit {lit=LitAtom {line=13; atom="v2"}}}}]});
   [%expect {|
-    ((ExprMatch 10 (PatVar 11 K2) (ExprLit (LitAtom 12 k2)))
-     (ExprMatch 15 (PatVar 14 V2) (ExprLit (LitAtom 13 v2)))
-     (ExprMatch 3 (PatVar 4 K1) (ExprLit (LitAtom 5 k1)))
-     (ExprMatch 6 (PatVar 7 V1) (ExprLit (LitAtom 8 v1)))
-     (ExprMapCreation 1 (
-       (ExprAssoc 2
-         (ExprLit (LitAtom 5 k1))
-         (ExprLit (LitAtom 8 v1)))
-       (ExprAssocExact 9
-         (ExprLit (LitAtom 12 k2))
-         (ExprLit (LitAtom 13 v2)))))) |}];
+    ((ExprMatch
+       (line 10)
+       (pattern (
+         PatVar
+         (line 11)
+         (id   K2)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 12)
+             (atom k2))))))
+     (ExprMatch
+       (line 15)
+       (pattern (
+         PatVar
+         (line 14)
+         (id   V2)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 13)
+             (atom v2))))))
+     (ExprMatch
+       (line 3)
+       (pattern (
+         PatVar
+         (line 4)
+         (id   K1)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 5)
+             (atom k1))))))
+     (ExprMatch
+       (line 6)
+       (pattern (
+         PatVar
+         (line 7)
+         (id   V1)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 8)
+             (atom v1))))))
+     (ExprMapCreation
+       (line 1)
+       (assocs (
+         (ExprAssoc
+           (line 2)
+           (key (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 5)
+                 (atom k1)))))
+           (value (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 8)
+                 (atom v1))))))
+         (ExprAssocExact
+           (line 9)
+           (key (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 12)
+                 (atom k2)))))
+           (value (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 13)
+                 (atom v2)))))))))) |}];
 
   (* input: (M = #{})#{K1 = k1 => V1 = v1, K2 = k2 => V2 = v2} *)
   (* output: K2 = k2, V2 = v2, K1 = k1, V1 = v1, #{k1 => v1, k2 => v2} *)
-  print (ExprMapCreation (1,
-                          [ExprAssoc (2,
-                                      ExprMatch (3, PatVar (4, "K1"), ExprLit (LitAtom (5, "k1"))),
-                                      ExprMatch (6, PatVar (7, "V1"), ExprLit (LitAtom (8, "v1"))));
-                           ExprAssoc (9,
-                                      ExprMatch (10, PatVar (11, "K2"), ExprLit (LitAtom (12, "k2"))),
-                                      ExprMatch (15, PatVar (14, "V2"), ExprLit (LitAtom (13, "v2"))))]));
+  print (ExprMapCreation {line=1;
+                          assocs=[ExprAssoc {line=2;
+                                             key=ExprMatch {line=3; pattern=PatVar {line=4; id="K1"}; body=ExprLit {lit=LitAtom {line=5; atom="k1"}}};
+                                             value=ExprMatch {line=6; pattern=PatVar {line=7; id="V1"}; body=ExprLit {lit=LitAtom {line=8; atom="v1"}}}};
+                                  ExprAssoc {line=9;
+                                             key=ExprMatch {line=10; pattern=PatVar {line=11; id="K2"}; body=ExprLit {lit=LitAtom {line=12; atom="k2"}}};
+                                             value=ExprMatch {line=15; pattern=PatVar {line=14; id="V2"}; body=ExprLit {lit=LitAtom {line=13; atom="v2"}}}}]});
   [%expect {|
-    ((ExprMatch 10 (PatVar 11 K2) (ExprLit (LitAtom 12 k2)))
-     (ExprMatch 15 (PatVar 14 V2) (ExprLit (LitAtom 13 v2)))
-     (ExprMatch 3 (PatVar 4 K1) (ExprLit (LitAtom 5 k1)))
-     (ExprMatch 6 (PatVar 7 V1) (ExprLit (LitAtom 8 v1)))
-     (ExprMapCreation 1 (
-       (ExprAssoc 2
-         (ExprLit (LitAtom 5 k1))
-         (ExprLit (LitAtom 8 v1)))
-       (ExprAssoc 9
-         (ExprLit (LitAtom 12 k2))
-         (ExprLit (LitAtom 13 v2)))))) |}];
+    ((ExprMatch
+       (line 10)
+       (pattern (
+         PatVar
+         (line 11)
+         (id   K2)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 12)
+             (atom k2))))))
+     (ExprMatch
+       (line 15)
+       (pattern (
+         PatVar
+         (line 14)
+         (id   V2)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 13)
+             (atom v2))))))
+     (ExprMatch
+       (line 3)
+       (pattern (
+         PatVar
+         (line 4)
+         (id   K1)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 5)
+             (atom k1))))))
+     (ExprMatch
+       (line 6)
+       (pattern (
+         PatVar
+         (line 7)
+         (id   V1)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 8)
+             (atom v1))))))
+     (ExprMapCreation
+       (line 1)
+       (assocs (
+         (ExprAssoc
+           (line 2)
+           (key (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 5)
+                 (atom k1)))))
+           (value (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 8)
+                 (atom v1))))))
+         (ExprAssoc
+           (line 9)
+           (key (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 12)
+                 (atom k2)))))
+           (value (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 13)
+                 (atom v2)))))))))) |}];
 
   (* input: (M = #{})#{K1 = k1 => V1 = v1, K2 = k2 := V2 = v2} *)
   (* output: M = #{}, K2 = k2, V2 = v2, K1 = k2, V1 = v2, (#{})#{k1 => v1, k2 => v2} *)
-  print (ExprMapUpdate (1,
-                        ExprMatch (2, PatVar (3, "M"), ExprMapCreation (4, [])),
-                        [ExprAssoc (5,
-                                    ExprMatch (6, PatVar (7, "K1"), ExprLit (LitAtom (8, "k1"))),
-                                    ExprMatch (9, PatVar (10, "V1"), ExprLit (LitAtom (11, "v1"))));
-                         ExprAssocExact (12,
-                                         ExprMatch (13, PatVar (14, "K2"), ExprLit (LitAtom (15, "k2"))),
-                                         ExprMatch (16, PatVar (17, "V2"), ExprLit (LitAtom (18, "v2"))))]));
+  print (ExprMapUpdate {line=1;
+                        map=ExprMatch {line=2; pattern=PatVar {line=3; id="M"}; body=ExprMapCreation {line=4; assocs=[]}};
+                        assocs=[ExprAssoc {line=5;
+                                           key=ExprMatch {line=6; pattern=PatVar {line=7; id="K1"}; body=ExprLit {lit=LitAtom {line=8; atom="k1"}}};
+                                           value=ExprMatch {line=9; pattern=PatVar {line=10; id="V1"}; body=ExprLit {lit=LitAtom {line=11; atom="v1"}}}};
+                                ExprAssocExact {line=12;
+                                                key=ExprMatch {line=13; pattern=PatVar {line=14; id="K2"}; body=ExprLit {lit=LitAtom {line=15; atom="k2"}}};
+                                                value=ExprMatch {line=16; pattern=PatVar {line=17; id="V2"}; body=ExprLit {lit=LitAtom {line=18; atom="v2"}}}}]});
   [%expect {|
-    ((ExprMatch 2 (PatVar 3 M) (ExprMapCreation 4 ()))
-     (ExprMatch 13 (PatVar 14 K2) (ExprLit (LitAtom 15 k2)))
-     (ExprMatch 16 (PatVar 17 V2) (ExprLit (LitAtom 18 v2)))
-     (ExprMatch 6 (PatVar 7 K1) (ExprLit (LitAtom 8 k1)))
-     (ExprMatch 9 (PatVar 10 V1) (ExprLit (LitAtom 11 v1)))
-     (ExprMapUpdate 1
-       (ExprMapCreation 4 ())
-       ((ExprAssoc 5
-          (ExprLit (LitAtom 8  k1))
-          (ExprLit (LitAtom 11 v1)))
-        (ExprAssocExact 12
-          (ExprLit (LitAtom 15 k2))
-          (ExprLit (LitAtom 18 v2)))))) |}];
+    ((ExprMatch
+       (line 2)
+       (pattern (
+         PatVar
+         (line 3)
+         (id   M)))
+       (body (ExprMapCreation (line 4) (assocs ()))))
+     (ExprMatch
+       (line 13)
+       (pattern (
+         PatVar
+         (line 14)
+         (id   K2)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 15)
+             (atom k2))))))
+     (ExprMatch
+       (line 16)
+       (pattern (
+         PatVar
+         (line 17)
+         (id   V2)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 18)
+             (atom v2))))))
+     (ExprMatch
+       (line 6)
+       (pattern (
+         PatVar
+         (line 7)
+         (id   K1)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 8)
+             (atom k1))))))
+     (ExprMatch
+       (line 9)
+       (pattern (
+         PatVar
+         (line 10)
+         (id   V1)))
+       (body (
+         ExprLit (
+           lit (
+             LitAtom
+             (line 11)
+             (atom v1))))))
+     (ExprMapUpdate
+       (line 1)
+       (map (ExprMapCreation (line 4) (assocs ())))
+       (assocs (
+         (ExprAssoc
+           (line 5)
+           (key (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 8)
+                 (atom k1)))))
+           (value (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 11)
+                 (atom v1))))))
+         (ExprAssocExact
+           (line 12)
+           (key (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 15)
+                 (atom k2)))))
+           (value (
+             ExprLit (
+               lit (
+                 LitAtom
+                 (line 18)
+                 (atom v2)))))))))) |}];
 
   (* input: (N = 1) + (M = 2) *)
   (* output: N = 1, M = 2, 1 + 2 *)
-  print (ExprBinOp (1, "+",
-                    ExprMatch (2, PatVar (3, "N"), ExprLit (LitInteger (4, 1))),
-                    ExprMatch (5, PatVar (6, "M"), ExprLit (LitInteger (7, 2)))));
+  print (ExprBinOp {line=1; op="+";
+                    lhs=ExprMatch {line=2; pattern=PatVar {line=3; id="N"}; body=ExprLit {lit=LitInteger {line=4; integer=1}}};
+                    rhs=ExprMatch {line=5; pattern=PatVar {line=6; id="M"}; body=ExprLit {lit=LitInteger {line=7; integer=2}}}});
   [%expect {|
-    ((ExprMatch 2 (PatVar 3 N) (ExprLit (LitInteger 4 1)))
-     (ExprMatch 5 (PatVar 6 M) (ExprLit (LitInteger 7 2)))
-     (ExprBinOp 1 +
-       (ExprLit (LitInteger 4 1))
-       (ExprLit (LitInteger 7 2)))) |}];
+    ((ExprMatch
+       (line 2)
+       (pattern (
+         PatVar
+         (line 3)
+         (id   N)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    4)
+             (integer 1))))))
+     (ExprMatch
+       (line 5)
+       (pattern (
+         PatVar
+         (line 6)
+         (id   M)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    7)
+             (integer 2))))))
+     (ExprBinOp
+       (line 1)
+       (op   +)
+       (lhs (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    4)
+             (integer 1)))))
+       (rhs (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    7)
+             (integer 2))))))) |}];
 
   (* input: {N = 1, M = 2} *)
   (* output: M = 2, N = 1, {1, 2} *)
-  print (ExprTuple (1,
-                    [ExprMatch (2, PatVar (3, "N"), ExprLit (LitInteger (4, 1)));
-                     ExprMatch (5, PatVar (6, "M"), ExprLit (LitInteger (7, 2)))]));
+  print (ExprTuple {line=1;
+                    elements=[ExprMatch {line=2; pattern=PatVar {line=3; id="N"}; body=ExprLit {lit=LitInteger {line=4; integer=1}}};
+                              ExprMatch {line=5; pattern=PatVar {line=6; id="M"}; body=ExprLit {lit=LitInteger {line=7; integer=2}}}]});
   [%expect {|
-    ((ExprMatch 5 (PatVar 6 M) (ExprLit (LitInteger 7 2)))
-     (ExprMatch 2 (PatVar 3 N) (ExprLit (LitInteger 4 1)))
-     (ExprTuple 1 (
-       (ExprLit (LitInteger 4 1))
-       (ExprLit (LitInteger 7 2))))) |}];
+    ((ExprMatch
+       (line 5)
+       (pattern (
+         PatVar
+         (line 6)
+         (id   M)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    7)
+             (integer 2))))))
+     (ExprMatch
+       (line 2)
+       (pattern (
+         PatVar
+         (line 3)
+         (id   N)))
+       (body (
+         ExprLit (
+           lit (
+             LitInteger
+             (line    4)
+             (integer 1))))))
+     (ExprTuple
+       (line 1)
+       (elements (
+         (ExprLit (
+           lit (
+             LitInteger
+             (line    4)
+             (integer 1))))
+         (ExprLit (
+           lit (
+             LitInteger
+             (line    7)
+             (integer 2)))))))) |}];
 
   (* input: A *)
   (* output: A *)
-  print (ExprVar (1, "A"));
-  [%expect {| ((ExprVar 1 A)) |}];
+  print (ExprVar {line=1; id="A"});
+  [%expect {|
+    ((
+      ExprVar
+      (line 1)
+      (id   A))) |}];
 
   (* input: a *)
   (* output: a *)
-  print (ExprLit (LitAtom (1, "a")));
-  [%expect {| ((ExprLit (LitAtom 1 a))) |}];
+  print (ExprLit {lit=LitAtom {line=1; atom="a"}});
+  [%expect {|
+    ((
+      ExprLit (
+        lit (
+          LitAtom
+          (line 1)
+          (atom a))))) |}];

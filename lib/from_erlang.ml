@@ -8,25 +8,26 @@ open Common
 let unit : Ast.t = Constant (Number 0)
 
 let const_of_literal = function
-  | F.LitAtom (_line_t, name) -> Constant.Atom name
-  | LitInteger (_line_t, i) -> Constant.Number i
-  | LitBigInt (_line_t, z) ->
+  | F.LitAtom {atom; _} -> Constant.Atom atom
+  | LitChar {uchar; _} -> Constant.Number (Uchar.to_scalar uchar)
+  | LitInteger {integer; _} -> Constant.Number integer
+  | LitBigInt _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/93"]; message="support bigint literal"}))
-  | LitString (_line_t, _s) ->
+  | LitString _ ->
      (* treat in expr_of_literal, etc *)
      failwith "cannot reach here"
 
 let expr_of_literal = function
-  | F.LitString (_line_t, s) ->
+  | F.LitString {str; _} ->
      (* string is a list of chars in Erlang *)
-     let l = String.to_list_rev s in
+     let l = String.to_list_rev str in
      List.fold_left l ~init:ListNil ~f:(fun acc c -> ListCons (Constant (Number (Char.to_int c)), acc))
   | l -> Constant (const_of_literal l)
 
 let pattern_of_literal = function
-  | F.LitString (_line_t, s) ->
+  | F.LitString {str; _} ->
      (* string is a list of chars in Erlang *)
-     let l = String.to_list_rev s in
+     let l = String.to_list_rev str in
      List.fold_left l ~init:PatNil ~f:(fun acc c -> PatCons (PatConstant (Number (Char.to_int c)), acc))
   | l -> PatConstant (const_of_literal l)
 
@@ -35,47 +36,47 @@ let pattern_of_literal = function
  * extract_match_expr (A = f(B = C)) ===> B = C, A = f(C)
  *)
 let rec extract_toplevel e = match extract_match_expr e with
-  | [F.ExprBody es] -> F.ExprBody es
-  | es -> F.ExprBody es
+  | [F.ExprBody {exprs}] -> F.ExprBody {exprs}
+  | exprs -> F.ExprBody {exprs}
 and extract_match_expr e =
   let extract_clause = function
-    | F.ClsCase (line, p, g, e) ->
-       let e' = extract_toplevel e in
-       F.ClsCase (line, p, g, e')
-    | ClsFun (line, ps, g, e) ->
-       let e' = extract_toplevel e in
-       F.ClsFun (line, ps, g, e')
+    | F.ClsCase c ->
+       let body' = extract_toplevel c.body in
+       F.ClsCase {c with body = body'}
+    | ClsFun c ->
+       let body' = extract_toplevel c.body in
+       F.ClsFun {c with body = body'}
   in
   let return_expr is_top acc e =
     if is_top then (e :: acc, e) else (acc, e)
   in
   let rec extract_match_expr' acc is_top = function
-    | F.ExprBody es ->
-       F.ExprBody List.(es >>= extract_match_expr)
+    | F.ExprBody {exprs} ->
+       F.ExprBody {exprs = List.(exprs >>= extract_match_expr)}
        |> return_expr is_top acc
-    | ExprCase (line, e, cs) ->
-       let (acc, e') = extract_match_expr' acc false e in
-       let cs' = List.map ~f:extract_clause cs in
-       F.ExprCase (line, e', cs')
+    | ExprCase e ->
+       let (acc, expr') = extract_match_expr' acc false e.expr in
+       let cs' = List.map ~f:extract_clause e.clauses in
+       F.ExprCase {e with expr = expr'; clauses = cs'}
        |> return_expr is_top acc
-    | ExprCons (line, e1, e2) ->
-       let (acc, e1') = extract_match_expr' acc false e1 in
-       let (acc, e2') = extract_match_expr' acc false e2 in
-       F.ExprCons (line, e1', e2')
+    | ExprCons e ->
+       let (acc, h') = extract_match_expr' acc false e.head in
+       let (acc, t') = extract_match_expr' acc false e.tail in
+       F.ExprCons {e with head = h'; tail = t'}
        |> return_expr is_top acc
     | ExprNil _ as e -> return_expr is_top acc e
-    | ExprListComprehension (line, e, quals) ->
+    | ExprListComprehension _ ->
        (* TODO: support list comprehension *)
        raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"];
                                                          message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
     | ExprLocalFunRef _ as e -> return_expr is_top acc e
     | ExprRemoteFunRef _ as e -> return_expr is_top acc e
-    | ExprFun (line, name, cs) ->
-       let cs' = List.map ~f:extract_clause cs in
-       F.ExprFun (line, name, cs')
+    | ExprFun e ->
+       let cs' = List.map ~f:extract_clause e.clauses in
+       F.ExprFun {e with clauses = cs'}
        |> return_expr is_top acc
-    | ExprLocalCall (line, f, args) ->
-       let (acc, f') = extract_match_expr' acc false f in
+    | ExprLocalCall e ->
+       let (acc, f') = extract_match_expr' acc false e.function_expr in
        (* NOTE: Evaluation of match expression arguments does not affect each other.
         * e.g., `f(A = 1, B = A)` cannot be compiled, and `f(A = B, B = 1)` also.
         * So we convert `f(A = 1, B = 1)` to `B = 1, A = 1, f(1, 1)` because it is
@@ -83,24 +84,24 @@ and extract_match_expr e =
         * argument are not used in another argument.
         *)
        let (acc, args') =
-         List.fold_right args ~init:(acc, []) ~f:(fun arg (acc, args) ->
+         List.fold_right e.args ~init:(acc, []) ~f:(fun arg (acc, args) ->
                            let (acc, arg') = extract_match_expr' acc false arg in
                            (acc, arg' :: args))
        in
-       F.ExprLocalCall (line, f', args')
+       F.ExprLocalCall {e with function_expr = f'; args = args'}
        |> return_expr is_top acc
-    | ExprRemoteCall (line, line_m, m, f, args) ->
-       let (acc, m') = extract_match_expr' acc false m in
-       let (acc, f') = extract_match_expr' acc false f in
+    | ExprRemoteCall e ->
+       let (acc, m') = extract_match_expr' acc false e.module_expr in
+       let (acc, f') = extract_match_expr' acc false e.function_expr in
        (* same as ExprLocalCall comment *)
        let (acc, args') =
-         List.fold_right args ~init:(acc, []) ~f:(fun arg (acc, args) ->
+         List.fold_right e.args ~init:(acc, []) ~f:(fun arg (acc, args) ->
                            let (acc, arg') = extract_match_expr' acc false arg in
                            (acc, arg' :: args))
        in
-       F.ExprRemoteCall (line, line_m, m', f', args')
+       F.ExprRemoteCall {e with module_expr = m'; function_expr = f'; args = args'}
        |> return_expr is_top acc
-    | ExprMapCreation (line, assocs) ->
+    | ExprMapCreation e ->
        (* NOTE: Evaluation of match expressions in assocs does not affect each other.
         * e.g., `#{K1 = K2 => V1 = 1, K2 = 1 => V2 = V1}` cannot be compiled.
         * So we convert `#{K1 = k1 => V1 = v1, K2 = k2 => V2 = v2}` to
@@ -109,32 +110,32 @@ and extract_match_expr e =
         * are not used in another assoc.
         *)
        let (acc, assocs') =
-         List.fold_right assocs ~init:(acc, []) ~f:(fun assoc (acc, assocs) ->
+         List.fold_right e.assocs ~init:(acc, []) ~f:(fun assoc (acc, assocs) ->
                            let (acc, assoc') = extract_assoc acc assoc in
                            (acc, assoc' :: assocs))
        in
-       F.ExprMapCreation (line, assocs')
+       F.ExprMapCreation {e with assocs = assocs'}
        |> return_expr is_top acc
-    | ExprMapUpdate (line, m, assocs) ->
-       let (acc, m') = extract_match_expr' acc false m in
+    | ExprMapUpdate e ->
+       let (acc, m') = extract_match_expr' acc false e.map in
        (* same as ExprMapCreation comment *)
        let (acc, assocs') =
-         List.fold_right assocs ~init:(acc, []) ~f:(fun assoc (acc, assocs) ->
+         List.fold_right e.assocs ~init:(acc, []) ~f:(fun assoc (acc, assocs) ->
                            let (acc, assoc') = extract_assoc acc assoc in
                            (acc, assoc' :: assocs))
        in
-       F.ExprMapUpdate (line, m', assocs')
+       F.ExprMapUpdate {e with map = m'; assocs = assocs'}
        |> return_expr is_top acc
-    | ExprMatch (line, p, e) ->
-       let (acc, e') = extract_match_expr' acc false e in
+    | ExprMatch e ->
+       let (acc, body') = extract_match_expr' acc false e.body in
        (* Make ExprMatch appeared to top in even if is_top=false *)
-       (ExprMatch (line, p, e') :: acc, e')
-    | ExprBinOp (line, op, e1, e2) ->
-       let (acc, e1') = extract_match_expr' acc false e1 in
-       let (acc, e2') = extract_match_expr' acc false e2 in
-       F.ExprBinOp (line, op, e1', e2')
+       (ExprMatch {e with body = body'} :: acc, body')
+    | ExprBinOp e ->
+       let (acc, lhs') = extract_match_expr' acc false e.lhs in
+       let (acc, rhs') = extract_match_expr' acc false e.rhs in
+       F.ExprBinOp {e with lhs = lhs'; rhs = rhs'}
        |> return_expr is_top acc
-    | ExprTuple (line, es) ->
+    | ExprTuple e ->
        (* NOTE: Evaluation of match expression in tuple elements does not affect each other.
         * e.g., `{A = 1, B = A}` cannot be compiled, and `{A = B, B = 1}` also.
         * So we convert `{A = 1, B = 1}` to `B = 1, A = 1, {1, 1}` because it is
@@ -142,49 +143,49 @@ and extract_match_expr e =
         * element are not used in another element.
         *)
        let (acc, es') =
-         List.fold_right es ~init:(acc, []) ~f:(fun e (acc, es) ->
+         List.fold_right e.elements ~init:(acc, []) ~f:(fun e (acc, es) ->
                            let (acc, e') = extract_match_expr' acc false e in
                            (acc, e' :: es))
        in
-       F.ExprTuple (line, es')
+       F.ExprTuple {e with elements = es'}
        |> return_expr is_top acc
     | ExprVar _ as e -> return_expr is_top acc e
     | ExprLit _ as e -> return_expr is_top acc e
   and extract_assoc acc = function
     (* is_top=false because assocs are not appeared to top-level *)
-    | F.ExprAssoc (line, k, v) ->
-       let (acc, k') = extract_match_expr' acc false k in
-       let (acc, v') = extract_match_expr' acc false v in
-       (acc, F.ExprAssoc (line, k', v'))
-    | F.ExprAssocExact (line, k, v) ->
-       let (acc, k') = extract_match_expr' acc false k in
-       let (acc, v') = extract_match_expr' acc false v in
-       (acc, F.ExprAssocExact (line, k', v'))
+    | F.ExprAssoc a ->
+       let (acc, k') = extract_match_expr' acc false a.key in
+       let (acc, v') = extract_match_expr' acc false a.value in
+       (acc, F.ExprAssoc {a with key = k'; value = v'})
+    | F.ExprAssocExact a ->
+       let (acc, k') = extract_match_expr' acc false a.key in
+       let (acc, v') = extract_match_expr' acc false a.value in
+       (acc, F.ExprAssocExact {a with key = k'; value = v'})
   in
   let (es, _) = extract_match_expr' [] true e in
   List.rev es
 
 let expr_of_atom_or_var = function
-  | F.AtomVarAtom (_line_t, a) -> Constant (Atom a)
-  | AtomVarVar (_line_t, v) -> Var v
+  | F.AtomVarAtom {atom; _} -> Constant (Atom atom)
+  | AtomVarVar {id; _} -> Var id
 
 let expr_of_integer_or_var = function
-  | F.IntegerVarInteger (_line_t, i) -> Constant (Number i)
-  | IntegerVarVar (_line_t, v) -> Var v
+  | F.IntegerVarInteger {integer; _} -> Constant (Number integer)
+  | IntegerVarVar {id; _} -> Var id
 
 let rec pattern_of_erlang_pattern = function
-  | F.PatVar (_, v) -> Ast.PatVar v
+  | F.PatVar {id; _} -> Ast.PatVar id
   | F.PatUniversal _ -> Ast.PatVar "_"
-  | F.PatLit literal -> pattern_of_literal literal
+  | F.PatLit {lit} -> pattern_of_literal lit
   | F.PatMap _ ->
      let issue_links = ["https://github.com/dwango/fialyzer/issues/102"] in
      let message = "support map pattern" in
      raise Known_error.(FialyzerError (NotImplemented {issue_links; message}))
-  | F.PatTuple (_, patterns) ->
-     PatTuple (patterns |> List.map ~f:pattern_of_erlang_pattern)
+  | F.PatTuple {pats; _} ->
+     PatTuple (pats |> List.map ~f:pattern_of_erlang_pattern)
   | F.PatNil _ -> PatNil
-  | F.PatCons (_, p1, p2) ->
-     PatCons (pattern_of_erlang_pattern p1, pattern_of_erlang_pattern p2)
+  | F.PatCons {head; tail; _} ->
+     PatCons (pattern_of_erlang_pattern head, pattern_of_erlang_pattern tail)
 
 
 (* converts a secuence of expressions `[e1; e2; ...]` to an expression `let _ = e1 in let _ = e2 in ...` *)
@@ -192,72 +193,74 @@ let rec pattern_of_erlang_pattern = function
 let rec expr_of_erlang_exprs = function
   | [] -> unit
   | [e] -> expr_of_erlang_expr' e
-  | F.ExprMatch (_line, p, e) :: es ->
+  | F.ExprMatch {pattern; body; _} :: es ->
      (* no match expression in `e` by extract_match_expr *)
-     let e' = expr_of_erlang_expr' e in
+     let body' = expr_of_erlang_expr' body in
      let es' = expr_of_erlang_exprs es in
-     Case (e', [((pattern_of_erlang_pattern p, Constant (Atom "true")), es')])
+     Case (body', [((pattern_of_erlang_pattern pattern, Constant (Atom "true")), es')])
   | e :: es ->
      Let ("_", expr_of_erlang_expr' e, expr_of_erlang_exprs es)
 and expr_of_erlang_expr' = function
-  | F.ExprBody erlangs ->
-     expr_of_erlang_exprs erlangs
-  | ExprCase (line, e, clauses) ->
+  | F.ExprBody {exprs} ->
+     expr_of_erlang_exprs exprs
+  | ExprCase {line; expr; clauses} ->
      let cs = clauses |> List.map ~f:(function
-       | F.ClsCase (_, pattern, guard, e) ->
-          if Option.is_some guard then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
-          ((pattern_of_erlang_pattern pattern, Constant (Atom "true")), expr_of_erlang_expr' e)
-       | F.ClsFun (_, _, _, _) ->
+       | F.ClsCase {pattern; guard_sequence; body; _} ->
+          if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
+          ((pattern_of_erlang_pattern pattern, Constant (Atom "true")), expr_of_erlang_expr' body)
+       | F.ClsFun _ ->
           failwith "cannot reach here"
     ) in
-    Case (expr_of_erlang_expr' e, cs)
-  | ExprLocalFunRef (_line_t, name, arity) ->
-     LocalFun {function_name=name; arity}
-  | ExprRemoteFunRef (_line_t, m, f, a) ->
-    MFA {module_name = expr_of_atom_or_var m;  function_name = expr_of_atom_or_var f; arity = expr_of_integer_or_var a}
-  | ExprFun (_line_t, name_option, clauses) ->
+    Case (expr_of_erlang_expr' expr, cs)
+  | ExprLocalFunRef {function_name; arity; _} ->
+     LocalFun {function_name; arity}
+  | ExprRemoteFunRef {module_name; function_name; arity; _} ->
+     MFA {module_name = expr_of_atom_or_var module_name;
+          function_name = expr_of_atom_or_var function_name;
+          arity = expr_of_integer_or_var arity}
+  | ExprFun {name; clauses; _} ->
      let fun_abst = function_of_clauses clauses in
      (* If name is omitted, don't create Letrec *)
-     (match name_option with
+     (match name with
      | Some name -> Letrec ([(name, fun_abst)], Var name)
      | None -> Abs fun_abst
      )
-  | ExprLocalCall (_line_t, ExprLit (LitAtom (_line_f, function_name)), args) ->
+  | ExprLocalCall {function_expr=ExprLit {lit=LitAtom {atom=function_name; _}}; args; _} ->
      let arity = List.length args in
      App (LocalFun{function_name; arity}, List.map ~f:expr_of_erlang_expr' args)
-  | ExprLocalCall (_line_t, f, args) ->
-     App (expr_of_erlang_expr' f, List.map ~f:expr_of_erlang_expr' args)
-  | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
+  | ExprLocalCall {function_expr; args; _} ->
+     App (expr_of_erlang_expr' function_expr, List.map ~f:expr_of_erlang_expr' args)
+  | ExprRemoteCall {module_expr; function_expr; args; _} ->
      let mfa = MFA {
-       module_name=expr_of_erlang_expr' m;
-       function_name=expr_of_erlang_expr' f;
+       module_name=expr_of_erlang_expr' module_expr;
+       function_name=expr_of_erlang_expr' function_expr;
        arity=Constant (Number (List.length args))} in
      App (mfa, List.map ~f:expr_of_erlang_expr' args)
-  | ExprMatch (line_t, pat, e) ->
+  | ExprMatch {pattern; body; _} ->
      (* There is no match expression in `e` by `extract_match_expr`.
       * Futhermore, this match expression is single or the last of expr sequence because
       * a match expression which has subsequent expressions is caught in `expr_of_erlang_exprs`.
       * Therefore, we can put right-hand side expr of match expression to the return value of case expr.
       *)
-     let e' = expr_of_erlang_expr' e in
-     Case (e', [((pattern_of_erlang_pattern pat, Constant (Atom "true")), e')])
-  | ExprBinOp (_line_t, op, e1, e2) ->
+     let e' = expr_of_erlang_expr' body in
+     Case (e', [((pattern_of_erlang_pattern pattern, Constant (Atom "true")), e')])
+  | ExprBinOp {op; lhs; rhs; _} ->
      let func = Ast.MFA {
         module_name = Constant (Atom "erlang");
         function_name = Constant (Atom op);
         arity=Constant (Number 2)
      } in
-     App(func, List.map ~f:expr_of_erlang_expr' [e1; e2])
-  | ExprTuple (_line_t, es) ->
-     Tuple (List.map ~f:expr_of_erlang_expr' es)
-  | ExprVar (_line_t, v) -> Var v
-  | ExprLit literal -> expr_of_literal literal
-  | ExprCons (_line_t, e1, e2) -> ListCons (expr_of_erlang_expr' e1, expr_of_erlang_expr' e2)
+     App(func, List.map ~f:expr_of_erlang_expr' [lhs; rhs])
+  | ExprTuple {elements; _} ->
+     Tuple (List.map ~f:expr_of_erlang_expr' elements)
+  | ExprVar {id; _} -> Var id
+  | ExprLit {lit} -> expr_of_literal lit
+  | ExprCons {head; tail; _} -> ListCons (expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
   | ExprNil _line_t -> ListNil
-  | ExprListComprehension (_line_t, expr, quals) ->
+  | ExprListComprehension _ ->
      (* TODO: support list comprehension *)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"]; message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
-  | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) ->
+  | ExprMapCreation _ | ExprMapUpdate _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/122"]; message="support map-related expression"}))
 and function_of_clauses clauses =
     (* Create a list which have n elements *)
@@ -267,8 +270,8 @@ and function_of_clauses clauses =
     )
     in
     let (cs, arities) = clauses |> List.map ~f:(function
-    | F.ClsCase (_, _, _, _) -> failwith "cannot reach here"
-    | F.ClsFun (_, patterns, _, body) ->
+    | F.ClsCase _ -> failwith "cannot reach here"
+    | F.ClsFun {patterns; body; _} ->
       (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
       let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
       let arity = List.length ps in
@@ -309,17 +312,20 @@ let expr_of_erlang_expr e =
 let forms_to_functions forms =
   let find_specs fun_name =
     List.find_map ~f:(function
-                      | F.SpecFun (_line, _mod_name, fname, arity, specs) when fun_name = fname ->
+                      | F.SpecFun {function_name; arity; specs; _} when fun_name = function_name ->
                          List.map ~f:(fun ty ->
                                     match Type.of_erlang ty with
                                     | Type.(TyUnion [Type.TyFun (domains, range)]) -> (domains, range)
-                                    | _ -> failwith (!%"unexpected type spec of %s" fname))
+                                    | _ -> failwith (!%"unexpected type spec of %s" function_name))
                                   specs
                          |> Option.return
                       | _ -> None) forms
   in
   forms
-  |> List.filter_map ~f:(function F.DeclFun(line, name, arity, clauses) -> Some(line, name, arity, clauses) | _ -> None)
+  |> List.filter_map ~f:(function
+                         | F.DeclFun {line; function_name; arity; clauses} ->
+                            Some (line, function_name, arity, clauses)
+                         | _ -> None)
   |> List.map ~f:(fun (_line, name, arity, clauses) ->
                 let specs = find_specs name in
                 let fun_abst = function_of_clauses clauses in
@@ -327,11 +333,11 @@ let forms_to_functions forms =
 
 let forms_to_module forms =
   let take_file forms =
-    List.find_map ~f:(function F.AttrFile(line, file, line2) -> Some(line, file, line2) | _ -> None) forms
+    List.find_map ~f:(function F.AttrFile {line; file; file_line} -> Some (line, file, file_line) | _ -> None) forms
     |> Result.of_option ~error:(Failure "file attribute not found")
   in
   let take_module_name forms =
-    List.find_map ~f:(function F.AttrMod(line, name) -> Some(line, name) | _ -> None) forms
+    List.find_map ~f:(function F.AttrMod {line; module_name} -> Some (line, module_name) | _ -> None) forms
     |> Result.of_option ~error:(Failure "module attribute not found")
   in
   let open Result in
