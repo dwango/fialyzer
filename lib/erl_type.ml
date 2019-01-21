@@ -106,7 +106,8 @@ type t =
   | Any
   | None
   | Unit (* no_return *)
-  | Atom of {atoms_union_or_any_atom: atoms_union_or_any_atom}
+  | AnyAtom
+  | Atom of {atoms_union: string list}
   | Binary of {unit: int; base:int}
   | Function of {params: t list; ret: t}
   | Identifier of {idents_union: ident_type list}
@@ -116,11 +117,11 @@ type t =
   | Map of t_map_pair list * t * t
   | Opaque of {opaques_union: opaque list}
   | Var of {id: var_id}
-  | Tuple of {tuple_or_any_tuple: tuple_or_any_tuple}
+  | AnyTuple
+  | Tuple of {tuple: tuple}
   | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
-and atoms_union_or_any_atom = AtomsUnion of string list | AnyAtom
 and t_map_pair = t * t_map_mandatoriness * t
 and opaque = {
     mod_ : string;
@@ -133,7 +134,6 @@ and tuple = {
     arity : int;         (* size *)
     tag : string option; (* first element's tag (may be record name) *)
   }
-and tuple_or_any_tuple = Tup of tuple | AnyTuple
 and n_tuples = {
   n: int;
   tuples: tuple list
@@ -156,11 +156,11 @@ let rec of_etf = function
      | AtomTag ->
         begin match elements with
         | Etf.Atom "any" ->
-            Ok (Atom {atoms_union_or_any_atom=AnyAtom})
+            Ok (AnyAtom)
         | _ ->
            E.list_of_etf elements>>= fun elems ->
            result_map_m ~f:E.atom_of_etf elems >>= fun atoms_union ->
-           Ok (Atom {atoms_union_or_any_atom=AtomsUnion atoms_union})
+           Ok (Atom {atoms_union})
         end
      | BinaryTag ->
         E.list_of_etf elements >>= fun elems ->
@@ -261,7 +261,7 @@ let rec of_etf = function
         E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
         begin match elements, arity_etf, tag_etf with
         | Etf.Atom "any", Etf.Atom "any", Etf.Atom "any" -> (* tuple() *)
-            Ok (Tuple {tuple_or_any_tuple=AnyTuple})
+            Ok (AnyTuple)
         | _ ->
            E.list_of_etf elements >>= fun elems ->
            result_map_m ~f:of_etf elems >>= fun types ->
@@ -269,9 +269,9 @@ let rec of_etf = function
            of_etf tag_etf >>= fun tag_t ->
            begin match tag_t with
            | Any ->
-              Ok (Tuple {tuple_or_any_tuple=Tup {types; arity; tag=None}})
-           | Atom {atoms_union_or_any_atom=AtomsUnion [atom]} ->
-              Ok (Tuple {tuple_or_any_tuple=Tup {types; arity; tag=Some atom}})
+              Ok (Tuple {tuple={types; arity; tag=None}})
+           | Atom {atoms_union=[atom]} ->
+              Ok (Tuple {tuple={types; arity; tag=Some atom}})
            | other ->
               Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (E.show_etf tag_etf)))
            end
@@ -287,7 +287,7 @@ let rec of_etf = function
         let tuple_of_etf etf =
           Result.(
             of_etf etf >>= function
-            | Tuple {tuple_or_any_tuple=Tup tuple} -> Ok tuple
+            | Tuple {tuple} -> Ok tuple
             | _ -> Error (Failure (!%"Please report: an element of tuple_set is not a tuple: %s" (E.show_etf etf)))
           )
         in

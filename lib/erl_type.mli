@@ -33,7 +33,8 @@ type t =
   | Any
   | None
   | Unit (* no_return *)
-  | Atom of {atoms_union_or_any_atom: atoms_union_or_any_atom}
+  | AnyAtom
+  | Atom of {atoms_union: string list}
   | Binary of {unit: int; base:int}
   | Function of {params: t list; ret: t}
   | Identifier of {idents_union: ident_type list}
@@ -43,11 +44,11 @@ type t =
   | Map of t_map_pair list * t * t
   | Opaque of {opaques_union: opaque list}
   | Var of {id: var_id}
-  | Tuple of {tuple_or_any_tuple: tuple_or_any_tuple}
+  | AnyTuple
+  | Tuple of {tuple: tuple}
   | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
-and atoms_union_or_any_atom
 and t_map_pair = t * t_map_mandatoriness * t
 and opaque = {
     mod_ : string;
@@ -60,7 +61,6 @@ and tuple = {
     arity : int;         (* size *)
     tag : string option; (* first element's tag (may be record name) *)
   }
-and tuple_or_any_tuple
 and n_tuples
 [@@deriving show, sexp_of]
 
