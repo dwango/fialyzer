@@ -122,7 +122,13 @@ let rec derive context = function
       | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
       | PatConstant c -> Constant (-1, c)
       | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
+<<<<<<< HEAD
       | PatNil -> raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/201"]; message="support nil pattern"}))
+=======
+      | PatNil -> ListNil
+      | PatMap assocs -> assocs |> List.map ~f:(fun (k, v) -> (pattern_to_expr k, pattern_to_expr v))
+                                |> (fun kvs -> Map kvs)
+>>>>>>> Support map pattern
     in
     (* Var(p) *)
     let rec variables = function
@@ -132,6 +138,7 @@ let rec derive context = function
       | PatConstant _ -> []
       | PatCons (p1, p2) -> List.append (variables p1) (variables p2)
       | PatNil -> []
+      | PatMap assocs -> assocs |> List.bind ~f:(fun (k, v) -> List.append (variables k) (variables v))
     in
     derive context e >>= fun (ty_e_t, c_e) ->
     let beta = new_tyvar () in
@@ -173,3 +180,6 @@ let rec derive context = function
       ])
   | ListNil ->
     Ok (Type.of_elem (TyList TyBottom), C.Empty)
+  | Map assocs ->
+     (* TODO: support map expr *)
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/122"]; message="support map expr"}))

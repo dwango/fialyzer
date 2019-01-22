@@ -23,6 +23,7 @@ type t =
     | MFA of {module_name: t; function_name: t; arity: t}
     | ListCons of t * t
     | ListNil
+    | Map of (t * t) list
 and fun_abst = {args: string list; body: t}
 and pattern = pattern' * t
 and pattern' =
@@ -31,6 +32,7 @@ and pattern' =
     | PatConstant of Constant.t
     | PatCons of pattern' * pattern'
     | PatNil
+    | PatMap of (pattern' * pattern') list
 [@@deriving sexp_of]
 
 let line_number_of_t = function
