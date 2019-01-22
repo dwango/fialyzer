@@ -193,6 +193,16 @@ let%expect_test "derivation" =
           Empty))))
   |}];
 
+  (*
+   * case 42 of
+   *   #{a := A} when true -> A
+   * end
+   *)
+  print Context.empty (Case
+    (Constant (Number 42),
+     [(PatMap [(PatConstant (Atom "a"), PatVar "A")], Constant (Atom "true")), Var (1, "A")]));
+  [%expect {| |}];
+
   print Context.empty (Abs (-1, {args=["X"]; body=Var (3, "X")}));
   [%expect {|
     (Ok ("fun((a) -> a)" Empty)) |}];
