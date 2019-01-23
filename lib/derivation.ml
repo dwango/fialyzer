@@ -17,6 +17,7 @@ let rec pattern_to_expr = function
   | PatMap assocs -> assocs |> List.map ~f:(fun (k, v) -> (pattern_to_expr k, pattern_to_expr v))
                             |> (fun kvs -> Map kvs)
 
+(* Extracts variables from given pattern and add new type variable *)
 let rec variables_in_pattern = function
   | PatVar v -> [(v, new_tyvar ())]
   | PatTuple es -> es |> List.map ~f:(fun e -> variables_in_pattern e)
@@ -135,7 +136,6 @@ let rec derive context = function
      in
      Ok (tyvar_mfa, C.Conj cs)
   | Case (e, clauses) ->
-    (* Var(p) *)
     derive context e >>= fun (ty_e_t, c_e) ->
     let beta = new_tyvar () in
     let results = clauses |> result_map_m ~f:(fun ((p_n, g_n), b_n) ->
