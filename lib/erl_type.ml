@@ -64,13 +64,12 @@ let tag_of_etf etf =
   E.atom_of_etf etf >>= fun atom ->
   tag_of_atom atom
 
-type ident_type = IAny | IPort | IPid | IReference
+type ident_type = IPort | IPid | IReference
 [@@deriving show, sexp_of]
 
 let ident_type_of_etf etf =
   let open Result in
   let tag_of_atom = function
-    | "any" -> Ok IAny
     | "port" -> Ok IPort
     | "pid" -> Ok IPid
     | "reference" -> Ok IReference
@@ -102,6 +101,7 @@ type t =
   | AtomUnion of string list
   | Binary of {unit: int; base:int}
   | Function of {params: t list; ret: t}
+  | AnyIdentifier
   | IdentifierUnion of ident_type list
   | List of {elem_type: t; terminal_type: t; is_nonempty: bool}
   | Nil
@@ -186,9 +186,14 @@ let rec of_etf = function
            Error(Failure (!%"tyfun_of_etf: unsupported"))
         end
      | IdentifierTag ->
-        (E.list_of_etf elements @? "Identifier") >>= fun elems ->
-        result_map_m ~f:ident_type_of_etf elems >>= fun identifiers ->
-        Ok (IdentifierUnion identifiers)
+        begin match elements with
+        | Etf.Atom "any" ->
+            Ok (AnyIdentifier)
+        | _ ->
+            (E.list_of_etf elements @? "Identifier") >>= fun elems ->
+            result_map_m ~f:ident_type_of_etf elems >>= fun identifiers ->
+            Ok (IdentifierUnion identifiers)
+        end
      | ListTag ->
         E.list_of_etf elements >>= fun elems ->
         begin match elems with

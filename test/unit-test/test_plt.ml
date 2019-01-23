@@ -60,6 +60,13 @@ let%expect_test "Plt.of_file" =
           (args (Any))
           (forms ())))
         (((module_name   specs)
+          (function_name f_anyidentifier)
+          (arity         1))
+         ((contracts ((
+            (Function (params (AnyIdentifier)) (ret (AtomUnion (ok)))) ())))
+          (args (AnyIdentifier))
+          (forms ())))
+        (((module_name   specs)
           (function_name f_anymap)
           (arity         1))
          ((contracts (((Function (params (AnyMap)) (ret (AtomUnion (ok)))) ())))
@@ -154,6 +161,16 @@ let%expect_test "Plt.of_file" =
             (dict (
               (key   None)
               (value None))))))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_identifier)
+          (arity         1))
+         ((contracts ((
+            (Function
+              (params ((IdentifierUnion (IPid IPort))))
+              (ret (AtomUnion (ok))))
+            ())))
+          (args ((IdentifierUnion (IPid IPort))))
           (forms ())))
         (((module_name   specs)
           (function_name f_map)

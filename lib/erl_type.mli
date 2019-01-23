@@ -5,7 +5,7 @@ module Etf = Obeam.External_term_format
 type qualifier
 [@@deriving show, sexp_of]
 
-type ident_type = IAny | IPort | IPid | IReference
+type ident_type = IPort | IPid | IReference
 [@@deriving show, sexp_of]
 
 type var_id
@@ -34,6 +34,7 @@ type t =
   | AtomUnion of string list
   | Binary of {unit: int; base:int}
   | Function of {params: t list; ret: t}
+  | AnyIdentifier
   | IdentifierUnion of ident_type list
   | List of {elem_type: t; terminal_type: t; is_nonempty: bool}
   | Nil

@@ -36,3 +36,9 @@ f_map(_) -> ok.
 
 -spec f_emptymap(#{}) -> ok.
 f_emptymap(_) -> ok.
+
+-spec f_anyidentifier(identifier()) -> ok.
+f_anyidentifier(_) -> ok.
+
+-spec f_identifier(pid() | port()) -> ok.
+f_identifier(_) -> ok.
