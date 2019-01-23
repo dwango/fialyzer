@@ -45,7 +45,7 @@ type t =
   | Opaque of {opaques_union: opaque list}
   | Var of {id: var_id}
   | AnyTuple
-  | Tuple of {tuple: tuple}
+  | Tuple of tuple
   | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list

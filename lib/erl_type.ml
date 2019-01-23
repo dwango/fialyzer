@@ -118,7 +118,7 @@ type t =
   | Opaque of {opaques_union: opaque list}
   | Var of {id: var_id}
   | AnyTuple
-  | Tuple of {tuple: tuple}
+  | Tuple of tuple
   | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
@@ -269,9 +269,9 @@ let rec of_etf = function
            of_etf tag_etf >>= fun tag_t ->
            begin match tag_t with
            | Any ->
-              Ok (Tuple {tuple={types; arity; tag=None}})
+              Ok (Tuple {types; arity; tag=None})
            | Atom {atoms_union=[atom]} ->
-              Ok (Tuple {tuple={types; arity; tag=Some atom}})
+              Ok (Tuple {types; arity; tag=Some atom})
            | other ->
               Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (E.show_etf tag_etf)))
            end
@@ -287,7 +287,7 @@ let rec of_etf = function
         let tuple_of_etf etf =
           Result.(
             of_etf etf >>= function
-            | Tuple {tuple} -> Ok tuple
+            | Tuple tuple -> Ok tuple
             | _ -> Error (Failure (!%"Please report: an element of tuple_set is not a tuple: %s" (E.show_etf etf)))
           )
         in
