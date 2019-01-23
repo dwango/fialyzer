@@ -217,53 +217,11 @@ and expr_of_erlang_expr' = function
   | ExprRemoteFunRef (_line_t, m, f, a) ->
     MFA {module_name = expr_of_atom_or_var m;  function_name = expr_of_atom_or_var f; arity = expr_of_integer_or_var a}
   | ExprFun (_line_t, name_option, clauses) ->
-    (* Create a list which have n elements *)
-    let rec fill e = (function
-    | 0 -> []
-    | n -> (e())::(fill e (n - 1))
-    )
-    in
-    let (cs, arities) = clauses |> List.map ~f:(function
-    | F.ClsCase (_, _, _, _) -> failwith "cannot reach here"
-    | F.ClsFun (_, patterns, _, body) ->
-      (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
-      let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
-      let arity = List.length ps in
-      let tuple_pattern = PatTuple ps in
-      (((tuple_pattern, Constant (Atom ("true"))), expr_of_erlang_expr' body), arity)
-    ) |> List.unzip in
-     let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
-     let make_case cs fresh_variables =
-       let fresh_tuple = Tuple (fresh_variables |> List.map ~f:(fun v -> Var v)) in
-       (* letrec $name = fun $name(A1, A2, ...) -> b1; $name(B1, B2, ...)-> b2; ... end in $name *)
-       Case (fresh_tuple, cs)
-     in
-     let function_body = match cs with
-     | ((PatTuple patterns, Constant (Atom ("true"))), body)::[] ->
-       let all_pattern_is_var = patterns |> List.for_all ~f:(function
-       | PatVar _ -> true
-       | _ -> false
-       ) in
-       if all_pattern_is_var then
-         let args = patterns |> List.map ~f:(function
-         | PatVar v -> v
-         | _ -> failwith "cannot reach here"
-         ) in
-         Abs (args, body)
-       else
-         let arity = List.length patterns in
-         let fresh_variables: string list = (make_fresh_variables arity) in
-         Abs (fresh_variables, make_case cs fresh_variables)
-     | cs ->
-       (* Assume all arities have the same value *)
-       let arity = List.nth_exn arities 0 in
-       let fresh_variables = (make_fresh_variables arity) in
-       Abs (fresh_variables, make_case cs fresh_variables)
-     in
+     let (args, body) = function_of_clauses clauses in
      (* If name is omitted, don't create Letrec *)
      (match name_option with
-     | Some name -> Letrec ([(name, function_body)], Var name)
-     | None -> function_body
+     | Some name -> Letrec ([(name, Abs(args, body))], Var name)
+     | None -> Abs(args, body)
      )
   | ExprLocalCall (_line_t, ExprLit (LitAtom (_line_f, fun_name)), args) ->
      App (Var fun_name, List.map ~f:expr_of_erlang_expr' args)
@@ -301,24 +259,52 @@ and expr_of_erlang_expr' = function
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"]; message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
   | ExprMapCreation (_, _) | ExprMapUpdate (_, _, _) ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/122"]; message="support map-related expression"}))
+and function_of_clauses clauses =
+    (* Create a list which have n elements *)
+    let rec fill e = (function
+    | 0 -> []
+    | n -> (e())::(fill e (n - 1))
+    )
+    in
+    let (cs, arities) = clauses |> List.map ~f:(function
+    | F.ClsCase (_, _, _, _) -> failwith "cannot reach here"
+    | F.ClsFun (_, patterns, _, body) ->
+      (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
+      let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
+      let arity = List.length ps in
+      let tuple_pattern = PatTuple ps in
+      (((tuple_pattern, Constant (Atom ("true"))), expr_of_erlang_expr' body), arity)
+    ) |> List.unzip in
+     let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
+     let make_case cs fresh_variables =
+       let fresh_tuple = Tuple (fresh_variables |> List.map ~f:(fun v -> Var v)) in
+       (* letrec $name = fun $name(A1, A2, ...) -> b1; $name(B1, B2, ...)-> b2; ... end in $name *)
+       Case (fresh_tuple, cs)
+     in
+     match cs with
+     | ((PatTuple patterns, Constant (Atom ("true"))), body)::[] ->
+        let all_pattern_is_var = patterns |> List.for_all ~f:(function
+       | PatVar _ -> true
+       | _ -> false
+       ) in
+       if all_pattern_is_var then
+         let args = patterns |> List.map ~f:(function
+         | PatVar v -> v
+         | _ -> failwith "cannot reach here"
+       ) in
+         (args, body)
+       else
+         let arity = List.length patterns in
+         let fresh_variables: string list = (make_fresh_variables arity) in
+         (fresh_variables, make_case cs fresh_variables)
+     | cs ->
+       (* Assume all arities have the same value *)
+        let arity = List.nth_exn arities 0 in
+        let fresh_variables = (make_fresh_variables arity) in
+        (fresh_variables, make_case cs fresh_variables)
 
 let expr_of_erlang_expr e =
   e |> extract_toplevel |> expr_of_erlang_expr'
-
-let clauses_to_function = function
-  | F.ClsCase(_line, _pattern, _guards, _body) ->
-     failwith "not implemented: Clause Case"(* TODO : clause case *)
-  | F.ClsFun(_line, args, _guards, body) ->
-     let f = (function
-     | F.PatVar (_, v) -> v
-     | F.PatUniversal _ -> "_"
-     | F.PatMap (_, _) | F.PatLit _ | F.PatTuple (_, _) | F.PatCons (_, _, _) | F.PatNil _ ->
-        let link = "https://github.com/dwango/fialyzer/issues/121" in
-        let msg = "support map, literal, tuple, and list patterns in top-level function" in
-        raise Known_error.(FialyzerError (NotImplemented {issue_links=[link]; message=msg}))
-     ) in
-     let vs = args |> List.map ~f:f in
-     (vs, expr_of_erlang_expr body)
 
 let forms_to_functions forms =
   let find_specs fun_name =
@@ -336,7 +322,7 @@ let forms_to_functions forms =
   |> List.filter_map ~f:(function F.DeclFun(line, name, arity, clauses) -> Some(line, name, arity, clauses) | _ -> None)
   |> List.map ~f:(fun (_line, name, arity, clauses) ->
                 let specs = find_specs name in
-                let (vs, body) = clauses_to_function (List.hd_exn clauses) (* TODO : multi clauses function *) in
+                let (vs, body) = function_of_clauses clauses in
                 {specs; fun_name=name; args=vs; body})
 
 let forms_to_module forms =
