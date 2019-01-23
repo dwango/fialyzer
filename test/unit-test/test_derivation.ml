@@ -192,11 +192,11 @@ let%expect_test "derivation" =
           Empty))))
   |}];
 
-  print Context.empty (Abs (["X"], Var "X"));
+  print Context.empty (Abs {args=["X"]; body=Var "X"});
   [%expect {|
     (Ok ("fun((a) -> a)" Empty)) |}];
 
-  print Context.empty (Abs (["x"; "y"; "z"], Var "x"));
+  print Context.empty (Abs {args=["x"; "y"; "z"]; body=Var "x"});
   [%expect {|
     (Ok ("fun((a, b, c) -> a)" Empty))
    |}];
@@ -225,7 +225,7 @@ let%expect_test "derivation" =
           (Subtype 57 b)
           Empty)))) |}];
 
-  print Context.empty (App (Abs (["X"], Var "X"), [Constant (Number 42)]));
+  print Context.empty (App (Abs {args=["X"]; body=Var "X"}, [Constant (Number 42)]));
   [%expect {|
     (Ok (
       d (
@@ -237,7 +237,7 @@ let%expect_test "derivation" =
           Empty))))
     |}];
 
-  print Context.empty (App (Abs (["X"; "Y"], Var "X"), [Constant (Number 42); Constant (Number 57)]));
+  print Context.empty (App (Abs {args=["X"; "Y"]; body=Var "X"}, [Constant (Number 42); Constant (Number 57)]));
   [%expect {|
     (Ok (
       f (
@@ -254,16 +254,16 @@ let%expect_test "derivation" =
   [%expect {|
     (Ok (42 (Conj (Empty Empty)))) |}];
 
-  print Context.empty (Letrec ([("x", Constant (Number 42))], Var "x"));
-  [%expect {| (Ok (a (Conj (Empty (Eq a 42) Empty)))) |}];
+  print Context.empty (Letrec ([("x", {args=[]; body=Constant (Number 42)})], LocalFun {function_name="x"; arity=0}));
+  [%expect {| (Ok (a (Conj (Empty (Eq a "fun(() -> 42)") Empty)))) |}];
 
   print
     Context.empty
     (Letrec
       ([
-        ("f", Abs (["X"], App (Var "g", [Var "X"])));
-        ("g", Abs (["X"], App (Var "f", [Var "X"])))
-      ], App (Var "f", [Constant (Number 42)])));
+        ("f", {args=["X"]; body=App (LocalFun {function_name="g"; arity=1}, [Var "X"])});
+        ("g", {args=["X"]; body=App (LocalFun {function_name="f"; arity=1}, [Var "X"])})
+      ], App (LocalFun {function_name="f"; arity=1}, [Constant (Number 42)])));
   [%expect {|
     (Ok (
       m (

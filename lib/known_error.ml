@@ -25,6 +25,8 @@ let to_message = function
      !%"Invalid beam format '%s': %s" beam_filename message
   | UnboundVariable {filename; line; variable = Var v; } ->
      !%"%s:%d: Unbound variable: %s" filename line v
+  | UnboundVariable {filename; line; variable = LocalFun {function_name; arity}; } ->
+     !%"%s:%d: Unbound function: %s/%d" filename line function_name arity
   | UnboundVariable {filename; line; variable = MFA mfa; } ->
      !%"%s:%d: Unknown function: %s" filename line (Mfa.show mfa)
   | TypeError errs ->

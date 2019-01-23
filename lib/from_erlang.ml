@@ -212,19 +212,19 @@ and expr_of_erlang_expr' = function
     ) in
     Case (expr_of_erlang_expr' e, cs)
   | ExprLocalFunRef (_line_t, name, arity) ->
-     (* TODO: support local `fun F/A` *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/79"]; message="support local `fun f/A`"}))
+     LocalFun {function_name=name; arity}
   | ExprRemoteFunRef (_line_t, m, f, a) ->
     MFA {module_name = expr_of_atom_or_var m;  function_name = expr_of_atom_or_var f; arity = expr_of_integer_or_var a}
   | ExprFun (_line_t, name_option, clauses) ->
-     let (args, body) = function_of_clauses clauses in
+     let fun_abst = function_of_clauses clauses in
      (* If name is omitted, don't create Letrec *)
      (match name_option with
-     | Some name -> Letrec ([(name, Abs(args, body))], Var name)
-     | None -> Abs(args, body)
+     | Some name -> Letrec ([(name, fun_abst)], Var name)
+     | None -> Abs fun_abst
      )
-  | ExprLocalCall (_line_t, ExprLit (LitAtom (_line_f, fun_name)), args) ->
-     App (Var fun_name, List.map ~f:expr_of_erlang_expr' args)
+  | ExprLocalCall (_line_t, ExprLit (LitAtom (_line_f, function_name)), args) ->
+     let arity = List.length args in
+     App (LocalFun{function_name; arity}, List.map ~f:expr_of_erlang_expr' args)
   | ExprLocalCall (_line_t, f, args) ->
      App (expr_of_erlang_expr' f, List.map ~f:expr_of_erlang_expr' args)
   | ExprRemoteCall (_line_t, _line_m, m, f, args) ->
@@ -292,16 +292,16 @@ and function_of_clauses clauses =
          | PatVar v -> v
          | _ -> failwith "cannot reach here"
        ) in
-         (args, body)
+         {args; body}
        else
          let arity = List.length patterns in
          let fresh_variables: string list = (make_fresh_variables arity) in
-         (fresh_variables, make_case cs fresh_variables)
+         {args=fresh_variables; body=make_case cs fresh_variables}
      | cs ->
        (* Assume all arities have the same value *)
         let arity = List.nth_exn arities 0 in
         let fresh_variables = (make_fresh_variables arity) in
-        (fresh_variables, make_case cs fresh_variables)
+        {args=fresh_variables; body=make_case cs fresh_variables}
 
 let expr_of_erlang_expr e =
   e |> extract_toplevel |> expr_of_erlang_expr'
@@ -322,8 +322,8 @@ let forms_to_functions forms =
   |> List.filter_map ~f:(function F.DeclFun(line, name, arity, clauses) -> Some(line, name, arity, clauses) | _ -> None)
   |> List.map ~f:(fun (_line, name, arity, clauses) ->
                 let specs = find_specs name in
-                let (vs, body) = function_of_clauses clauses in
-                {specs; fun_name=name; args=vs; body})
+                let fun_abst = function_of_clauses clauses in
+                {specs; fun_name=name; fun_abst})
 
 let forms_to_module forms =
   let take_file forms =
@@ -350,11 +350,15 @@ let code_to_module (F.AbstractCode form) =
 
 let module_to_expr m =
   let funs =
-    m.functions |> List.map ~f:(fun {specs; fun_name=name; args; body} ->
-                              (name, Abs (args, body)))
+    m.functions |> List.map ~f:(fun {specs; fun_name; fun_abst} -> (fun_name, fun_abst))
   in
-  let fun_names = funs |> List.map ~f:fst in
-  Letrec(funs, Tuple (List.map ~f:(fun name -> Var name) fun_names))
+  let body =
+    funs
+    |> List.map ~f:(fun (name, ({args; body}: fun_abst)) ->
+                  Tuple [Constant (Atom name); LocalFun {function_name=name; arity=List.length args}])
+    |> (fun es -> Tuple es)
+  in
+  Letrec(funs, body)
   |> Result.return
 
 let code_to_expr code =
