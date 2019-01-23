@@ -13,7 +13,7 @@ let%expect_test "Plt.of_file" =
   (*
     The plt file was created by the following:
     - $ erlc +debug_info samples/test01.erl
-    - $ dialyzer --build_plt test01.beam --output_plt plt/test01.plt
+    - $ dialyzer --build_plt test01.beam --output_plt test/unit-test/plt/test01.plt
    *)
   print "plt/test01.plt";
   [%expect {|
@@ -26,7 +26,7 @@ let%expect_test "Plt.of_file" =
          (arity         1))
         ((contracts ((
            (Function
-             (params ((Number Integer)))
+             (params ((Number AnyInteger)))
              (ret (
                List
                (elem_type (
@@ -34,10 +34,10 @@ let%expect_test "Plt.of_file" =
                    IntRange
                    (min (Min 0))
                    (max (Max 1114111)))))
-               (term_type   Nil)
-               (is_nonempty false))))
+               (terminal_type Nil)
+               (is_nonempty   false))))
            ())))
-         (args ((Number Integer)))
+         (args ((Number AnyInteger)))
          (forms ())))))
       (callbacks      ())
       (exported_types ()))) |}];
@@ -45,7 +45,7 @@ let%expect_test "Plt.of_file" =
   (*
     The plt file was created by the following:
     - $ erlc +debug_info samples/specs.erl
-    - $ dialyzer --build_plt specs.beam --output_plt plt/specs.plt
+    - $ dialyzer --build_plt specs.beam --output_plt test/unit-test/plt/specs.plt
    *)
   print "plt/specs.plt";
   [%expect {|
@@ -56,9 +56,20 @@ let%expect_test "Plt.of_file" =
         (((module_name   specs)
           (function_name f_any)
           (arity         1))
-         ((contracts ((
-            (Function (params (Any)) (ret (Atom (atoms_union (ok))))) ())))
+         ((contracts (((Function (params (Any)) (ret (AtomUnion (ok)))) ())))
           (args (Any))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_anymap)
+          (arity         1))
+         ((contracts (((Function (params (AnyMap)) (ret (AtomUnion (ok)))) ())))
+          (args (AnyMap))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_anytuple)
+          (arity         1))
+         ((contracts (((Function (params (AnyTuple)) (ret (AtomUnion (ok)))) ())))
+          (args (AnyTuple))
           (forms ())))
         (((module_name   specs)
           (function_name f_binary01)
@@ -69,7 +80,7 @@ let%expect_test "Plt.of_file" =
                 Binary
                 (unit 1)
                 (base 0))))
-              (ret (Atom (atoms_union (ok)))))
+              (ret (AtomUnion (ok))))
             ())))
           (args ((
             Binary
@@ -85,7 +96,7 @@ let%expect_test "Plt.of_file" =
                 Binary
                 (unit 8)
                 (base 0))))
-              (ret (Atom (atoms_union (ok)))))
+              (ret (AtomUnion (ok))))
             ())))
           (args ((
             Binary
@@ -101,7 +112,7 @@ let%expect_test "Plt.of_file" =
                 Binary
                 (unit 2222)
                 (base 1111))))
-              (ret (Atom (atoms_union (ok)))))
+              (ret (AtomUnion (ok))))
             ())))
           (args ((
             Binary
@@ -117,12 +128,140 @@ let%expect_test "Plt.of_file" =
                 Binary
                 (unit 0)
                 (base 0))))
-              (ret (Atom (atoms_union (ok)))))
+              (ret (AtomUnion (ok))))
             ())))
           (args ((
             Binary
             (unit 0)
             (base 0))))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_emptymap)
+          (arity         1))
+         ((contracts ((
+            (Function
+              (params ((
+                Map
+                (map_pairs ())
+                (dict (
+                  (key   None)
+                  (value None))))))
+              (ret (AtomUnion (ok))))
+            ())))
+          (args ((
+            Map
+            (map_pairs ())
+            (dict (
+              (key   None)
+              (value None))))))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_map)
+          (arity         1))
+         ((contracts ((
+            (Function
+              (params ((
+                Map
+                (map_pairs (
+                  (OptionalPair (
+                    (key   (AtomUnion (bar)))
+                    (value (AtomUnion (bar)))))
+                  (MandatoryPair (
+                    (key   (AtomUnion (foo)))
+                    (value (AtomUnion (foo)))))))
+                (dict (
+                  (key (
+                    Union (
+                      AnyAtom
+                      None
+                      None
+                      None
+                      None
+                      (Number AnyInteger)
+                      None
+                      None
+                      None
+                      None)))
+                  (value (AtomUnion (bar foo))))))))
+              (ret (AtomUnion (ok))))
+            ())))
+          (args ((
+            Map
+            (map_pairs (
+              (OptionalPair (
+                (key   (AtomUnion (bar)))
+                (value (AtomUnion (bar)))))
+              (MandatoryPair (
+                (key   (AtomUnion (foo)))
+                (value (AtomUnion (foo)))))))
+            (dict (
+              (key (
+                Union (
+                  AnyAtom
+                  None
+                  None
+                  None
+                  None
+                  (Number AnyInteger)
+                  None
+                  None
+                  None
+                  None)))
+              (value (AtomUnion (bar foo))))))))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_tuple)
+          (arity         1))
+         ((contracts ((
+            (Function
+              (params ((
+                Tuple (
+                  (types (
+                    (AtomUnion (foo))
+                    (AtomUnion (bar))))
+                  (arity 2)
+                  (tag (foo))))))
+              (ret (AtomUnion (ok))))
+            ())))
+          (args ((
+            Tuple (
+              (types (
+                (AtomUnion (foo))
+                (AtomUnion (bar))))
+              (arity 2)
+              (tag (foo))))))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_union)
+          (arity         1))
+         ((contracts ((
+            (Function
+              (params ((
+                Union (
+                  (AtomUnion (bar foo))
+                  None
+                  None
+                  (IdentifierUnion (IPid IPort))
+                  None
+                  (Number (IntSet (set (1 2))))
+                  None
+                  None
+                  None
+                  None))))
+              (ret (AtomUnion (ok))))
+            ())))
+          (args ((
+            Union (
+              (AtomUnion (bar foo))
+              None
+              None
+              (IdentifierUnion (IPid IPort))
+              None
+              (Number (IntSet (set (1 2))))
+              None
+              None
+              None
+              None))))
           (forms ())))))
       (callbacks      ())
       (exported_types ()))) |}];

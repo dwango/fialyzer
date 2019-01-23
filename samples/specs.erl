@@ -18,3 +18,21 @@ f_binary03(_) -> ok.
 
 -spec f_binary04(<<>>) -> ok.
 f_binary04(_) -> ok.
+
+-spec f_anytuple(tuple()) -> ok.
+f_anytuple(_) -> ok.
+
+-spec f_tuple({foo, bar}) -> ok.
+f_tuple(_) -> ok.
+
+-spec f_union(foo | port() | 1 | bar | pid() | 2) -> ok.
+f_union(_) -> ok.
+
+-spec f_anymap(map()) -> ok.
+f_anymap(_) -> ok.
+
+-spec f_map(#{foo := foo, bar => bar, integer() := foo, atom() => bar}) -> ok.
+f_map(_) -> ok.
+
+-spec f_emptymap(#{}) -> ok.
+f_emptymap(_) -> ok.
