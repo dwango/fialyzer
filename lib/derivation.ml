@@ -7,6 +7,25 @@ module C = Constraint
 
 let new_tyvar () = Type.of_elem (TyVar (Type_variable.create()))
 
+(* translate pattern to expression *)
+let rec pattern_to_expr = function
+  | PatVar v -> Var (-1, v)
+  | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
+  | PatConstant c -> Constant (-1, c)
+  | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
+  | PatNil -> raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/201"]; message="support nil pattern"}))
+  | PatMap assocs -> assocs |> List.map ~f:(fun (k, v) -> (pattern_to_expr k, pattern_to_expr v))
+                            |> (fun kvs -> Map kvs)
+
+let rec variables_in_pattern = function
+  | PatVar v -> [(v, new_tyvar ())]
+  | PatTuple es -> es |> List.map ~f:(fun e -> variables_in_pattern e)
+                      |> List.fold_left ~init:[] ~f:(fun a b -> List.append a b)
+  | PatConstant _ -> []
+  | PatCons (p1, p2) -> List.append (variables_in_pattern p1) (variables_in_pattern p2)
+  | PatNil -> []
+  | PatMap assocs -> assocs |> List.bind ~f:(fun (k, v) -> List.append (variables_in_pattern k) (variables_in_pattern v))
+
 let rec derive context = function
   | Constant (_line, c) ->
      Ok (Type.of_elem (TySingleton c), C.Empty)
@@ -116,34 +135,11 @@ let rec derive context = function
      in
      Ok (tyvar_mfa, C.Conj cs)
   | Case (e, clauses) ->
-    (* translate pattern to expression *)
-    let rec pattern_to_expr = function
-      | PatVar v -> Var (-1, v)
-      | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
-      | PatConstant c -> Constant (-1, c)
-      | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
-<<<<<<< HEAD
-      | PatNil -> raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/201"]; message="support nil pattern"}))
-=======
-      | PatNil -> ListNil
-      | PatMap assocs -> assocs |> List.map ~f:(fun (k, v) -> (pattern_to_expr k, pattern_to_expr v))
-                                |> (fun kvs -> Map kvs)
->>>>>>> Support map pattern
-    in
     (* Var(p) *)
-    let rec variables = function
-      | PatVar v -> [(v, new_tyvar ())]
-      | PatTuple es -> es |> List.map ~f:(fun e -> variables e)
-                          |> List.fold_left ~init:[] ~f:(fun a b -> List.append a b)
-      | PatConstant _ -> []
-      | PatCons (p1, p2) -> List.append (variables p1) (variables p2)
-      | PatNil -> []
-      | PatMap assocs -> assocs |> List.bind ~f:(fun (k, v) -> List.append (variables k) (variables v))
-    in
     derive context e >>= fun (ty_e_t, c_e) ->
     let beta = new_tyvar () in
     let results = clauses |> result_map_m ~f:(fun ((p_n, g_n), b_n) ->
-      let p_n_tyvars = variables p_n in
+      let p_n_tyvars = variables_in_pattern p_n in
       let p_n_expr = pattern_to_expr p_n in
       (* A ∪ { ... } *)
       let added_context =

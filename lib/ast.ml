@@ -48,6 +48,7 @@ let line_number_of_t = function
 | MFA _ -> -1
 | ListCons (_, _) -> -1
 | ListNil -> -1
+| Map _ -> -1
 
 let string_of_t t =
   [%sexp_of: t] t |> Sexplib.Sexp.to_string_hum ~indent:2

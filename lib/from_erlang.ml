@@ -22,8 +22,8 @@ let expr_of_literal = function
      (* string is a list of chars in Erlang *)
      let l = String.to_list_rev str in
      List.fold_left l ~init:ListNil ~f:(fun acc c -> ListCons (Constant (line, Number (Char.to_int c)), acc))
-  | l -> 
-     let (line, c) = const_of_literal l in 
+  | l ->
+     let (line, c) = const_of_literal l in
      Constant(line, c)
 
 let pattern_of_literal = function
@@ -31,8 +31,8 @@ let pattern_of_literal = function
      (* string is a list of chars in Erlang *)
      let l = String.to_list_rev str in
      List.fold_left l ~init:PatNil ~f:(fun acc c -> PatCons (PatConstant (Number (Char.to_int c)), acc))
-  | l -> 
-     let (_, c) = const_of_literal l in 
+  | l ->
+     let (_, c) = const_of_literal l in
      PatConstant c
 
 (* Extracts nested match expressions.
@@ -310,6 +310,7 @@ and function_of_clauses clauses =
      | ((PatCons (_, _), _), term) -> Ast.line_number_of_t term
      | ((PatVar _, _), term) -> Ast.line_number_of_t term
      | ((PatNil, _), term) -> Ast.line_number_of_t term
+     | ((PatMap _, _), term) -> Ast.line_number_of_t term
      in
      let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
      let make_case cs fresh_variables =

@@ -193,16 +193,6 @@ let%expect_test "derivation" =
           Empty))))
   |}];
 
-  (*
-   * case 42 of
-   *   #{a := A} when true -> A
-   * end
-   *)
-  print Context.empty (Case
-    (Constant (Number 42),
-     [(PatMap [(PatConstant (Atom "a"), PatVar "A")], Constant (Atom "true")), Var (1, "A")]));
-  [%expect {| |}];
-
   print Context.empty (Abs (-1, {args=["X"]; body=Var (3, "X")}));
   [%expect {|
     (Ok ("fun((a) -> a)" Empty)) |}];
@@ -356,3 +346,61 @@ let%expect_test "derivation" =
         Conj ((Eq "[b | 2]" [a]) Empty (Conj ((Eq "[none()]" [b]) Empty Empty)))))) |}];
 
   ()
+
+let%expect_test "pattern_to_expr" =
+  let print pat =
+    pattern_to_expr pat
+    |> [%sexp_of: Ast.t]
+    |> Expect_test_helpers_kernel.print_s
+  in
+
+  print (PatVar "X");
+  [%expect {| (Var -1 X) |}];
+
+  print (PatTuple [PatVar "X"; PatVar "Y"; PatVar "Z"]);
+  [%expect {|
+    (Tuple -1 (
+      (Var -1 X)
+      (Var -1 Y)
+      (Var -1 Z))) |}];
+
+  print (PatConstant (Constant.Atom "a"));
+  [%expect {| (Constant -1 (Atom a)) |}];
+
+  print (PatCons (PatVar "X", PatCons (PatVar "Y", PatNil)));
+  [%expect {| (ListCons (Var -1 X) (ListCons (Var -1 Y) ListNil)) |}];
+
+  print (PatMap [(PatConstant (Constant.Atom "a"), PatVar "A"); (PatConstant (Constant.Atom "b"), PatVar "B")]);
+  [%expect {|
+    (Map (((Constant -1 (Atom a)) (Var -1 A)) ((Constant -1 (Atom b)) (Var -1 B)))) |}]
+
+let%expect_test "variables_in_pattern" =
+  let print pat =
+    Type_variable.reset_count ();
+    variables_in_pattern pat
+    |> List.map ~f:(fun (v, t) -> (v, Type.pp t))
+    |> [%sexp_of: (string * string) list]
+    |> Expect_test_helpers_kernel.print_s
+  in
+
+  print (PatVar "X");
+  [%expect {| ((X a)) |}];
+
+  print (PatTuple [PatVar "X"; PatVar "Y"; PatVar "Z"]);
+  [%expect {|
+    ((X a)
+     (Y b)
+     (Z c)) |}];
+
+  print (PatConstant (Constant.Atom "a"));
+  [%expect {| () |}];
+
+  print (PatCons (PatVar "X", PatCons (PatVar "Y", PatNil)));
+  [%expect {|
+    ((X b)
+     (Y a)) |}];
+
+  print (PatMap [(PatConstant (Constant.Atom "a"), PatVar "A"); (PatConstant (Constant.Atom "b"), PatVar "B")]);
+  [%expect {|
+    ((A a)
+     (B b)) |}]
