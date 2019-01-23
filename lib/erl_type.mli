@@ -8,13 +8,15 @@ type qualifier
 type t_map_mandatoriness
 [@@deriving show, sexp_of]
 
-type ident_type
+type ident_type = IAny | IPort | IPid | IReference
 [@@deriving show, sexp_of]
 
 type var_id
 [@@deriving show, sexp_of]
 
 type number
+and min
+and max
 [@@deriving show, sexp_of]
 
 (**
@@ -30,33 +32,36 @@ v}
 type t =
   | Any
   | None
-  | Unit
-  | Atom of string list
-  | Binary of int * int
-  | Function of t list * t
-  | Identifier of ident_type list
-  | List of t * t * qualifier
+  | Unit (* no_return *)
+  | AnyAtom
+  | Atom of {atoms_union: string list}
+  | Binary of {unit: int; base:int}
+  | Function of {params: t list; ret: t}
+  | Identifier of {idents_union: ident_type list}
+  | List of {elem_type: t; term_type: t; is_nonempty: bool}
   | Nil
   | Number of number
   | Map of t_map_pair list * t * t
-  | Opaque of opaque list
-  | Product of t list
-  | Var of var_id
-  | Tuple of tuple option
-  | TupleSet of (int * tuple list) list
+  | Opaque of {opaques_union: opaque list}
+  | Var of {id: var_id}
+  | AnyTuple
+  | Tuple of tuple
+  | TupleSet of {n_tuples_union: n_tuples list}
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
-[@@deriving show, sexp_of]
 and t_map_pair = t * t_map_mandatoriness * t
-[@@deriving show, sexp_of]
 and opaque = {
     mod_ : string;
     name : string;
     args : t list;
     struct_ : t;
   }
-[@@deriving show, sexp_of]
-and tuple
+and tuple = {
+    types : t list;      (* type of elements *)
+    arity : int;         (* size *)
+    tag : string option; (* first element's tag (may be record name) *)
+  }
+and n_tuples
 [@@deriving show, sexp_of]
 
 val of_etf : Etf.t -> (t, exn) Result.t

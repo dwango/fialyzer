@@ -26,14 +26,16 @@ let%expect_test "Plt.of_file" =
          (arity         1))
         ((contracts ((
            (Function
-             ((Number Integer))
-             (List
-               (Number (
-                 IntRange
-                 (0)
-                 (1114111)))
-               Nil
-               UnknownQual))
+             (params ((Number Integer)))
+             (ret (
+               List
+               (elem_type (
+                 Number (
+                   IntRange
+                   (min (Min 0))
+                   (max (Max 1114111)))))
+               (term_type   Nil)
+               (is_nonempty false))))
            ())))
          (args ((Number Integer)))
          (forms ())))))
@@ -54,30 +56,73 @@ let%expect_test "Plt.of_file" =
         (((module_name   specs)
           (function_name f_any)
           (arity         1))
-         ((contracts (((Function (Any) (Atom (ok))) ()))) (args (Any)) (forms ())))
+         ((contracts ((
+            (Function (params (Any)) (ret (Atom (atoms_union (ok))))) ())))
+          (args (Any))
+          (forms ())))
         (((module_name   specs)
           (function_name f_binary01)
           (arity         1))
-         ((contracts (((Function ((Binary 1 0)) (Atom (ok))) ())))
-          (args ((Binary 1 0)))
+         ((contracts ((
+            (Function
+              (params ((
+                Binary
+                (unit 1)
+                (base 0))))
+              (ret (Atom (atoms_union (ok)))))
+            ())))
+          (args ((
+            Binary
+            (unit 1)
+            (base 0))))
           (forms ())))
         (((module_name   specs)
           (function_name f_binary02)
           (arity         1))
-         ((contracts (((Function ((Binary 8 0)) (Atom (ok))) ())))
-          (args ((Binary 8 0)))
+         ((contracts ((
+            (Function
+              (params ((
+                Binary
+                (unit 8)
+                (base 0))))
+              (ret (Atom (atoms_union (ok)))))
+            ())))
+          (args ((
+            Binary
+            (unit 8)
+            (base 0))))
           (forms ())))
         (((module_name   specs)
           (function_name f_binary03)
           (arity         1))
-         ((contracts (((Function ((Binary 2222 1111)) (Atom (ok))) ())))
-          (args ((Binary 2222 1111)))
+         ((contracts ((
+            (Function
+              (params ((
+                Binary
+                (unit 2222)
+                (base 1111))))
+              (ret (Atom (atoms_union (ok)))))
+            ())))
+          (args ((
+            Binary
+            (unit 2222)
+            (base 1111))))
           (forms ())))
         (((module_name   specs)
           (function_name f_binary04)
           (arity         1))
-         ((contracts (((Function ((Binary 0 0)) (Atom (ok))) ())))
-          (args ((Binary 0 0)))
+         ((contracts ((
+            (Function
+              (params ((
+                Binary
+                (unit 0)
+                (base 0))))
+              (ret (Atom (atoms_union (ok)))))
+            ())))
+          (args ((
+            Binary
+            (unit 0)
+            (base 0))))
           (forms ())))))
       (callbacks      ())
       (exported_types ()))) |}];
