@@ -28,7 +28,7 @@ let%expect_test "code_to_module" =
      ((file test.erl)
       (name test)
       (export ())
-      (functions (((specs ()) (fun_name f) (args (X)) (body (Var X))))))
+      (functions (((specs ()) (fun_name f) (fun_abst ((args (X)) (body (Var X))))))))
   |}];
 
   (* patterns in toplevel *)
@@ -49,14 +49,15 @@ let%expect_test "code_to_module" =
       (functions ((
         (specs ())
         (fun_name f)
-        (args (__A__))
-        (body (
-          Case
-          (Tuple ((Var __A__)))
-          ((((PatTuple ((PatConstant (Atom a)))) (Constant (Atom true)))
-            (Constant (Number 10)))
-           (((PatTuple ((PatConstant (Atom b)))) (Constant (Atom true)))
-            (Constant (Number 20))))))))))
+        (fun_abst (
+          (args (__A__))
+          (body (
+            Case
+            (Tuple ((Var __A__)))
+            ((((PatTuple ((PatConstant (Atom a)))) (Constant (Atom true)))
+              (Constant (Number 10)))
+             (((PatTuple ((PatConstant (Atom b)))) (Constant (Atom true)))
+              (Constant (Number 20))))))))))))
   |}]
 
 let%expect_test "from_erlang" =
