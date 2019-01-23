@@ -16,12 +16,13 @@ let%expect_test "code_to_module" =
 
   (* simple module *)
   print (AbstractCode(ModDecl [
-                          AttrFile(line, "test.erl", line);
-                          AttrMod(line, "test");
-                          AttrExport(line, [("f", 1)]);
-                          DeclFun(line, "f", 0, [
-                                      ClsFun(line, [PatVar(line, "X")], None, ExprBody[ExprVar(line, "X")])
-                                 ]);
+                          AttrFile {line; file="test.erl"; file_line=line};
+                          AttrMod {line; module_name="test"};
+                          AttrExport {line; function_arity_list=[("f", 1)]};
+                          DeclFun {line; function_name="f"; arity=0; clauses=[
+                                       ClsFun {line; patterns=[PatVar {line=line; id="X"}]; guard_sequence=None;
+                                               body=ExprBody {exprs=[ExprVar {line; id="X"}]}}
+                                  ]};
                           FormEof
         ]));
   [%expect {|
@@ -33,13 +34,15 @@ let%expect_test "code_to_module" =
 
   (* patterns in toplevel *)
   print (AbstractCode(ModDecl [
-                          AttrFile(line, "patterns.erl", line);
-                          AttrMod(line, "patterns");
-                          AttrExport(line, [("f", 1)]);
-                          DeclFun(line, "f", 0, [
-                                      ClsFun(line, [PatLit(LitAtom(line, "a"))], None, ExprBody[ExprLit(LitInteger(line, 10))]);
-                                      ClsFun(line, [PatLit(LitAtom(line, "b"))], None, ExprBody[ExprLit(LitInteger(line, 20))]);
-                                 ]);
+                          AttrFile {line; file="patterns.erl"; file_line=line};
+                          AttrMod {line; module_name="patterns"};
+                          AttrExport {line; function_arity_list=[("f", 1)]};
+                          DeclFun {line; function_name="f"; arity=0; clauses=[
+                                       ClsFun {line; patterns=[PatLit {lit=LitAtom {line; atom="a"}}]; guard_sequence=None;
+                                               body=ExprBody {exprs=[ExprLit {lit=LitInteger {line; integer=10}}]}};
+                                       ClsFun {line; patterns=[PatLit {lit=LitAtom {line; atom="b"}}]; guard_sequence=None;
+                                               body=ExprBody {exprs=[ExprLit {lit=LitInteger {line; integer=20}}]}};
+                                  ]};
                           FormEof;
         ]));
   [%expect {|
