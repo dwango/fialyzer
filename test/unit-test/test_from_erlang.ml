@@ -30,14 +30,7 @@ let%expect_test "code_to_module" =
       (name test)
       (export ())
       (functions ((
-        (specs ())
-        (fun_name f)
-        (fun_abst (
-          (args (__A__))
-          (body (
-            Case
-            (Tuple ((Var -1 __A__)))
-            ((((PatTuple ((PatVar X))) (Constant 111 (Atom true))) (Var 111 X)))))))))))
+        (specs ()) (fun_name f) (fun_abst ((args (X)) (body (Var 111 X))))))))
   |}];
 
   (* patterns in toplevel *)
@@ -103,12 +96,7 @@ let%expect_test "from_erlang" =
     ClsFun {line=1; patterns=[PatVar {line=1; id="X"}]; guard_sequence=None; body=ExprVar {line=1; id="X"}}
   ]});
   [%expect {|
-    (Abs (
-      (args (__A__))
-      (body (
-        Case
-        (Tuple ((Var -1 __A__)))
-        ((((PatTuple ((PatVar X))) (Constant 1 (Atom true))) (Var 1 X)))))))
+    (Abs ((args (X)) (body (Var 1 X))))
   |}];
 
   (*
@@ -121,17 +109,7 @@ let%expect_test "from_erlang" =
             body=ExprLocalCall {line=1; function_expr=ExprVar {line=1; id="F"}; args=[ExprVar {line=1; id="X"}]}}
   ]});
   [%expect {|
-    (Letrec
-      ((
-        F (
-          (args (__A__))
-          (body (
-            Case
-            (Tuple ((Var -1 __A__)))
-            ((
-              ((PatTuple ((PatVar X))) (Constant 1 (Atom true)))
-              (App (Var 1 F) ((Var 1 X))))))))))
-      (Var 1 F))
+    (Letrec ((F ((args (X)) (body (App (Var 1 F) ((Var 1 X))))))) (Var 1 F))
   |}];
 
   (*
@@ -301,9 +279,6 @@ let%expect_test "from_erlang" =
   (*
    * fun () -> A = 1, B = 2, A + B end
    *)
-    (*
-   * fun () -> A = 1, B = 2, A + B end
-   *)
   print (ExprFun {line=1; name=None;
                   clauses=[ClsFun {line=1; patterns=[]; guard_sequence=None;
                                    body=ExprBody {exprs=[ExprMatch {line=1; pattern=PatVar {line=1; id="A"}; body=ExprLit {lit=LitInteger {line=1; integer=1}}};
@@ -314,24 +289,20 @@ let%expect_test "from_erlang" =
       (args ())
       (body (
         Case
-        (Tuple ())
+        (Constant 1 (Number 1))
         ((
-          ((PatTuple ()) (Constant 1 (Atom true)))
+          ((PatVar A) (Constant 1 (Atom true)))
           (Case
-            (Constant 1 (Number 1))
+            (Constant 1 (Number 2))
             ((
-              ((PatVar A) (Constant 1 (Atom true)))
-              (Case
-                (Constant 1 (Number 2))
-                ((
-                  ((PatVar B) (Constant 1 (Atom true)))
-                  (App
-                    (MFA
-                      (module_name   (Constant 1 (Atom   erlang)))
-                      (function_name (Constant 1 (Atom   +)))
-                      (arity         (Constant 1 (Number 2))))
-                    ((Var 1 A)
-                     (Var 1 B)))))))))))))))
+              ((PatVar B) (Constant 1 (Atom true)))
+              (App
+                (MFA
+                  (module_name   (Constant 1 (Atom   erlang)))
+                  (function_name (Constant 1 (Atom   +)))
+                  (arity         (Constant 1 (Number 2))))
+                ((Var 1 A)
+                 (Var 1 B))))))))))))
   |}]
 
 

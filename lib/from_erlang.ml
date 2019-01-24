@@ -288,7 +288,7 @@ and function_of_clauses clauses =
        Case (fresh_tuple, cs)
      in
      match cs with
-     | ((PatTuple patterns, Constant (-1, Atom ("true"))), body)::[] ->
+     | ((PatTuple patterns, Constant (_line, Atom ("true"))), body)::[] ->
         let all_pattern_is_var = patterns |> List.for_all ~f:(function
        | PatVar _ -> true
        | _ -> false
