@@ -158,16 +158,73 @@ and inf_elem ty1 ty2 =  (* ty1 and ty2 should be a TyNumber, TySingleton, TyAtom
   | (_, _) ->
      None
 
-let rec of_erlang = function
+let rec of_absform = function
+  | F.TyAnn {tyvar; _} -> of_absform tyvar
+  | F.TyLit {lit=LitAtom {atom; _}} -> of_elem (TySingleton (Atom atom))
+  | F.TyLit {lit=LitInteger {integer; _}} -> of_elem (TySingleton (Number integer))
+  | F.TyPredef {name="any"; args=[]; _} | F.TyPredef {name="term"; args=[]; _} ->
+     TyAny
+  | F.TyPredef {name="none"; args=[]; _} ->
+     TyBottom
+  | F.TyPredef {name="atom"; args=[]; _} ->
+     of_elem TyAtom
+  | F.TyPredef {name="number"; args=[]; _} ->
+     of_elem TyNumber
+  | F.TyPredef {name="boolean"; args=[]; _} ->
+     bool
+  | F.TyVar {id; _} -> of_elem (TyVar (Type_variable.of_string id))
+  | F.TyFun {params; ret; _} ->
+     of_elem (TyFun(List.map ~f:of_absform params, of_absform ret))
+  | F.TyTuple {elements=ts; _} ->
+     of_elem (TyTuple (List.map ~f:of_absform ts))
   | F.TyUnion {elements; _} ->
-     TyUnion (List.map ~f:elem_of_erlang elements)
-  | t ->
-     of_elem (elem_of_erlang t)
-and elem_of_erlang = function
-  | F.TyPredef {name="number"; args=[]; _} -> TyNumber
-  | F.TyLit {lit=LitAtom {atom; _}} -> TySingleton (Atom atom)
-  | F.TyVar {id; _} -> TyVar (Type_variable.of_string id)
-  | TyFun {params; ret; _} ->
-     TyFun(List.map ~f:of_erlang params, of_erlang ret)
-  | other ->
-     failwith (!%"not implemented conversion from type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))
+     List.map ~f:of_absform elements
+     |> union_list
+  | F.TyPredef {name="pid"; args=[]; _}
+  | F.TyPredef {name="port"; args=[]; _}
+  | F.TyPredef {name="reference"; args=[]; _}
+  | F.TyPredef {name="float"; args=[]; _}
+  | F.TyPredef {name="integer"; args=[]; _}
+  | F.TyPredef {name="binary"; args=[]; _}
+  | F.TyPredef {name="bitstring"; args=[]; _}
+  | F.TyPredef {name="byte"; args=[]; _}
+  | F.TyPredef {name="char"; args=[]; _}
+  | F.TyPredef {name="nil"; args=[]; _}
+  | F.TyPredef {name="list"; args=[]; _}
+  | F.TyPredef {name="list"; args=[_]; _}
+  | F.TyPredef {name="maybe_improper_list"; args=[]; _}
+  | F.TyPredef {name="maybe_improper_list"; args=[_; _]; _}
+  | F.TyPredef {name="non_empty_list"; args=[]; _}
+  | F.TyPredef {name="non_empty_list"; args=[_]; _}
+  | F.TyPredef {name="iodata"; args=[]; _}
+  | F.TyPredef {name="iolist"; args=[]; _}
+  | F.TyPredef {name="function"; args=[]; _}
+  | F.TyPredef {name="module"; args=[]; _}
+  | F.TyPredef {name="mfa"; args=[]; _}
+  | F.TyPredef {name="arity"; args=[]; _}
+  | F.TyPredef {name="identifier"; args=[]; _}
+  | F.TyPredef {name="node"; args=[]; _}
+  | F.TyPredef {name="timeout"; args=[]; _}
+  | F.TyPredef {name="no_return"; args=[]; _}
+  | F.TyBitstring _
+  | F.TyBinOp _
+  | F.TyUnaryOp _
+  | F.TyRange _
+  | F.TyAnyMap _
+  | F.TyMap _
+  | F.TyFunAny _
+  | F.TyFunAnyArity _
+  | F.TyContFun _
+  | F.TyAnyTuple _
+  | F.TyUser _
+  | F.TyLit _
+    as other ->
+     Log.debug [%here] "not implemented conversion from type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
+     of_elem (TySingleton (Atom "not_implemented"))
+  | F.TyPredef {line; name; args} ->
+     failwith (!%"Prease report: ")
+
+
+let of_absform f =
+  Log.debug [%here] "Type.of_absform: %s" (F.sexp_of_type_t f |> Sexp.to_string_hum);
+  of_absform f
