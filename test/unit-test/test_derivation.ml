@@ -196,6 +196,10 @@ let%expect_test "derivation" =
   [%expect {|
     (Ok ("fun((a) -> a)" Empty)) |}];
 
+  print Context.empty (Abs {args=["x"; "y"; "z"]; body=Var (1,"x")});
+  [%expect {|
+  (Ok ("fun((a, b, c) -> a)" Empty)) |}];
+
   print Context.empty (App (Constant (1, Number 57), [Constant (2, Number 42)]));
   [%expect {|
     (Ok (
