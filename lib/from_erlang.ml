@@ -168,15 +168,6 @@ and extract_match_expr e =
   in
   let (es, _) = extract_match_expr' [] true e in List.rev es
 
-(*
-(* [e1; e2; ...] という式の列を let _ = e1 in let _ = e2 ... in という１つの式にする *)
-let rec expr_of_exprs = function
-  | [] -> unit
-  | [e] -> e
-  | e :: es ->
-     Let ("_", e, expr_of_exprs es)
-*)
-
 let expr_of_atom_or_var = function
   | F.AtomVarAtom {line; atom} -> Constant (line, Atom atom)
   | AtomVarVar {line; id} -> Var (line, id)
