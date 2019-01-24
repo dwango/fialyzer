@@ -28,21 +28,13 @@ let qualifier_of_etf etf =
 type number =
   | IntRange of {min: min; max: max}
   | IntSet of {set: int list}
-  | Integer (* integer() *)
-  | Float   (* float()   *)
-  | All     (* number()  *)
+  | AnyInteger (* integer() *)
+  | AnyFloat   (* float()   *)
+  | AnyNumber     (* number()  *)
 and min = Min of int | NegativeInfinity
 and max = Max of int | Infinity
 [@@deriving show, sexp_of]
 
-
-type t_map_mandatoriness = Mandatory | Optional
-[@@deriving show, sexp_of]
-
-let mandatoriness_of_etf = function
-  | Etf.Atom "mandatory" -> Ok Mandatory
-  | Atom "optional" -> Ok Optional
-  | other -> Error (Failure (!%"mandatoriness_of_etf error: %s" (E.show_etf other)))
 
 type tag = AtomTag | BinaryTag | FunctionTag | IdentifierTag | ListTag | MapTag
            | MatchstateTag | NilTag | NumberTag | OpaqueTag | ProductTag
@@ -72,13 +64,12 @@ let tag_of_etf etf =
   E.atom_of_etf etf >>= fun atom ->
   tag_of_atom atom
 
-type ident_type = IAny | IPort | IPid | IReference
+type ident_type = IPort | IPid | IReference
 [@@deriving show, sexp_of]
 
 let ident_type_of_etf etf =
   let open Result in
   let tag_of_atom = function
-    | "any" -> Ok IAny
     | "port" -> Ok IPort
     | "pid" -> Ok IPid
     | "reference" -> Ok IReference
@@ -107,22 +98,27 @@ type t =
   | None
   | Unit (* no_return *)
   | AnyAtom
-  | Atom of {atoms_union: string list}
+  | AtomUnion of string list
   | Binary of {unit: int; base:int}
   | Function of {params: t list; ret: t}
-  | Identifier of {idents_union: ident_type list}
-  | List of {elem_type: t; term_type: t; is_nonempty: bool}
+  | AnyIdentifier
+  | IdentifierUnion of ident_type list
+  | List of {elem_type: t; terminal_type: t; is_nonempty: bool}
   | Nil
   | Number of number
-  | Map of t_map_pair list * t * t
-  | Opaque of {opaques_union: opaque list}
-  | Var of {id: var_id}
+  | AnyMap
+  | Map of {map_pairs: map_pair list; dict: key_value_pair} (* Map can be used as a map or a dictionary, or both *)
+  | OpaqueUnion of opaque list
+  | Var of var_id
   | AnyTuple
   | Tuple of tuple
-  | TupleSet of {n_tuples_union: n_tuples list}
+  | NTuplesUnion of n_tuples list
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
-and t_map_pair = t * t_map_mandatoriness * t
+and map_pair =
+  | MandatoryPair of key_value_pair
+  | OptionalPair of key_value_pair
+and key_value_pair = {key: t; value: t}
 and opaque = {
     mod_ : string;
     name : string;
@@ -159,8 +155,8 @@ let rec of_etf = function
             Ok (AnyAtom)
         | _ ->
            E.list_of_etf elements>>= fun elems ->
-           result_map_m ~f:E.atom_of_etf elems >>= fun atoms_union ->
-           Ok (Atom {atoms_union})
+           result_map_m ~f:E.atom_of_etf elems >>= fun atoms ->
+           Ok (AtomUnion atoms)
         end
      | BinaryTag ->
         E.list_of_etf elements >>= fun elems ->
@@ -190,21 +186,26 @@ let rec of_etf = function
            Error(Failure (!%"tyfun_of_etf: unsupported"))
         end
      | IdentifierTag ->
-        (E.list_of_etf elements @? "Identifier") >>= fun elems ->
-        result_map_m ~f:ident_type_of_etf elems >>= fun idents_union ->
-        Ok (Identifier {idents_union})
+        begin match elements with
+        | Etf.Atom "any" ->
+            Ok (AnyIdentifier)
+        | _ ->
+            (E.list_of_etf elements @? "Identifier") >>= fun elems ->
+            result_map_m ~f:ident_type_of_etf elems >>= fun identifiers ->
+            Ok (IdentifierUnion identifiers)
+        end
      | ListTag ->
         E.list_of_etf elements >>= fun elems ->
         begin match elems with
-        | [elem_type_etf; term_type_etf] ->
+        | [elem_type_etf; terminal_type_etf] ->
            of_etf elem_type_etf >>= fun elem_type ->
-           of_etf term_type_etf >>= fun term_type ->
+           of_etf terminal_type_etf >>= fun terminal_type ->
            qualifier_of_etf qualifier_etf >>= fun qualifier ->
            let is_nonempty = begin match qualifier with
            | NonemptyQual -> true
            | _ -> false
            end in
-           Ok (List {elem_type; term_type; is_nonempty})
+           Ok (List {elem_type; terminal_type; is_nonempty})
         | _ ->
            Error (Failure (!%"ListTag:%s" (E.show_etf elements)))
         end
@@ -214,11 +215,11 @@ let rec of_etf = function
         E.atom_of_etf qualifier_etf >>= fun qual ->
         begin match (qual, E.atom_of_etf elements) with
         | ("float", Ok "any") ->
-           Ok (Number Float)
+           Ok (Number AnyFloat)
         | ("unknown", Ok "any") ->
-           Ok (Number All)
+           Ok (Number AnyNumber)
         | ("integer", Ok "any") ->
-           Ok (Number Integer)
+           Ok (Number AnyInteger)
         | ("integer", Error _) ->
            E.tuple_of_etf elements >>= fun elems ->
            begin match elems with
@@ -244,19 +245,23 @@ let rec of_etf = function
      | MapTag ->
         E.tuple_of_etf elements >>= fun elems ->
         begin match elems with
-        | [pairs_etf; defkey_etf; defval_etf] ->
-           of_etf defkey_etf >>= fun defkey ->
-           of_etf defval_etf >>= fun defval ->
-           E.list_of_etf pairs_etf >>= fun pair_etfs ->
-           result_map_m ~f:t_map_pair_of_etf pair_etfs >>= fun t_map_dict ->
-           Ok (Map (t_map_dict, defkey, defval))
+        | [map_pairs_etf; dict_key_etf; dict_value_etf] ->
+           of_etf dict_key_etf >>= fun dict_key ->
+           of_etf dict_value_etf >>= fun dict_value ->
+           E.list_of_etf map_pairs_etf >>= fun pair_etfs ->
+           result_map_m ~f:map_pair_of_etf pair_etfs >>= fun map_pairs ->
+           let dict = {key=dict_key; value=dict_value} in
+           begin match (map_pairs, dict_key, dict_value) with
+           | ([], Any, Any) -> Ok AnyMap
+           | _ -> Ok (Map {map_pairs; dict})
+           end
         | _ ->
            Error (Failure "erl_types(MapTag)")
         end
      | OpaqueTag ->
         E.list_of_etf elements >>= fun elems ->
-        result_map_m ~f:opaque_of_etf elems >>= fun opaques_union ->
-        Ok (Opaque {opaques_union})
+        result_map_m ~f:opaque_of_etf elems >>= fun opaques ->
+        Ok (OpaqueUnion opaques)
      | TupleTag ->
         E.pair_of_etf qualifier_etf >>= fun (arity_etf, tag_etf) ->
         begin match elements, arity_etf, tag_etf with
@@ -270,7 +275,7 @@ let rec of_etf = function
            begin match tag_t with
            | Any ->
               Ok (Tuple {types; arity; tag=None})
-           | Atom {atoms_union=[atom]} ->
+           | AtomUnion [atom] ->
               Ok (Tuple {types; arity; tag=Some atom})
            | other ->
               Error (Failure (!%"Please report: unexpected tag of tuple: '%s'" (E.show_etf tag_etf)))
@@ -281,7 +286,7 @@ let rec of_etf = function
           (E.int_of_etf elements >>| fun i -> VInt i)
           (E.atom_of_etf elements >>| fun id -> VAtom id)
         >>= fun id ->
-        Ok (Var {id})
+        Ok (Var id)
      | TupleSetTag ->
         E.list_of_etf elements >>= fun elems ->
         let tuple_of_etf etf =
@@ -300,8 +305,8 @@ let rec of_etf = function
             Ok {n; tuples}
           )
         in
-        result_map_m ~f:n_tuples_of_etf elems >>= fun n_tuples_union ->
-          Ok (TupleSet {n_tuples_union})
+        result_map_m ~f:n_tuples_of_etf elems >>= fun n_tuples_list ->
+          Ok (NTuplesUnion n_tuples_list)
      | UnionTag ->
         E.list_of_etf elements >>= fun elems ->
         result_map_m ~f:of_etf elems >>= fun tys ->
@@ -324,14 +329,18 @@ and opaque_of_etf elem =
      Ok {mod_; name; args; struct_}
   | other ->
      Error (Failure "opaque_of_etf")
-and t_map_pair_of_etf etf =
+and map_pair_of_etf map_pair_etf =
   let open Result in
-  E.tuple_of_etf etf >>= fun es ->
-  match es with
-  | [ty_etf1; mand_etf; ty_etf2] ->
-     of_etf ty_etf1 >>= fun ty1 ->
-     of_etf ty_etf2 >>= fun ty2 ->
-     mandatoriness_of_etf mand_etf >>= fun mand ->
-     Ok (ty1, mand, ty2)
+  E.tuple_of_etf map_pair_etf >>= fun map_pair ->
+  match map_pair with
+  | [key_etf; mandatoriness_etf; value_etf] ->
+     of_etf key_etf >>= fun key ->
+     of_etf value_etf >>= fun value ->
+
+     begin match mandatoriness_etf with
+       | Etf.Atom "mandatory" -> Ok (MandatoryPair {key; value})
+       | Atom "optional" -> Ok (OptionalPair {key; value})
+       | other -> Error (Failure (!%"map_pair_of_etf mandatoriness error: %s" (E.show_etf other)))
+     end
   | _ ->
-     Error (Failure "t_map_pair_of_etf")
+     Error (Failure "map_pair_of_etf")

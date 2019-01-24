@@ -5,10 +5,7 @@ module Etf = Obeam.External_term_format
 type qualifier
 [@@deriving show, sexp_of]
 
-type t_map_mandatoriness
-[@@deriving show, sexp_of]
-
-type ident_type = IAny | IPort | IPid | IReference
+type ident_type = IPort | IPid | IReference
 [@@deriving show, sexp_of]
 
 type var_id
@@ -34,22 +31,27 @@ type t =
   | None
   | Unit (* no_return *)
   | AnyAtom
-  | Atom of {atoms_union: string list}
+  | AtomUnion of string list
   | Binary of {unit: int; base:int}
   | Function of {params: t list; ret: t}
-  | Identifier of {idents_union: ident_type list}
-  | List of {elem_type: t; term_type: t; is_nonempty: bool}
+  | AnyIdentifier
+  | IdentifierUnion of ident_type list
+  | List of {elem_type: t; terminal_type: t; is_nonempty: bool}
   | Nil
   | Number of number
-  | Map of t_map_pair list * t * t
-  | Opaque of {opaques_union: opaque list}
-  | Var of {id: var_id}
+  | AnyMap
+  | Map of {map_pairs: map_pair list; dict: key_value_pair} (* Map can be used as a map or a dictionary, or both *)
+  | OpaqueUnion of opaque list
+  | Var of var_id
   | AnyTuple
   | Tuple of tuple
-  | TupleSet of {n_tuples_union: n_tuples list}
+  | NTuplesUnion of n_tuples list
   (* | Matchstate of p * slots : TODO *)
   | Union of t list
-and t_map_pair = t * t_map_mandatoriness * t
+and map_pair =
+  | MandatoryPair of key_value_pair
+  | OptionalPair of key_value_pair
+and key_value_pair = {key: t; value: t}
 and opaque = {
     mod_ : string;
     name : string;
