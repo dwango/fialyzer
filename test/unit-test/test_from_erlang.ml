@@ -295,7 +295,45 @@ let%expect_test "from_erlang" =
       ((PatVar B) (Constant 1 (Atom true)))
       (Case
         (Constant 1 (Number 1))
-        ((((PatVar A) (Constant 1 (Atom true))) (Constant 1 (Number 1)))))))) |}]
+        ((((PatVar A) (Constant 1 (Atom true))) (Constant 1 (Number 1)))))))) |}];
+
+
+  (*
+   * fun () -> A = 1, B = 2, A + B end
+   *)
+    (*
+   * fun () -> A = 1, B = 2, A + B end
+   *)
+  print (ExprFun {line=1; name=None;
+                  clauses=[ClsFun {line=1; patterns=[]; guard_sequence=None;
+                                   body=ExprBody {exprs=[ExprMatch {line=1; pattern=PatVar {line=1; id="A"}; body=ExprLit {lit=LitInteger {line=1; integer=1}}};
+                                                         ExprMatch {line=1; pattern=PatVar {line=1; id="B"}; body=ExprLit {lit=LitInteger {line=1; integer=2}}};
+                                                         ExprBinOp {line=1; op="+"; lhs=ExprVar {line=1; id="A"}; rhs=ExprVar {line=1; id="B"}}]}}]});
+  [%expect {|
+    (Abs (
+      (args ())
+      (body (
+        Case
+        (Tuple ())
+        ((
+          ((PatTuple ()) (Constant 1 (Atom true)))
+          (Case
+            (Constant 1 (Number 1))
+            ((
+              ((PatVar A) (Constant 1 (Atom true)))
+              (Case
+                (Constant 1 (Number 2))
+                ((
+                  ((PatVar B) (Constant 1 (Atom true)))
+                  (App
+                    (MFA
+                      (module_name   (Constant 1 (Atom   erlang)))
+                      (function_name (Constant 1 (Atom   +)))
+                      (arity         (Constant 1 (Number 2))))
+                    ((Var 1 A)
+                     (Var 1 B)))))))))))))))
+  |}]
+
 
 let%expect_test "extract_match_expr" =
   let print expr =
