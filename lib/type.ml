@@ -222,9 +222,4 @@ let rec of_absform = function
      Log.debug [%here] "not implemented conversion from type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
      of_elem (TySingleton (Atom "not_implemented"))
   | F.TyPredef {line; name; args} ->
-     failwith (!%"Prease report: ")
-
-
-let of_absform f =
-  Log.debug [%here] "Type.of_absform: %s" (F.sexp_of_type_t f |> Sexp.to_string_hum);
-  of_absform f
+     failwith (!%"Prease report: line:%d: unexpected predef type: '%s/%d'" line name (List.length args))
