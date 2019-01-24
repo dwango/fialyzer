@@ -5,12 +5,12 @@ open Polymorphic_compare
 module F = Abstract_format
 open Common
 
-let unit : Ast.t = Constant (Number 0)
+let unit : Ast.t = Constant (-1, Number 0)
 
 let const_of_literal = function
-  | F.LitAtom {atom; _} -> Constant.Atom atom
-  | LitChar {uchar; _} -> Constant.Number (Uchar.to_scalar uchar)
-  | LitInteger {integer; _} -> Constant.Number integer
+  | F.LitAtom {line; atom} -> (line, Constant.Atom atom)
+  | LitChar {line; uchar} -> (line, Constant.Number (Uchar.to_scalar uchar))
+  | LitInteger {line; integer} -> (line, Constant.Number integer)
   | LitBigInt _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/93"]; message="support bigint literal"}))
   | LitString _ ->
@@ -18,18 +18,22 @@ let const_of_literal = function
      failwith "cannot reach here"
 
 let expr_of_literal = function
-  | F.LitString {str; _} ->
+  | F.LitString {line; str} ->
      (* string is a list of chars in Erlang *)
      let l = String.to_list_rev str in
-     List.fold_left l ~init:ListNil ~f:(fun acc c -> ListCons (Constant (Number (Char.to_int c)), acc))
-  | l -> Constant (const_of_literal l)
+     List.fold_left l ~init:ListNil ~f:(fun acc c -> ListCons (Constant (line, Number (Char.to_int c)), acc))
+  | l -> 
+     let (line, c) = const_of_literal l in 
+     Constant(line, c)
 
 let pattern_of_literal = function
   | F.LitString {str; _} ->
      (* string is a list of chars in Erlang *)
      let l = String.to_list_rev str in
      List.fold_left l ~init:PatNil ~f:(fun acc c -> PatCons (PatConstant (Number (Char.to_int c)), acc))
-  | l -> PatConstant (const_of_literal l)
+  | l -> 
+     let (_, c) = const_of_literal l in 
+     PatConstant c
 
 (* Extracts nested match expressions.
  * e.g.,
@@ -162,16 +166,15 @@ and extract_match_expr e =
        let (acc, v') = extract_match_expr' acc false a.value in
        (acc, F.ExprAssocExact {a with key = k'; value = v'})
   in
-  let (es, _) = extract_match_expr' [] true e in
-  List.rev es
+  let (es, _) = extract_match_expr' [] true e in List.rev es
 
 let expr_of_atom_or_var = function
-  | F.AtomVarAtom {atom; _} -> Constant (Atom atom)
-  | AtomVarVar {id; _} -> Var id
+  | F.AtomVarAtom {line; atom} -> Constant (line, Atom atom)
+  | AtomVarVar {line; id} -> Var (line, id)
 
 let expr_of_integer_or_var = function
-  | F.IntegerVarInteger {integer; _} -> Constant (Number integer)
-  | IntegerVarVar {id; _} -> Var id
+  | F.IntegerVarInteger {line; integer} -> Constant (line, Number integer)
+  | IntegerVarVar {line; id} -> Var (line, id)
 
 let rec pattern_of_erlang_pattern = function
   | F.PatVar {id; _} -> Ast.PatVar id
@@ -193,11 +196,11 @@ let rec pattern_of_erlang_pattern = function
 let rec expr_of_erlang_exprs = function
   | [] -> unit
   | [e] -> expr_of_erlang_expr' e
-  | F.ExprMatch {pattern; body; _} :: es ->
+  | F.ExprMatch {line; pattern; body} :: es ->
      (* no match expression in `e` by extract_match_expr *)
      let body' = expr_of_erlang_expr' body in
      let es' = expr_of_erlang_exprs es in
-     Case (body', [((pattern_of_erlang_pattern pattern, Constant (Atom "true")), es')])
+     Case (body', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), es')])
   | e :: es ->
      Let ("_", expr_of_erlang_expr' e, expr_of_erlang_exprs es)
 and expr_of_erlang_expr' = function
@@ -205,9 +208,9 @@ and expr_of_erlang_expr' = function
      expr_of_erlang_exprs exprs
   | ExprCase {line; expr; clauses} ->
      let cs = clauses |> List.map ~f:(function
-       | F.ClsCase {pattern; guard_sequence; body; _} ->
+       | F.ClsCase {line; pattern; guard_sequence; body; _} ->
           if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
-          ((pattern_of_erlang_pattern pattern, Constant (Atom "true")), expr_of_erlang_expr' body)
+          ((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), expr_of_erlang_expr' body)
        | F.ClsFun _ ->
           failwith "cannot reach here"
     ) in
@@ -218,11 +221,11 @@ and expr_of_erlang_expr' = function
      MFA {module_name = expr_of_atom_or_var module_name;
           function_name = expr_of_atom_or_var function_name;
           arity = expr_of_integer_or_var arity}
-  | ExprFun {name; clauses; _} ->
+  | ExprFun {line; name; clauses} ->
      let fun_abst = function_of_clauses clauses in
      (* If name is omitted, don't create Letrec *)
      (match name with
-     | Some name -> Letrec ([(name, fun_abst)], Var name)
+     | Some name -> Letrec ([(name, fun_abst)], Var (line, name))
      | None -> Abs fun_abst
      )
   | ExprLocalCall {function_expr=ExprLit {lit=LitAtom {atom=function_name; _}}; args; _} ->
@@ -230,30 +233,30 @@ and expr_of_erlang_expr' = function
      App (LocalFun{function_name; arity}, List.map ~f:expr_of_erlang_expr' args)
   | ExprLocalCall {function_expr; args; _} ->
      App (expr_of_erlang_expr' function_expr, List.map ~f:expr_of_erlang_expr' args)
-  | ExprRemoteCall {module_expr; function_expr; args; _} ->
+  | ExprRemoteCall {line; module_expr; function_expr; args; _} ->
      let mfa = MFA {
        module_name=expr_of_erlang_expr' module_expr;
        function_name=expr_of_erlang_expr' function_expr;
-       arity=Constant (Number (List.length args))} in
+       arity=Constant (line, Number (List.length args))} in
      App (mfa, List.map ~f:expr_of_erlang_expr' args)
-  | ExprMatch {pattern; body; _} ->
+  | ExprMatch {line; pattern; body} ->
      (* There is no match expression in `e` by `extract_match_expr`.
       * Futhermore, this match expression is single or the last of expr sequence because
       * a match expression which has subsequent expressions is caught in `expr_of_erlang_exprs`.
       * Therefore, we can put right-hand side expr of match expression to the return value of case expr.
       *)
      let e' = expr_of_erlang_expr' body in
-     Case (e', [((pattern_of_erlang_pattern pattern, Constant (Atom "true")), e')])
-  | ExprBinOp {op; lhs; rhs; _} ->
+     Case (e', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), e')])
+  | ExprBinOp {line; op; lhs; rhs} ->
      let func = Ast.MFA {
-        module_name = Constant (Atom "erlang");
-        function_name = Constant (Atom op);
-        arity=Constant (Number 2)
+        module_name = Constant (line, Atom "erlang");
+        function_name = Constant (line, Atom op);
+        arity=Constant (line, Number 2)
      } in
      App(func, List.map ~f:expr_of_erlang_expr' [lhs; rhs])
   | ExprTuple {elements; _} ->
      Tuple (List.map ~f:expr_of_erlang_expr' elements)
-  | ExprVar {id; _} -> Var id
+  | ExprVar {line; id} -> Var (line, id)
   | ExprLit {lit} -> expr_of_literal lit
   | ExprCons {head; tail; _} -> ListCons (expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
   | ExprNil _line_t -> ListNil
@@ -271,21 +274,21 @@ and function_of_clauses clauses =
     in
     let (cs, arities) = clauses |> List.map ~f:(function
     | F.ClsCase _ -> failwith "cannot reach here"
-    | F.ClsFun {patterns; body; _} ->
+    | F.ClsFun {line; patterns; body; _} ->
       (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
       let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
       let arity = List.length ps in
       let tuple_pattern = PatTuple ps in
-      (((tuple_pattern, Constant (Atom ("true"))), expr_of_erlang_expr' body), arity)
+      (((tuple_pattern, Constant (line, Atom ("true"))), expr_of_erlang_expr' body), arity)
     ) |> List.unzip in
      let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
      let make_case cs fresh_variables =
-       let fresh_tuple = Tuple (fresh_variables |> List.map ~f:(fun v -> Var v)) in
+       let fresh_tuple = Tuple (fresh_variables |> List.map ~f:(fun v -> Var (-1, v))) in
        (* letrec $name = fun $name(A1, A2, ...) -> b1; $name(B1, B2, ...)-> b2; ... end in $name *)
        Case (fresh_tuple, cs)
      in
      match cs with
-     | ((PatTuple patterns, Constant (Atom ("true"))), body)::[] ->
+     | ((PatTuple patterns, Constant (_line, Atom ("true"))), body)::[] ->
         let all_pattern_is_var = patterns |> List.for_all ~f:(function
        | PatVar _ -> true
        | _ -> false
@@ -306,8 +309,7 @@ and function_of_clauses clauses =
         let fresh_variables = (make_fresh_variables arity) in
         {args=fresh_variables; body=make_case cs fresh_variables}
 
-let expr_of_erlang_expr e =
-  e |> extract_toplevel |> expr_of_erlang_expr'
+let expr_of_erlang_expr e = e |> extract_toplevel |> expr_of_erlang_expr'
 
 let forms_to_functions forms =
   let find_specs fun_name =
@@ -361,7 +363,7 @@ let module_to_expr m =
   let body =
     funs
     |> List.map ~f:(fun (name, ({args; body}: fun_abst)) ->
-                  Tuple [Constant (Atom name); LocalFun {function_name=name; arity=List.length args}])
+                  Tuple [Constant (-1, Atom name); LocalFun {function_name=name; arity=List.length args}])
     |> (fun es -> Tuple es)
   in
   Letrec(funs, body)

@@ -7,16 +7,16 @@ open Result
 let new_tyvar () = Type.of_elem (TyVar (Type_variable.create()))
 
 let rec derive context = function
-  | Constant c ->
+  | Constant (_line, c) ->
      Ok (Type.of_elem (TySingleton c), Empty)
-  | Var v ->
+  | Var (line, v) ->
      begin match Context.find context (Context.Key.Var v) with
      | Some ty ->
         Ok (ty, Empty)
      | None ->
         let filename = "TODO:filename" in
-        let line = -1 (*TODO: line*) in
-        Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=Var v}))
+        let line_in_file = line in
+        Error Known_error.(FialyzerError (UnboundVariable {filename; line=line_in_file; variable=Var v}))
      end
   | Tuple exprs ->
      result_map_m ~f:(derive context) exprs
@@ -89,7 +89,7 @@ let rec derive context = function
         let line = -1 (*TODO: line*) in
         Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=key}))
      end
-  | MFA {module_name = Constant (Atom m); function_name = Constant (Atom f); arity = Constant (Number a)} ->
+  | MFA {module_name = Constant (_line_m, Atom m); function_name = Constant (_line_f, Atom f); arity = Constant (line_a, Number a)} ->
      (* find MFA from context *)
      let mfa = Context.Key.MFA {module_name=m; function_name=f; arity=a} in
      begin match Context.find context mfa with
@@ -117,9 +117,9 @@ let rec derive context = function
   | Case (e, clauses) ->
     (* translate pattern to expression *)
     let rec pattern_to_expr = function
-      | PatVar v -> Var v
+      | PatVar v -> Var (-1, v)
       | PatTuple es -> Tuple (es |> List.map ~f:(fun e -> pattern_to_expr e))
-      | PatConstant c -> Constant c
+      | PatConstant c -> Constant (-1, c)
       | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
       | PatNil -> ListNil
     in
