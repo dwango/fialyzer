@@ -316,9 +316,9 @@ let forms_to_functions forms =
     List.find_map ~f:(function
                       | F.SpecFun {function_name; arity; specs; _} when fun_name = function_name ->
                          List.map ~f:(fun ty ->
-                                    match Type.of_erlang ty with
+                                    match Type.of_absform ty with
                                     | Type.(TyUnion [Type.TyFun (domains, range)]) -> (domains, range)
-                                    | _ -> failwith (!%"unexpected type spec of %s" function_name))
+                                    | other -> failwith (!%"unexpected type spec of %s/%d: %s: %s" function_name arity (Type.pp other) (F.sexp_of_type_t ty |> Sexp.to_string_hum)))
                                   specs
                          |> Option.return
                       | _ -> None) forms
