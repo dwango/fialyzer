@@ -49,9 +49,10 @@ let code_of_file beam_filename =
 let check_module beam_filename =
   code_of_file beam_filename >>= fun code ->
   From_erlang.code_to_expr code >>= fun expr ->
-  Derivation.derive (Context.init ()) expr >>= fun (_ty, c) ->
-  Solver.solve Solver.init c >>= fun _sol ->
+  Derivation.derive (Context.init ()) expr >>= fun (ty, c) ->
   Log.debug [%here] "Constraints:\n%s" (Type.show_constraint c);
+  Solver.solve Solver.init c >>= fun sol ->
+  Log.debug [%here] "Types:\n%s" (Solver.lookup_type sol ty |> Type.pp);
   Ok ()
 
 let () =
