@@ -18,7 +18,7 @@ let rec derive context = function
         let line_in_file = line in
         Error Known_error.(FialyzerError (UnboundVariable {filename; line=line_in_file; variable=Var v}))
      end
-  | Tuple exprs ->
+  | Tuple (_line, exprs) ->
      result_map_m ~f:(derive context) exprs
      >>| List.unzip
      >>| fun (tys, cs) -> (Type.of_elem (TyTuple tys), Conj cs)
@@ -118,7 +118,7 @@ let rec derive context = function
     (* translate pattern to expression *)
     let rec pattern_to_expr = function
       | PatVar v -> Var (-1, v)
-      | PatTuple es -> Tuple (es |> List.map ~f:(fun e -> pattern_to_expr e))
+      | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
       | PatConstant c -> Constant (-1, c)
       | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
       | PatNil -> ListNil

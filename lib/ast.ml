@@ -13,7 +13,7 @@ type line = int
 type t =
     | Constant of line * Constant.t
     | Var of line * string
-    | Tuple of t list
+    | Tuple of line * t list
     | App of t * t list
     | Abs of fun_abst
     | Let of string * t * t
@@ -32,6 +32,20 @@ and pattern' =
     | PatCons of pattern' * pattern'
     | PatNil
 [@@deriving sexp_of]
+
+let line_number_of_t = function
+| Constant (line, _) -> line
+| Var (line, _) -> line
+| Tuple (line, _) -> line
+| App (_, _) -> -1
+| Abs (_) -> -1
+| Let (_, _, _) -> -1
+| Letrec (_) -> -1
+| Case (_, _) -> -1
+| LocalFun _ -> -1
+| MFA _ -> -1
+| ListCons (_, _) -> -1
+| ListNil -> -1
 
 let string_of_t t =
   [%sexp_of: t] t |> Sexplib.Sexp.to_string_hum ~indent:2
