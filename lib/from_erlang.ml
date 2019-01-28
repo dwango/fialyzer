@@ -280,18 +280,19 @@ and function_of_clauses clauses =
       let tuple_pattern = PatTuple ps in
       (((tuple_pattern, Constant (line, Atom ("true"))), expr_of_erlang_expr' body), arity)
     ) |> List.unzip in
-     let line_number_of_clause = (function
+     let line_number_of_clause = function
      | ((PatTuple _patterns, _), term) -> Ast.line_number_of_t term
      | ((PatConstant _, _), term) -> Ast.line_number_of_t term
      | ((PatCons (_, _), _), term) -> Ast.line_number_of_t term
      | ((PatVar _, _), term) -> Ast.line_number_of_t term
      | ((PatNil, _), term) -> Ast.line_number_of_t term
-     ) in
+     in
      let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
      let make_case cs fresh_variables =
+       let line = line_number_of_clause (List.hd_exn cs) in
        let fresh_tuple = Tuple (
-         line_number_of_clause (List.hd_exn cs),
-         fresh_variables |> List.map ~f:(fun v -> Var (-1, v))
+         line,
+         fresh_variables |> List.map ~f:(fun v -> Var (line, v))
        ) in
        (* letrec $name = fun $name(A1, A2, ...) -> b1; $name(B1, B2, ...)-> b2; ... end in $name *)
        Case (fresh_tuple, cs)

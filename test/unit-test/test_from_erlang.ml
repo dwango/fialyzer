@@ -57,7 +57,7 @@ let%expect_test "code_to_module" =
           (args (__A__))
           (body (
             Case
-            (Tuple 111 ((Var -1 __A__)))
+            (Tuple 111 ((Var 111 __A__)))
             ((((PatTuple ((PatConstant (Atom a)))) (Constant 111 (Atom true)))
               (Constant 111 (Number 10)))
              (((PatTuple ((PatConstant (Atom b)))) (Constant 111 (Atom true)))
@@ -133,8 +133,8 @@ let%expect_test "from_erlang" =
       (body (
         Case
         (Tuple 1 (
-          (Var -1 __A__)
-          (Var -1 __B__)))
+          (Var 1 __A__)
+          (Var 1 __B__)))
         ((((PatTuple (
              (PatVar X)
              (PatTuple (
@@ -165,7 +165,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple 1 ((Var -1 __A__)))
+        (Tuple 1 ((Var 1 __A__)))
         ((
           ((PatTuple ((PatConstant (Atom x)))) (Constant 1 (Atom true)))
           (Constant 1 (Atom y))))))))
@@ -183,7 +183,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple 1 ((Var -1 __A__)))
+        (Tuple 1 ((Var 1 __A__)))
         ((
           ((PatTuple ((PatConstant (Number 42)))) (Constant 1 (Atom true)))
           (Constant 1 (Number 43))))))))
@@ -224,7 +224,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple 1 ((Var -1 __A__)))
+        (Tuple 1 ((Var 1 __A__)))
         ((
           ((PatTuple ((
              PatCons

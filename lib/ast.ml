@@ -33,7 +33,7 @@ and pattern' =
     | PatNil
 [@@deriving sexp_of]
 
-let line_number_of_t = (function
+let line_number_of_t = function
 | Constant (line, _) -> line
 | Var (line, _) -> line
 | Tuple (line, _) -> line
@@ -46,7 +46,6 @@ let line_number_of_t = (function
 | MFA _ -> -1
 | ListCons (_, _) -> -1
 | ListNil -> -1
-)
 
 let string_of_t t =
   [%sexp_of: t] t |> Sexplib.Sexp.to_string_hum ~indent:2
