@@ -40,7 +40,7 @@ let%expect_test "derivation" =
   print (Context.add (Context.Key.Var "x") (Type.of_elem TyNumber) Context.empty) (Var (1, "x"));
   [%expect {| (Ok ("number()" Empty)) |}];
 
-  print Context.empty (Tuple [Constant (-1, Number 42); Constant (-1, Atom "x")]);
+  print Context.empty (Tuple (-1, [Constant (-1, Number 42); Constant (-1, Atom "x")]));
   [%expect {|
     (Ok ("{42, 'x'}" (Conj (Empty Empty))))
   |}];
@@ -72,7 +72,7 @@ let%expect_test "derivation" =
    *   {X, Y} when true -> {X, Y}
    * end
    *)
-  print Context.empty (Case (Tuple [Constant (-1, Number 41); Constant (-1, Number 42)], [(PatTuple [PatVar "X"; PatVar "Y"], Constant (-1, Atom "true")), Tuple [Var (-1, "X"); Var (-1, "Y")]]));
+  print Context.empty (Case (Tuple (-1, [Constant (-1, Number 41); Constant (-1, Number 42)]), [(PatTuple [PatVar "X"; PatVar "Y"], Constant (-1, Atom "true")), Tuple (-1, [Var (-1, "X"); Var (-1, "Y")])]));
   [%expect {|
      (Ok (
        a (

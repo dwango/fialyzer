@@ -57,7 +57,7 @@ let%expect_test "code_to_module" =
           (args (__A__))
           (body (
             Case
-            (Tuple ((Var -1 __A__)))
+            (Tuple 111 ((Var -1 __A__)))
             ((((PatTuple ((PatConstant (Atom a)))) (Constant 111 (Atom true)))
               (Constant 111 (Number 10)))
              (((PatTuple ((PatConstant (Atom b)))) (Constant 111 (Atom true)))
@@ -82,7 +82,7 @@ let%expect_test "from_erlang" =
   (* {X, Y, Z} *)
   print (ExprTuple {line=1; elements=[ExprVar {line=1; id="X"}; ExprVar {line=1; id="Y"}; ExprVar {line=1; id="Z"}]});
   [%expect {|
-    (Tuple (
+    (Tuple 1 (
       (Var 1 X)
       (Var 1 Y)
       (Var 1 Z)))
@@ -132,7 +132,7 @@ let%expect_test "from_erlang" =
       (args (__A__ __B__))
       (body (
         Case
-        (Tuple (
+        (Tuple 1 (
           (Var -1 __A__)
           (Var -1 __B__)))
         ((((PatTuple (
@@ -141,7 +141,7 @@ let%expect_test "from_erlang" =
                (PatVar Y)
                (PatVar Z)))))
            (Constant 1 (Atom true)))
-          (Tuple (
+          (Tuple 1 (
             (Var 1 X)
             (Var 1 Y)
             (Var 1 Z))))
@@ -149,7 +149,7 @@ let%expect_test "from_erlang" =
              (PatVar X)
              (PatVar Y)))
            (Constant 1 (Atom true)))
-          (Tuple (
+          (Tuple 1 (
             (Var 1 X)
             (Var 1 Y)))))))))
   |}];
@@ -165,7 +165,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple ((Var -1 __A__)))
+        (Tuple 1 ((Var -1 __A__)))
         ((
           ((PatTuple ((PatConstant (Atom x)))) (Constant 1 (Atom true)))
           (Constant 1 (Atom y))))))))
@@ -183,7 +183,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple ((Var -1 __A__)))
+        (Tuple 1 ((Var -1 __A__)))
         ((
           ((PatTuple ((PatConstant (Number 42)))) (Constant 1 (Atom true)))
           (Constant 1 (Number 43))))))))
@@ -204,7 +204,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple ((Var -1 __A__)))
+        (Tuple -1 ((Var -1 __A__)))
         ((((PatTuple (PatNil)) (Constant 1 (Atom true))) ListNil)
          (((PatTuple ((
              PatCons
@@ -224,7 +224,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple ((Var -1 __A__)))
+        (Tuple 1 ((Var -1 __A__)))
         ((
           ((PatTuple ((
              PatCons

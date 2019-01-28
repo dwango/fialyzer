@@ -254,8 +254,7 @@ and expr_of_erlang_expr' = function
         arity=Constant (line, Number 2)
      } in
      App(func, List.map ~f:expr_of_erlang_expr' [lhs; rhs])
-  | ExprTuple {elements; _} ->
-     Tuple (List.map ~f:expr_of_erlang_expr' elements)
+  | ExprTuple {line; elements} -> Tuple (line, List.map ~f:expr_of_erlang_expr' elements)
   | ExprVar {line; id} -> Var (line, id)
   | ExprLit {lit} -> expr_of_literal lit
   | ExprCons {head; tail; _} -> ListCons (expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
@@ -281,9 +280,19 @@ and function_of_clauses clauses =
       let tuple_pattern = PatTuple ps in
       (((tuple_pattern, Constant (line, Atom ("true"))), expr_of_erlang_expr' body), arity)
     ) |> List.unzip in
+     let line_number_of_clause = (function
+     | ((PatTuple _patterns, _), term) -> Ast.line_number_of_t term
+     | ((PatConstant _, _), term) -> Ast.line_number_of_t term
+     | ((PatCons (_, _), _), term) -> Ast.line_number_of_t term
+     | ((PatVar _, _), term) -> Ast.line_number_of_t term
+     | ((PatNil, _), term) -> Ast.line_number_of_t term
+     ) in
      let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
      let make_case cs fresh_variables =
-       let fresh_tuple = Tuple (fresh_variables |> List.map ~f:(fun v -> Var (-1, v))) in
+       let fresh_tuple = Tuple (
+         line_number_of_clause (List.hd_exn cs),
+         fresh_variables |> List.map ~f:(fun v -> Var (-1, v))
+       ) in
        (* letrec $name = fun $name(A1, A2, ...) -> b1; $name(B1, B2, ...)-> b2; ... end in $name *)
        Case (fresh_tuple, cs)
      in
@@ -363,8 +372,8 @@ let module_to_expr m =
   let body =
     funs
     |> List.map ~f:(fun (name, ({args; body}: fun_abst)) ->
-                  Tuple [Constant (-1, Atom name); LocalFun {function_name=name; arity=List.length args}])
-    |> (fun es -> Tuple es)
+                  Tuple (-1, [Constant (-1, Atom name); LocalFun {function_name=name; arity=List.length args}]))
+    |> (fun es -> Tuple (-1, es))
   in
   Letrec(funs, body)
   |> Result.return
