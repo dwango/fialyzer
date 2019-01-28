@@ -190,6 +190,30 @@ let rec pattern_of_erlang_pattern = function
   | F.PatCons {head; tail; _} ->
      PatCons (pattern_of_erlang_pattern head, pattern_of_erlang_pattern tail)
 
+let rec line_number_of_erlang_expr = function
+| F.ExprBody {exprs} -> line_number_of_erlang_expr (List.hd_exn exprs)
+| ExprCase {line; _} -> line
+| ExprCons {line; _} -> line
+| ExprNil {line} -> line
+| ExprListComprehension {line; _} -> line
+| ExprLocalFunRef {line; _} -> line
+| ExprRemoteFunRef {line; _} -> line
+| ExprFun {line; _} -> line
+| ExprLocalCall {line; _} -> line
+| ExprRemoteCall {line; _} -> line
+| ExprMapCreation {line; _} -> line
+| ExprMapUpdate {line; _} -> line
+| ExprMatch {line; _} -> line
+| ExprBinOp {line; _} -> line
+| ExprTuple {line; _} -> line
+| ExprVar {line; _} -> line
+| ExprLit {lit} ->
+    match lit with
+    | LitAtom {line; _} -> line
+    | LitChar {line; _} -> line
+    | LitInteger {line; _} -> line
+    | LitBigInt {line; _} -> line
+    | LitString {line; _} -> line
 
 (* converts a secuence of expressions `[e1; e2; ...]` to an expression `let _ = e1 in let _ = e2 in ...` *)
 (* assume `extract_toplevel` is applied to the argument *)
@@ -202,7 +226,7 @@ let rec expr_of_erlang_exprs = function
      let es' = expr_of_erlang_exprs es in
      Case (body', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), es')])
   | e :: es ->
-     Let ("_", expr_of_erlang_expr' e, expr_of_erlang_exprs es)
+     Let (line_number_of_erlang_expr e, "_", expr_of_erlang_expr' e, expr_of_erlang_exprs es)
 and expr_of_erlang_expr' = function
   | F.ExprBody {exprs} ->
      expr_of_erlang_exprs exprs
@@ -225,20 +249,20 @@ and expr_of_erlang_expr' = function
      let fun_abst = function_of_clauses clauses in
      (* If name is omitted, don't create Letrec *)
      (match name with
-     | Some name -> Letrec ([(name, fun_abst)], Var (line, name))
-     | None -> Abs fun_abst
+     | Some name -> Letrec (line, [(name, fun_abst)], Var (line, name))
+     | None -> Abs (line, fun_abst)
      )
-  | ExprLocalCall {function_expr=ExprLit {lit=LitAtom {atom=function_name; _}}; args; _} ->
+  | ExprLocalCall {line; function_expr=ExprLit {lit=LitAtom {atom=function_name; _}}; args} ->
      let arity = List.length args in
-     App (LocalFun{function_name; arity}, List.map ~f:expr_of_erlang_expr' args)
-  | ExprLocalCall {function_expr; args; _} ->
-     App (expr_of_erlang_expr' function_expr, List.map ~f:expr_of_erlang_expr' args)
+     App (line, LocalFun{function_name; arity}, List.map ~f:expr_of_erlang_expr' args)
+  | ExprLocalCall {line; function_expr; args} ->
+     App (line, expr_of_erlang_expr' function_expr, List.map ~f:expr_of_erlang_expr' args)
   | ExprRemoteCall {line; module_expr; function_expr; args; _} ->
      let mfa = MFA {
        module_name=expr_of_erlang_expr' module_expr;
        function_name=expr_of_erlang_expr' function_expr;
        arity=Constant (line, Number (List.length args))} in
-     App (mfa, List.map ~f:expr_of_erlang_expr' args)
+     App (line, mfa, List.map ~f:expr_of_erlang_expr' args)
   | ExprMatch {line; pattern; body} ->
      (* There is no match expression in `e` by `extract_match_expr`.
       * Futhermore, this match expression is single or the last of expr sequence because
@@ -253,7 +277,7 @@ and expr_of_erlang_expr' = function
         function_name = Constant (line, Atom op);
         arity=Constant (line, Number 2)
      } in
-     App(func, List.map ~f:expr_of_erlang_expr' [lhs; rhs])
+     App(line, func, List.map ~f:expr_of_erlang_expr' [lhs; rhs])
   | ExprTuple {line; elements} -> Tuple (line, List.map ~f:expr_of_erlang_expr' elements)
   | ExprVar {line; id} -> Var (line, id)
   | ExprLit {lit} -> expr_of_literal lit
@@ -376,7 +400,7 @@ let module_to_expr m =
                   Tuple (-1, [Constant (-1, Atom name); LocalFun {function_name=name; arity=List.length args}]))
     |> (fun es -> Tuple (-1, es))
   in
-  Letrec(funs, body)
+  Letrec(-1, funs, body)
   |> Result.return
 
 let code_to_expr code =
