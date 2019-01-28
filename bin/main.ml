@@ -2,6 +2,7 @@ open Obeam
 open Base
 open Result
 open Fialyzer
+open Common
 
 let extract_debug_info_buf beam_filename layout =
   let {
@@ -46,22 +47,19 @@ let code_of_file beam_filename =
   let sf = Simple_term_format.of_etf etf in
   Abstract_format.of_sf sf |> map_error ~f:(fun e -> Failure (Abstract_format.sexp_of_err_t e |> Sexp.to_string))
 
-let check_module beam_filename =
+let module_of_file beam_filename =
   code_of_file beam_filename >>= fun code ->
-  From_erlang.code_to_expr code >>= fun expr ->
-  Derivation.derive (Context.init ()) expr >>= fun (ty, c) ->
-  Log.debug [%here] "Constraints:\n%s" (Type.show_constraint c);
-  Solver.solve Solver.init c >>= fun sol ->
-  Log.debug [%here] "Types:\n%s" (Solver.lookup_type sol ty |> Type.pp);
-  Ok ()
+  From_erlang.code_to_module code
 
 let () =
   Cui.work (fun param ->
       try
         Log.debug [%here] "=== start fialyzer ===";
+        let plt = () (*TODO*) in
+        let files = [param.Cui.beam_file] in
         Result.ok_exn begin
-            Log.debug [%here] "type checking... '%s'" param.Cui.beam_file;
-            check_module param.Cui.beam_file
+            result_map_m ~f:module_of_file files >>= fun modules ->
+            Type_check.check_modules plt modules
           end;
         Caml.print_endline "done (passed successfully)"
       with
