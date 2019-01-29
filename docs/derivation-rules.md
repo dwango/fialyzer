@@ -49,11 +49,11 @@ A ⊢ case e of p1 → b1; ... pn → bn end : β, Ce ∧ (C1 ∨ ... ∨ Cn) wh
 ------------------------------------- [LOCALFUN]
 A ∪ {fun f/a → τ} ⊢ fun f/a : τ, ∅
 
------------------------------------------ if m, f, a is atom [MFA]
+----------------------------------------- if m and f is atom literal, a is non_neg_integer literal [MFA]
 A ∪ {fun m:f/a → τ} ⊢ fun m:f/a : τ, ∅
 
 A ⊢ m : τm, Cm   A ⊢ f : τf, Cf   A ⊢ a : τa, Ca
--------------------------------------------------------------------------------------------------- if either m, f, a is not atom [MFAEXPR]
+-------------------------------------------------------------------------------------------------- if either m, f, a is not atom literal or non_neg_integer literal [MFAEXPR]
 A ⊢ fun m:f/a : τ, (τ ⊆ any()) ∧ (τm ⊆ atom()) ∧ (τf ⊆ atom()) ∧ (τa ⊆ number()) ∧ Cm ∧ Cf ∧ Ca
 ```
 
