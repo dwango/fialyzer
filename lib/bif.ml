@@ -36,4 +36,6 @@ let type_sigs = [
      Type.(of_elem (TyFun ([Type.bool; Type.bool], Type.bool))));
     ({module_name="erlang"; function_name="not"; arity=1},
      Type.(of_elem (TyFun ([Type.bool], Type.bool))));
+    ({module_name="erlang"; function_name="abs"; arity=1},
+     Type.(of_elem (TyFun ([of_elem TyNumber], of_elem TyNumber))));
   ]
