@@ -199,3 +199,34 @@ let rec of_absform = function
      of_elem (TySingleton (Atom "not_implemented"))
   | F.TyPredef {line; name; args} ->
      failwith (!%"Prease report: line:%d: unexpected predef type: '%s/%d'" line name (List.length args))
+
+let rec of_erl_type = function
+  | Erl_type.Any -> TyAny
+  | None -> TyBottom
+  | Unit -> TyBottom
+  | erl_type -> TyUnion (union_of_erl_type erl_type)
+and union_of_erl_type = function
+  | Erl_type.None -> []
+  | AnyAtom -> [TyAtom]
+  | AtomUnion atoms -> List.map ~f:(fun atom -> TySingleton (Constant.Atom atom)) atoms
+  | Function {params; ret} -> [TyFun (params |> List.map ~f:of_erl_type, of_erl_type ret)]
+  | Number _ -> [TyNumber]
+  | Var (VAtom var_id) -> [TyVar (Type_variable.of_string var_id)]
+  | Tuple {types; _} -> [TyTuple (List.map ~f:of_erl_type types)]
+  | NTuplesUnion n_tuples_list ->
+      Erl_type.(List.concat_map ~f:(fun {tuples; _} -> List.map ~f:(fun {types; _} -> TyTuple (List.map ~f:of_erl_type types)) tuples) n_tuples_list)
+  | Union erl_types -> List.concat_map ~f:union_of_erl_type erl_types
+  | Binary _
+  | AnyIdentifier
+  | IdentifierUnion _
+  | List _
+  | Nil
+  | AnyMap
+  | Map _
+  | OpaqueUnion _
+  | AnyTuple
+    as other ->
+     Log.debug [%here] "not implemented conversion from erl_type: %s" (Erl_type.sexp_of_t other |> Sexp.to_string_hum);
+     [TySingleton (Atom "not_implemented")]
+  | other ->
+     failwith (!%"not implemented conversion from erl_type: %s" (Erl_type.sexp_of_t other |> Sexp.to_string_hum))

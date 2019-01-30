@@ -28,6 +28,9 @@ f_tuple(_) -> ok.
 -spec f_union(foo | port() | 1 | bar | pid() | 2) -> ok.
 f_union(_) -> ok.
 
+-spec f_union2(foo | bar | fun((a) -> b) | 42 | {1} | {2} | {1, 1} | {2, 2}) -> ok.
+f_union2(_) -> ok.
+
 -spec f_anymap(map()) -> ok.
 f_anymap(_) -> ok.
 

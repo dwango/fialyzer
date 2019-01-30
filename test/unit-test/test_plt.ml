@@ -279,6 +279,57 @@ let%expect_test "Plt.of_file" =
               None
               None
               None))))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_union2)
+          (arity         1))
+         ((contracts ((
+            (Function
+              (params ((
+                Union (
+                  (AtomUnion (bar foo))
+                  None
+                  (Function (params ((AtomUnion (a)))) (ret (AtomUnion (b))))
+                  None
+                  None
+                  (Number (IntSet (set (42))))
+                  (NTuplesUnion (
+                    ((n 1)
+                     (tuples ((
+                       (types ((Number (IntSet (set (1 2)))))) (arity 1) (tag ())))))
+                    ((n 2)
+                     (tuples ((
+                       (types (
+                         (Number (IntSet (set (1 2))))
+                         (Number (IntSet (set (1 2))))))
+                       (arity 2)
+                       (tag ())))))))
+                  None
+                  None
+                  None))))
+              (ret (AtomUnion (ok))))
+            ())))
+          (args ((
+            Union (
+              (AtomUnion (bar foo))
+              None
+              (Function (params ((AtomUnion (a)))) (ret (AtomUnion (b))))
+              None
+              None
+              (Number (IntSet (set (42))))
+              (NTuplesUnion (
+                ((n 1)
+                 (tuples ((
+                   (types ((Number (IntSet (set (1 2)))))) (arity 1) (tag ())))))
+                ((n 2)
+                 (tuples ((
+                   (types (
+                     (Number (IntSet (set (1 2)))) (Number (IntSet (set (1 2))))))
+                   (arity 2)
+                   (tag ())))))))
+              None
+              None
+              None))))
           (forms ())))))
       (callbacks      ())
       (exported_types ()))) |}];

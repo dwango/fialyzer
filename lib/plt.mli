@@ -13,6 +13,13 @@
 open Base
 module Format = Caml.Format
 
+type contract = {
+    contracts: (Erl_type.t * (Erl_type.t * Erl_type.t) list) list;
+    args : Erl_type.t list;
+    forms: unit; (*TODO: (Etf.t * Etf.t) list; (*???*)*)
+  }
+[@@deriving sexp_of]
+
 (**
 {v
 -record(plt, {info      :: ets:tid(), %% {mfa() | integer(), ret_args_types()}
@@ -26,7 +33,13 @@ module Format = Caml.Format
 v}
 @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer_plt.erl#L78>
  *)
-type t
+type t = {
+    info : unit;
+    types : unit;
+    contracts : contract Poly_map.OnMfa.t;
+    callbacks : unit;
+    exported_types : unit;
+  }
 [@@deriving sexp_of]
 
 val of_etf : Obeam.External_term_format.t -> (t, exn) Result.t
