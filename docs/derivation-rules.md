@@ -19,7 +19,7 @@ A ⊢ e1 : τ1, C1 ... en : τn, Cn
 ------------------------------------------------------ [STRUCT]
 A ⊢ {e1, ... , en} : {τ1, ... , τn}, C1 ∧ ... ∧ Cn
 
-A ⊢ e1 : τ1, C1         A ∪ {x → τ1} ⊢ e : τ2, C2
+A ⊢ e1 : τ1, C1         A ∪ {x → τ1} ⊢ e2 : τ2, C2
 ---------------------------------------------------- [LET]
 A ⊢ let x = e1 in e2 : τ2, C1 ∧ C2
 
@@ -41,10 +41,10 @@ A ⊢ p : τ, Cp     A ⊢ g : boolean(), Cg
 A ⊢ p when g : τ, Cp ∧ Cg
 
 A ∪ {v → τv | v ∈ Var(p1)} ⊢ p1 : α1, Cp1,  b1 : β1, Cb1
-....
+...
 A ⊢ e : τ, Ce    A ∪ {v → τv | v ∈ Var(pn)} ⊢ pn : αn, Cpn,  bn : βn, Cbn
 -------------------------------------------------------------------------------------------------------------------- [CASE]
-A ⊢ case e of p1 → b1; ... pn → bn end : β, Ce ∧ (C1 ∨ ... ∨ Cn) where Ci = ((β = βi) ∧ (τi = αi) ∧ Cpi ∧ Cbi)
+A ⊢ case e of p1 → b1; ... pn → bn end : β, Ce ∧ (C1 ∨ ... ∨ Cn) where Ci = ((β = βi) ∧ (τ = αi) ∧ Cpi ∧ Cbi)
 
 ------------------------------------- [LOCALFUN]
 A ∪ {fun f/a → τ} ⊢ fun f/a : τ, ∅
@@ -57,11 +57,13 @@ A ⊢ m : τm, Cm   A ⊢ f : τf, Cf   A ⊢ a : τa, Ca
 A ⊢ fun m:f/a : τ, (τ ⊆ any()) ∧ (τm ⊆ atom()) ∧ (τf ⊆ atom()) ∧ (τa ⊆ number()) ∧ Cm ∧ Cf ∧ Ca
 ```
 
-The following derivation rules are differences from the original paper.
+The following derivation rules are the differences from the original paper.
 
+- LET is fixed: `e2`, not `e`.
 - LETREC is modified: restricted by local functions.
 - ABS is modified: `τ` and constrained function are omitted.
 - PAT is modified: type of `g` is `boolean()`, not `true`.
+- CASE is fixed: `τ`, not `τi`.
 - LOCALFUN is added.
 - MFA is added.
 - MFAEXPR is added.
