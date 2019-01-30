@@ -96,7 +96,7 @@ let%expect_test "from_erlang" =
     ClsFun {line=1; patterns=[PatVar {line=1; id="X"}]; guard_sequence=None; body=ExprVar {line=1; id="X"}}
   ]});
   [%expect {|
-    (Abs ((args (X)) (body (Var 1 X))))
+    (Abs 1 ((args (X)) (body (Var 1 X))))
   |}];
 
   (*
@@ -109,7 +109,27 @@ let%expect_test "from_erlang" =
             body=ExprLocalCall {line=1; function_expr=ExprVar {line=1; id="F"}; args=[ExprVar {line=1; id="X"}]}}
   ]});
   [%expect {|
-    (Letrec ((F ((args (X)) (body (App (Var 1 F) ((Var 1 X))))))) (Var 1 F))
+    (Letrec 1 ((F ((args (X)) (body (App 1 (Var 1 F) ((Var 1 X))))))) (Var 1 F))
+  |}];
+
+  (*
+   * fun (X) -> [100; 200] end
+   *)
+  print (ExprFun {line=1; name=None; clauses=[
+    ClsFun {line=1;
+            patterns=[PatVar {line=2; id="X"}];
+            guard_sequence=None;
+            body=ExprCons{line=3; head=ExprLit {lit=LitInteger {line=4; integer=100}};
+                                  tail=ExprCons {line=5; head=ExprLit {lit=LitInteger{line=6; integer=200}};
+                                                         tail=ExprNil {line=7}}}}
+  ]});
+  [%expect {|
+    (Abs 1 (
+      (args (X))
+      (body (
+        ListCons
+        (Constant 4 (Number 100))
+        (ListCons (Constant 6 (Number 200)) ListNil)))))
   |}];
 
   (*
@@ -128,7 +148,7 @@ let%expect_test "from_erlang" =
             body=ExprTuple {line=1; elements=[ExprVar {line=1; id="X"}; ExprVar {line=1; id="Y"}]}}
   ]});
   [%expect {|
-    (Abs (
+    (Abs 1 (
       (args (__A__ __B__))
       (body (
         Case
@@ -161,7 +181,7 @@ let%expect_test "from_erlang" =
     ClsFun {line=1; patterns=[PatLit {lit=LitAtom {line=1; atom="x"}}]; guard_sequence=None; body=ExprLit {lit=LitAtom {line=1; atom="y"}}}
   ]});
   [%expect {|
-    (Abs (
+    (Abs 1 (
       (args (__A__))
       (body (
         Case
@@ -179,7 +199,7 @@ let%expect_test "from_erlang" =
     ClsFun {line=1; patterns=[PatLit {lit=LitInteger {line=1; integer=42}}]; guard_sequence=None; body=ExprLit {lit=LitInteger {line=1; integer=43}}}
   ]});
   [%expect {|
-    (Abs (
+    (Abs 1 (
       (args (__A__))
       (body (
         Case
@@ -200,7 +220,7 @@ let%expect_test "from_erlang" =
     ClsFun {line=2; patterns=[PatCons {line=2; head=PatVar {line=2; id="H"}; tail=PatVar {line=2; id="T"}}]; guard_sequence=None; body=ExprVar {line=2; id="T"}}
   ]});
   [%expect {|
-    (Abs (
+    (Abs 1 (
       (args (__A__))
       (body (
         Case
@@ -220,7 +240,7 @@ let%expect_test "from_erlang" =
     ClsFun {line=1; patterns=[PatLit {lit=LitString {line=1; str="abc"}}]; guard_sequence=None; body=ExprLit {lit=LitAtom {line=1; atom="ok"}}}
   ]});
   [%expect {|
-    (Abs (
+    (Abs 1 (
       (args (__A__))
       (body (
         Case
@@ -285,7 +305,7 @@ let%expect_test "from_erlang" =
                                                          ExprMatch {line=1; pattern=PatVar {line=1; id="B"}; body=ExprLit {lit=LitInteger {line=1; integer=2}}};
                                                          ExprBinOp {line=1; op="+"; lhs=ExprVar {line=1; id="A"}; rhs=ExprVar {line=1; id="B"}}]}}]});
   [%expect {|
-    (Abs (
+    (Abs 1 (
       (args ())
       (body (
         Case
@@ -296,7 +316,7 @@ let%expect_test "from_erlang" =
             (Constant 1 (Number 2))
             ((
               ((PatVar B) (Constant 1 (Atom true)))
-              (App
+              (App 1
                 (MFA
                   (module_name   (Constant 1 (Atom   erlang)))
                   (function_name (Constant 1 (Atom   +)))

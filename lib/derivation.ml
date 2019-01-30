@@ -22,7 +22,7 @@ let rec derive context = function
      result_map_m ~f:(derive context) exprs
      >>| List.unzip
      >>| fun (tys, cs) -> (Type.of_elem (TyTuple tys), Conj cs)
-  | App (f, args) ->
+  | App (_line, f, args) ->
      derive context f >>= fun (tyf, cf) ->
      result_map_m
        ~f:(fun arg ->
@@ -47,7 +47,7 @@ let rec derive context = function
          args_constraints
      in
      Ok (beta, Conj constraints)
-  | Abs {args=vs; body=e} ->
+  | Abs (_line, {args=vs; body=e}) ->
      let new_tyvars = List.map ~f:(fun v -> (v, (new_tyvar ()))) vs in
      let added_context =
        List.fold_left
@@ -57,11 +57,11 @@ let rec derive context = function
      in
      derive added_context e >>= fun (ty_e, c) ->
      Ok (Type.of_elem (TyFun (List.map ~f:snd new_tyvars, ty_e)), c)
-  | Let (v, e1, e2) ->
+  | Let (_line, v, e1, e2) ->
      derive context e1 >>= fun (ty_e1, c1) ->
      derive (Context.add (Context.Key.Var v) ty_e1 context) e2 >>= fun (ty_e2, c2) ->
      Ok (ty_e2, Conj [c1; c2])
-  | Letrec (lets , e) ->
+  | Letrec (line, lets , e) ->
      let new_tyvars = List.map ~f:(fun (v, f) -> (v, f, (new_tyvar ()))) lets in
      let added_context =
        List.fold_left
@@ -73,7 +73,7 @@ let rec derive context = function
      in
      let constraints_result =
        new_tyvars
-       |> result_map_m ~f:(fun (_, f, tyvar) -> derive added_context (Abs f) >>| fun(ty, c) -> (ty, c, tyvar))
+       |> result_map_m ~f:(fun (_, f, tyvar) -> derive added_context (Abs (line, f)) >>| fun(ty, c) -> (ty, c, tyvar))
        >>| List.map ~f:(fun (ty, c, tyvar) -> [Eq (tyvar, ty); c])
        >>| List.concat
      in

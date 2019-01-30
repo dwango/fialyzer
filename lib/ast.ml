@@ -14,10 +14,10 @@ type t =
     | Constant of line * Constant.t
     | Var of line * string
     | Tuple of line * t list
-    | App of t * t list
-    | Abs of fun_abst
-    | Let of string * t * t
-    | Letrec of (string * fun_abst) list * t
+    | App of line * t * t list
+    | Abs of line * fun_abst
+    | Let of line * string * t * t
+    | Letrec of line * (string * fun_abst) list * t
     | Case of t * (pattern * t) list
     | LocalFun of {function_name : string; arity: int}
     | MFA of {module_name: t; function_name: t; arity: t}
@@ -37,9 +37,9 @@ let line_number_of_t = function
 | Constant (line, _) -> line
 | Var (line, _) -> line
 | Tuple (line, _) -> line
-| App (_, _) -> -1
-| Abs (_) -> -1
-| Let (_, _, _) -> -1
+| App (line, _, _) -> line
+| Abs (line, _) -> line
+| Let (line, _, _, _) -> line
 | Letrec (_) -> -1
 | Case (_, _) -> -1
 | LocalFun _ -> -1
