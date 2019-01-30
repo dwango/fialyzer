@@ -1,6 +1,10 @@
+# Derivation Rules in Fialyzer
+
 This file shows derivation rules used in fialyzer.
 
 Our derivation rules are almost same as [the original paper](https://it.uu.se/research/group/hipe/papers/succ_types.pdf)'s one, but extended by remote call, local call, list, etc.
+
+## Derivation Rules
 
 ```
 A : context (mapping of variable to type)
@@ -60,7 +64,9 @@ A ⊢ m : τm, Cm   A ⊢ f : τf, Cf   A ⊢ a : τa, Ca
 A ⊢ fun m:f/a : τ, (τ ⊆ any()) ∧ (τm ⊆ atom()) ∧ (τf ⊆ atom()) ∧ (τa ⊆ number()) ∧ Cm ∧ Cf ∧ Ca
 ```
 
-The following derivation rules are the differences from the original paper.
+## Differences from the original paper
+
+The differences from the derivation rules on the original paper are as follows.
 
 - α, β, and τ are clearly distinguished. τ is a type, and α, β are type variables.
 - LET is fixed: `e2`, not `e`.
@@ -72,3 +78,8 @@ The following derivation rules are the differences from the original paper.
 - MFA is added.
 - MFAEXPR is added.
 - ...and some variables are α-converted for understandability.
+
+## Notes
+
+- In `A ⊢ p : τ, Cp` of PAT rule, `p` is not an expression but a pattern. Therefore, we have to convert `p` to an expression which is the same form of `p`.
+  - This is not described in the original paper.
