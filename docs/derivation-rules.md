@@ -8,6 +8,9 @@ A : context (mapping of variable to type)
 α, β : type variable
 x : variable
 e : term
+a : arity
+f : function
+p : pattern
 fun f/a : local function (f: function name, a: arity)
 fun m:f/a : remote function (m: module name, f: function name, a: arity)
 ```
