@@ -15,6 +15,8 @@ e : term
 a : arity
 f : function
 p : pattern
+g : guard
+pg : pattern with guard sequence (i.e., p when g)
 fun f/a : local function (f: function name, a: arity)
 fun m:f/a : remote function (m: module name, f: function name, a: arity)
 ```
@@ -44,14 +46,14 @@ A ⊢ e : τ, C  e1 : τ1, C1 ... en : τn, Cn
 A ⊢ e(e1, ... , en) : β, (τ = (α1, ... , αn) → α) ∧ (β ⊆ α) ∧ (τ1 ⊆ α1) ∧ ... ∧ (τn ⊆ αn) ∧ C ∧ C1 ∧ ... ∧ Cn
 
 A ⊢ p : τ, Cp     A ⊢ g : τg, Cg
------------------------------------------- [PAT]
+--------------------------------------------- [PAT]
 A ⊢ p when g : τ, (τg ⊆ boolean()) ∧ Cp ∧ Cg
 
-                 A ∪ {v → αv | v ∈ Var(p1)} ⊢ p1 : τp1, Cp1,  b1 : τb1, Cb1
+                 A ∪ {v → αv | v ∈ Var(p1)} ⊢ pg1 : τpg1, Cpg1,  b1 : τb1, Cb1
                                            ...
-A ⊢ e : τ, Ce    A ∪ {v → αv | v ∈ Var(pn)} ⊢ pn : τpn, Cpn,  bn : τbn, Cbn
+A ⊢ e : τ, Ce    A ∪ {v → αv | v ∈ Var(pn)} ⊢ pgn : τpgn, Cpgn,  bn : τbn, Cbn
 -------------------------------------------------------------------------------------------------------------------- [CASE]
-A ⊢ case e of p1 → b1; ... pn → bn end : β, Ce ∧ (C1 ∨ ... ∨ Cn) where Ci = ((β = τbi) ∧ (τ = τpi) ∧ Cpi ∧ Cbi)
+A ⊢ case e of pg1 → b1; ... pgn → bn end : β, Ce ∧ (C1 ∨ ... ∨ Cn) where Ci = ((β = τbi) ∧ (τ = τpgi) ∧ Cpgi ∧ Cbi)
 
 ------------------------------------- [LOCALFUN]
 A ∪ {fun f/a → τ} ⊢ fun f/a : τ, ∅
@@ -61,7 +63,7 @@ A ∪ {fun m:f/a → τ} ⊢ fun m:f/a : τ, ∅
 
 A ⊢ m : τm, Cm   A ⊢ f : τf, Cf   A ⊢ a : τa, Ca
 -------------------------------------------------------------------------------------------------- if either m, f, a is not atom literal or non_neg_integer literal [MFAEXPR]
-A ⊢ fun m:f/a : τ, (τ ⊆ any()) ∧ (τm ⊆ atom()) ∧ (τf ⊆ atom()) ∧ (τa ⊆ number()) ∧ Cm ∧ Cf ∧ Ca
+A ⊢ fun m:f/a : β, (τm ⊆ atom()) ∧ (τf ⊆ atom()) ∧ (τa ⊆ number()) ∧ Cm ∧ Cf ∧ Ca
 ```
 
 ## Differences from the original paper
@@ -73,7 +75,7 @@ The differences from the derivation rules on the original paper are as follows.
 - LETREC is modified: restricted by local functions.
 - ABS is modified: `τ` and constrained function are omitted.
 - PAT is modified: type of `g` is `boolean()`, not `true`.
-- CASE is fixed: `τ`, not `τi`.
+- CASE is fixed: `τ`, not `τi`. replaced `p1`...`pn` with `pg1`...`pgn` because these are patterns with guards.
 - LOCALFUN is added.
 - MFA is added.
 - MFAEXPR is added.
