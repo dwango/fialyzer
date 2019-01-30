@@ -32,16 +32,16 @@ A ∪ {x1 → τ1, ... , xn → τn} ⊢ e : τe, C
 ---------------------------------------------------------------------- [ABS]
 A ⊢ fun(x1, ... , xn) → e : (τ1, ... , τn) → τe, C
 
-A ⊢ e1 : τ1, C1 ... en : τn, Cn
+A ⊢ e : τ, C  e1 : τ1, C1 ... en : τn, Cn
 -------------------------------------------------------------------------------------------------------------- [APP]
-A ⊢ e1(e2, ... , en) : β, (τ1 = (α2, ... , αn) → α) ∧ (β ⊆ α) ∧ (τ2 ⊆ α2) ∧ ... ∧ (τn ⊆ αn) ∧ C1 ∧ ... ∧ Cn
+A ⊢ e(e1, ... , en) : β, (τ = (α1, ... , αn) → α) ∧ (β ⊆ α) ∧ (τ1 ⊆ α1) ∧ ... ∧ (τn ⊆ αn) ∧ C ∧ C1 ∧ ... ∧ Cn
 
 A ⊢ p : τ, Cp     A ⊢ g : boolean(), Cg
 ------------------------------------------ [PAT]
 A ⊢ p when g : τ, Cp ∧ Cg
 
-A ∪ {v → τv | v ∈ Var(p1)} ⊢ p1 : α1, Cp1,  b1 : β1, Cb1
-...
+                 A ∪ {v → τv | v ∈ Var(p1)} ⊢ p1 : α1, Cp1,  b1 : β1, Cb1
+                                           ...
 A ⊢ e : τ, Ce    A ∪ {v → τv | v ∈ Var(pn)} ⊢ pn : αn, Cpn,  bn : βn, Cbn
 -------------------------------------------------------------------------------------------------------------------- [CASE]
 A ⊢ case e of p1 → b1; ... pn → bn end : β, Ce ∧ (C1 ∨ ... ∨ Cn) where Ci = ((β = βi) ∧ (τ = αi) ∧ Cpi ∧ Cbi)
@@ -67,3 +67,4 @@ The following derivation rules are the differences from the original paper.
 - LOCALFUN is added.
 - MFA is added.
 - MFAEXPR is added.
+- ...and some variables are α-converted for understandability.
