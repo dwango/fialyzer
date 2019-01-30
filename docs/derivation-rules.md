@@ -5,6 +5,7 @@ Our derivation rules are almost same as [the original paper](https://it.uu.se/re
 ```
 A : context (mapping of variable to type)
 τ : type
+α, β : type variable
 x : variable
 e : term
 fun f/a : local function (f: function name, a: arity)
@@ -23,14 +24,13 @@ A ⊢ e1 : τ1, C1         A ∪ {x → τ1} ⊢ e2 : τ2, C2
 ---------------------------------------------------- [LET]
 A ⊢ let x = e1 in e2 : τ2, C1 ∧ C2
 
-A ∪ {fun xi/ai → τi} ⊢ f1 : τ'1, C1 ... fn : τ'n, Cn        e : τ, C
----------------------------------------------------------------------------------------------- [LETREC]
-A ⊢ letrec x1 = f1, ... , xn = fn in e : τ, C1 ∧ ... Cn ∧ C ∧ (τ'1 = τ1) ∧ ... ∧ (τ'n = τn)
-  where ai = length (args fi)
+A ∪ {fun xi/ai → αi} ⊢ f1 : τ1, C1 ... fn : τn, Cn      e : τ, C   where ai = length (args fi)
+------------------------------------------------------------------------------------------------- [LETREC]
+A ⊢ letrec x1 = f1, ... , xn = fn in e : τ, C1 ∧ ... Cn ∧ C ∧ (τ1 = α1) ∧ ... ∧ (τn = αn)
 
-A ∪ {x1 → τ1, ... , xn → τn} ⊢ e : τe, C
+A ∪ {x1 → α1, ... , xn → αn} ⊢ e : τ, C
 ---------------------------------------------------------------------- [ABS]
-A ⊢ fun(x1, ... , xn) → e : (τ1, ... , τn) → τe, C
+A ⊢ fun(x1, ... , xn) → e : (α1, ... , αn) → τ, C
 
 A ⊢ e : τ, C  e1 : τ1, C1 ... en : τn, Cn
 -------------------------------------------------------------------------------------------------------------- [APP]
@@ -40,11 +40,11 @@ A ⊢ p : τ, Cp     A ⊢ g : boolean(), Cg
 ------------------------------------------ [PAT]
 A ⊢ p when g : τ, Cp ∧ Cg
 
-                 A ∪ {v → τv | v ∈ Var(p1)} ⊢ p1 : α1, Cp1,  b1 : β1, Cb1
+                 A ∪ {v → αv | v ∈ Var(p1)} ⊢ p1 : τp1, Cp1,  b1 : τb1, Cb1
                                            ...
-A ⊢ e : τ, Ce    A ∪ {v → τv | v ∈ Var(pn)} ⊢ pn : αn, Cpn,  bn : βn, Cbn
+A ⊢ e : τ, Ce    A ∪ {v → αv | v ∈ Var(pn)} ⊢ pn : τpn, Cpn,  bn : τbn, Cbn
 -------------------------------------------------------------------------------------------------------------------- [CASE]
-A ⊢ case e of p1 → b1; ... pn → bn end : β, Ce ∧ (C1 ∨ ... ∨ Cn) where Ci = ((β = βi) ∧ (τ = αi) ∧ Cpi ∧ Cbi)
+A ⊢ case e of p1 → b1; ... pn → bn end : β, Ce ∧ (C1 ∨ ... ∨ Cn) where Ci = ((β = τbi) ∧ (τ = τpi) ∧ Cpi ∧ Cbi)
 
 ------------------------------------- [LOCALFUN]
 A ∪ {fun f/a → τ} ⊢ fun f/a : τ, ∅
@@ -59,6 +59,7 @@ A ⊢ fun m:f/a : τ, (τ ⊆ any()) ∧ (τm ⊆ atom()) ∧ (τf ⊆ atom()) �
 
 The following derivation rules are the differences from the original paper.
 
+- α, β, and τ are clearly distinguished. τ is a type, and α, β are type variables.
 - LET is fixed: `e2`, not `e`.
 - LETREC is modified: restricted by local functions.
 - ABS is modified: `τ` and constrained function are omitted.
