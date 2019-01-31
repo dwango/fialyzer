@@ -260,7 +260,7 @@ let%expect_test "Plt.of_file" =
                   None
                   (IdentifierUnion (IPid IPort))
                   None
-                  (Number (IntSet (set (1 2))))
+                  (Number (IntSet (1 2)))
                   None
                   None
                   None
@@ -274,7 +274,7 @@ let%expect_test "Plt.of_file" =
               None
               (IdentifierUnion (IPid IPort))
               None
-              (Number (IntSet (set (1 2))))
+              (Number (IntSet (1 2)))
               None
               None
               None
@@ -292,16 +292,16 @@ let%expect_test "Plt.of_file" =
                   (Function (params ((AtomUnion (a)))) (ret (AtomUnion (b))))
                   None
                   None
-                  (Number (IntSet (set (42))))
+                  (Number (IntSet (42)))
                   (NTuplesUnion (
                     ((n 1)
                      (tuples ((
-                       (types ((Number (IntSet (set (1 2)))))) (arity 1) (tag ())))))
+                       (types ((Number (IntSet (1 2))))) (arity 1) (tag ())))))
                     ((n 2)
                      (tuples ((
                        (types (
-                         (Number (IntSet (set (1 2))))
-                         (Number (IntSet (set (1 2))))))
+                         (Number (IntSet (1 2)))
+                         (Number (IntSet (1 2)))))
                        (arity 2)
                        (tag ())))))))
                   None
@@ -316,15 +316,15 @@ let%expect_test "Plt.of_file" =
               (Function (params ((AtomUnion (a)))) (ret (AtomUnion (b))))
               None
               None
-              (Number (IntSet (set (42))))
+              (Number (IntSet (42)))
               (NTuplesUnion (
                 ((n 1)
-                 (tuples ((
-                   (types ((Number (IntSet (set (1 2)))))) (arity 1) (tag ())))))
+                 (tuples (((types ((Number (IntSet (1 2))))) (arity 1) (tag ())))))
                 ((n 2)
                  (tuples ((
                    (types (
-                     (Number (IntSet (set (1 2)))) (Number (IntSet (set (1 2))))))
+                     (Number (IntSet (1 2)))
+                     (Number (IntSet (1 2)))))
                    (arity 2)
                    (tag ())))))))
               None
