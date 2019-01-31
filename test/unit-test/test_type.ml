@@ -165,10 +165,8 @@ let%expect_test "of_erl_type" =
         TyUnion (
           (TySingleton (Atom bar))
           (TySingleton (Atom foo))
-          (TyFun
-            ((TyUnion ((TySingleton (Atom a)))))
-            (TyUnion ((TySingleton (Atom b)))))
-          TyNumber
+          (TyFun ((TyUnion (TyNumber))) (TyUnion (TyNumber)))
+          (TySingleton (Number 42))
           (TyTuple ((TyUnion (TyNumber))))
           (TyTuple (
             (TyUnion (TyNumber))

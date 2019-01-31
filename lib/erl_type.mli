@@ -13,7 +13,12 @@ type var_id =
   | VInt of int
 [@@deriving show, sexp_of]
 
-type number
+type number =
+  | IntRange of {min: min; max: max}
+  | IntSet of int list
+  | AnyInteger (* integer() *)
+  | AnyFloat   (* float()   *)
+  | AnyNumber     (* number()  *)
 and min
 and max
 [@@deriving show, sexp_of]

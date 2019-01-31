@@ -210,6 +210,7 @@ and union_of_erl_type = function
   | AnyAtom -> [TyAtom]
   | AtomUnion atoms -> List.map ~f:(fun atom -> TySingleton (Constant.Atom atom)) atoms
   | Function {params; ret} -> [TyFun (params |> List.map ~f:of_erl_type, of_erl_type ret)]
+  | Number (Erl_type.IntSet [n]) -> [TySingleton (Number n)]
   | Number _ -> [TyNumber]
   | Var (VAtom var_id) -> [TyVar (Type_variable.of_string var_id)]
   | Tuple {types; _} -> [TyTuple (List.map ~f:of_erl_type types)]

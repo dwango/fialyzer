@@ -289,7 +289,13 @@ let%expect_test "Plt.of_file" =
                 Union (
                   (AtomUnion (bar foo))
                   None
-                  (Function (params ((AtomUnion (a)))) (ret (AtomUnion (b))))
+                  (Function
+                    (params ((Number (IntSet (0 1 2 3 4 5 6 7 8 9 10 11 12)))))
+                    (ret (
+                      Number (
+                        IntRange
+                        (min (Min 0))
+                        (max (Max 255))))))
                   None
                   None
                   (Number (IntSet (42)))
@@ -313,7 +319,13 @@ let%expect_test "Plt.of_file" =
             Union (
               (AtomUnion (bar foo))
               None
-              (Function (params ((AtomUnion (a)))) (ret (AtomUnion (b))))
+              (Function
+                (params ((Number (IntSet (0 1 2 3 4 5 6 7 8 9 10 11 12)))))
+                (ret (
+                  Number (
+                    IntRange
+                    (min (Min 0))
+                    (max (Max 255))))))
               None
               None
               (Number (IntSet (42)))
