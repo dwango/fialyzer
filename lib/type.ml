@@ -203,7 +203,9 @@ let rec of_absform = function
 let rec of_erl_type = function
   | Erl_type.Any -> TyAny
   | None -> TyBottom
-  | Unit -> TyBottom
+  | Unit ->
+     Log.debug [%here] "not implemented conversion from erl_type: Unit";
+     of_elem (TySingleton (Atom "not_implemented"))
   | erl_type -> TyUnion (union_of_erl_type erl_type)
 and union_of_erl_type = function
   | Erl_type.None -> []
@@ -217,6 +219,7 @@ and union_of_erl_type = function
   | NTuplesUnion n_tuples_list ->
       Erl_type.(List.concat_map ~f:(fun {tuples; _} -> List.map ~f:(fun {types; _} -> TyTuple (List.map ~f:of_erl_type types)) tuples) n_tuples_list)
   | Union erl_types -> List.concat_map ~f:union_of_erl_type erl_types
+  | Var (VInt _)
   | Binary _
   | AnyIdentifier
   | IdentifierUnion _
