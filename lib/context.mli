@@ -11,4 +11,4 @@ type t
 val empty : t
 val find : t -> Key.t -> Type.t option
 val add : Key.t -> Type.t -> t -> t
-val init : unit -> t
+val create : import_modules : string list -> t

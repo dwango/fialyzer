@@ -1,4 +1,5 @@
 open Base
+open Polymorphic_compare
 module Format = Caml.Format
 
 module Key = struct
@@ -20,11 +21,17 @@ let add key data t =
      Log.debug [%here] "variable '%s' shadowed" (Key.show key);
      t
 
-let add_bif_signatures ctx0 : t =
+let add_bif_signatures imports ctx0 : t =
+  let update ctx (mfa, ty) =
+    if List.mem imports mfa.Mfa.module_name ~equal:(=) then
+      add (Key.MFA mfa) ty ctx
+      |> add (Key.LocalFun {function_name=mfa.Mfa.function_name; arity=mfa.Mfa.arity}) ty
+    else
+      add (Key.MFA mfa) ty ctx
+  in
   Bif.type_sigs
-  |> List.fold_left ~f:(fun ctx (mfa, ty) ->
-                      add (Key.MFA mfa) ty ctx) ~init:ctx0
+  |> List.fold_left ~f:update ~init:ctx0
 
-let init () =
+let create ~import_modules =
   empty
-  |> add_bif_signatures
+  |> add_bif_signatures import_modules
