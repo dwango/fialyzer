@@ -4,15 +4,16 @@ open Ast
 open Type
 open Derivation
 open Constant
+module C = Constraint
 
 let rec sexp_of_constraint = function
-  | Eq (s, t) ->
+  | C.Eq {lhs=s; rhs=t; _} ->
      [%sexp_of: string * string * string] ("Eq", Type.pp s, Type.pp t)
-  | Subtype (s, t) ->
+  | C.Subtype {lhs=s; rhs=t; _} ->
      [%sexp_of: string * string * string] ("Subtype", Type.pp s, Type.pp t)
-  | Conj ts ->
+  | C.Conj ts ->
      [%sexp_of: string * Sexp.t list] ("Conj", List.map ~f:sexp_of_constraint ts)
-  | Disj ts ->
+  | C.Disj ts ->
      [%sexp_of: string * Sexp.t list] ("Disj", List.map ~f:sexp_of_constraint ts)
   | Empty ->
      Sexp.Atom "Empty"

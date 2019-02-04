@@ -16,14 +16,6 @@ type t =
     | TyFun of t list * t
 [@@deriving sexp_of]
 
-type constraint_ =
-    | Eq of t * t
-    | Subtype of t * t
-    | Conj of constraint_ list
-    | Disj of constraint_ list
-    | Empty
-[@@deriving sexp_of]
-
 (* ref: http://erlang.org/doc/reference_manual/typespec.html *)
 let rec pp = function
   | TyUnion tys ->
@@ -40,22 +32,6 @@ and pp_t_union_elem = function
      let args_str = "(" ^ (args |> List.map ~f:pp |> String.concat ~sep:", ") ^ ")" in
      let ret_str = pp ret in
      "fun(" ^ args_str ^ " -> " ^ ret_str ^ ")"
-
-let show_constraint c =
-  let rec iter indent = function
-    | Empty -> ""
-    | Eq (ty1, ty2) ->
-       !%"%s%s = %s" indent (pp ty1) (pp ty2)
-    | Subtype (ty1, ty2) ->
-       !%"%s%s <: %s" indent (pp ty1) (pp ty2)
-    | Conj cs ->
-       let ss = List.map ~f:(iter ("  "^indent)) cs |> List.filter ~f:((<>) "") in
-       !%"%sConj {\n%s\n%s}" indent (String.concat ~sep:"\n" ss) indent
-    | Disj cs ->
-       let ss = List.map ~f:(iter ("  "^indent)) cs |> List.filter ~f:((<>) "") in
-       !%"%sDisj {\n%s\n%s}" indent (String.concat ~sep:"\n" ss) indent
-  in
-  iter "" c
 
 let bool = TyUnion [TySingleton (Atom "true"); TySingleton (Atom "false")]
 let of_elem e = TyUnion [e]
