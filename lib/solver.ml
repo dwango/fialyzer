@@ -146,7 +146,7 @@ and solve_disj sol cs =
      let errors = List.map ~f:(function Error e -> e | _ -> failwith "cannot reach here") results in
      Error (merge_errors errors)
   | sols ->
-     Ok (List.fold_left ~f:merge_solutions ~init:sol sols)
+     Ok (List.reduce_exn ~f:merge_solutions sols)
 
 (*
   After calculating success typing, it is finally checked whether all branches pass type checking.
