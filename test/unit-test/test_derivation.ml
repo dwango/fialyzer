@@ -326,5 +326,7 @@ let%expect_test "derivation" =
                         Empty Empty Empty
                         (Subtype 'm' "atom()")
                         (Subtype 'f' "atom()")
-                        (Subtype 0   "number()")
-                        (Subtype a   "any()"))))))))))))) |}];
+                        (Subtype 0   "number()")))))))))))))
+  |}];
+
+  ()
