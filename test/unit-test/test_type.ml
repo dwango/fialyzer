@@ -115,4 +115,17 @@ let%expect_test "sup" =
       (TySingleton (Number 3)))) |}];
 
   print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3);]) (of_elem TyNumber);
-  [%expect {| (TyUnion (TyNumber)) |}]
+  [%expect {| (TyUnion (TyNumber)) |}];
+
+  (*
+   * sup of function types
+   * see: https://github.com/dwango/fialyzer/issues/177
+   *)
+  let ty1 = of_elem (TyFun ([of_elem TyNumber], of_elem TyNumber)) in
+  let ty2 = of_elem (TyFun ([of_elem TyAtom], of_elem TyAtom)) in
+  print ty1 ty2;
+  [%expect {|
+     (TyUnion ((TyFun ((TyUnion (TyAtom TyNumber))) (TyUnion (TyNumber TyAtom)))))
+  |}];
+
+  ()
