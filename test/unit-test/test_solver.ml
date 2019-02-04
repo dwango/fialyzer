@@ -83,3 +83,19 @@ let%expect_test "solver" =
               (a "'ok' | 0")
               (b "123 | 'foo'")))
             |}];
+
+  (*
+   * `solve_disj {X |-> number()} [(X <: 1); (X <: 2)]` should be `{X |-> 1 | 2}`
+   * see: https://github.com/dwango/fialyzer/issues/176
+   *)
+  let [a] = create_vars 1 in
+  print (Conj [
+             Subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber);
+             Disj [
+                 Subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 1)));
+                 Subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 2)));
+               ]
+           ]);
+  [%expect {| (Ok ((a "2 | 1"))) |}];
+
+  ()

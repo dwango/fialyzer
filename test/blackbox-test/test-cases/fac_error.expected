@@ -1,4 +1,4 @@
 TODO:filename:-1: Type error: type mismatch;
   found   : 'foo'
-  required: number()
+  required: 0
 there is no solution that satisfies subtype constraints

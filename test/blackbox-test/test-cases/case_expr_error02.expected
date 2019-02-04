@@ -1,10 +1,10 @@
 TODO:filename:-1: Type error: type mismatch;
-  found   : number()
+  found   : 123
   required: 'foo'
 there is no solution that satisfies subtype constraints
 TODO:filename:-1: Type error: type mismatch;
   found   : 'foo'
-  required: number()
+  required: 123
 there is no solution that satisfies subtype constraints
 TODO:filename:-1: Type error: type mismatch;
   found   : 'ok'
