@@ -63,7 +63,7 @@ A ∪ {fun m:f/a → τ} ⊢ fun m:f/a : τ, ∅
 
 A ⊢ m : τm, Cm   A ⊢ f : τf, Cf   A ⊢ a : τa, Ca
 -------------------------------------------------------------------------------------------------- if either m, f, a is not atom literal or non_neg_integer literal [MFAEXPR]
-A ⊢ fun m:f/a : β, (β ⊆ any()) ∧ (τm ⊆ atom()) ∧ (τf ⊆ atom()) ∧ (τa ⊆ number()) ∧ Cm ∧ Cf ∧ Ca
+A ⊢ fun m:f/a : β, (τm ⊆ atom()) ∧ (τf ⊆ atom()) ∧ (τa ⊆ number()) ∧ Cm ∧ Cf ∧ Ca
 ```
 
 ## Differences from the original paper
