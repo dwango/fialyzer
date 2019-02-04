@@ -111,7 +111,7 @@ and sup_elems_to_list store = function
          List.map ~f:(function
                       | TyFun (args0, range0) when List.length args0 = List.length args ->
                          List.map2_exn ~f:sup args0 args
-                         |> fun ty2s' -> TyTuple ty2s'
+                         |> fun ty2s' -> TyFun (ty2s', sup range range0)
                       | t -> t)
                   store
        else
