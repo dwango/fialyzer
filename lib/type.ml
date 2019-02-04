@@ -70,7 +70,7 @@ let rec sup ty1 ty2 =
   | (TyAny, _) | (_, TyAny) -> TyAny
   | (TyBottom, ty) | (ty, TyBottom) -> ty
   | (TyUnion tys1, TyUnion tys2) ->
-     TyUnion (sup_elems_to_list tys1 tys2) (* has one or more element *)
+     TyUnion (sup_elems_to_list tys2 (List.rev tys1)) (* has one or more element *)
 and sup_elems_to_list store = function
   | [] -> store
   | TyVar _ :: _ -> failwith "cannot reach here"
