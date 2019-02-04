@@ -4,6 +4,7 @@ module Map = Base.Map
 module String = Base.String
 module Result = Base.Result
 module Option = Base.Option
+module C = Constraint
 open Common
 
 type solution = Type.t Map.M(Type_variable).t
@@ -123,14 +124,14 @@ let merge_errors errs =
      exn
 
 let rec solve1 sol = function
-  | Empty -> Ok sol
-  | Eq (ty1, ty2) ->
+  | C.Empty -> Ok sol
+  | C.Eq {lhs=ty1; rhs=ty2} ->
      solve_eq sol ty1 ty2
-  | Subtype (ty1, ty2) ->
+  | C.Subtype {lhs=ty1; rhs=ty2} ->
      solve_sub sol ty1 ty2
-  | Conj cs ->
+  | C.Conj cs ->
      solve_conj sol cs
-  | Disj cs ->
+  | C.Disj cs ->
      solve_disj sol cs
 and solve_conj sol = function
   | [] -> Ok sol
@@ -153,16 +154,16 @@ and solve_disj sol cs =
   Note that this process is outside of the success typing algorithm.
  *)
 let rec find_error_clauses sol = function
-  | Empty -> []
-  | Eq (ty1,ty2) ->
-     find_error_clauses sol (Subtype (ty1, ty2))
-     @ find_error_clauses sol (Subtype (ty2, ty1))
-  | Subtype (ty1, ty2) ->
+  | C.Empty -> []
+  | C.Eq {lhs=ty1; rhs=ty2} ->
+     find_error_clauses sol (Subtype {lhs=ty1; rhs=ty2})
+     @ find_error_clauses sol (Subtype {lhs=ty2; rhs=ty1})
+  | C.Subtype {lhs=ty1; rhs=ty2} ->
      begin match solve_sub sol ty1 ty2 with
      | Ok _ -> []
      | Error e -> [e]
      end
-  | Disj cs ->
+  | C.Disj cs ->
      List.map ~f:(find_error_clauses sol) cs
      |> List.concat
   | Conj cs ->

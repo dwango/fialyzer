@@ -6,7 +6,7 @@ let check_module plt ctx m =
   Log.debug [%here] "Checking module: %s" (m.Ast.name);
   From_erlang.module_to_expr m >>= fun expr ->
   Derivation.derive ctx expr >>= fun (ty, c) ->
-  Log.debug [%here] "Constraints:\n%s" (Type.show_constraint c);
+  Log.debug [%here] "Constraints:\n%s" (Constraint.show c);
   Solver.solve Solver.init c >>= fun sol ->
   Log.debug [%here] "Types:\n%s" (Solver.lookup_type sol ty |> Type.pp);
   Ok ()

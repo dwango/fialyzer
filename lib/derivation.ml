@@ -3,16 +3,17 @@ open Common
 open Ast
 open Type
 open Result
+module C = Constraint
 
 let new_tyvar () = Type.of_elem (TyVar (Type_variable.create()))
 
 let rec derive context = function
   | Constant (_line, c) ->
-     Ok (Type.of_elem (TySingleton c), Empty)
+     Ok (Type.of_elem (TySingleton c), C.Empty)
   | Var (line, v) ->
      begin match Context.find context (Context.Key.Var v) with
      | Some ty ->
-        Ok (ty, Empty)
+        Ok (ty, C.Empty)
      | None ->
         let filename = "TODO:filename" in
         let line_in_file = line in
@@ -21,7 +22,7 @@ let rec derive context = function
   | Tuple (_line, exprs) ->
      result_map_m ~f:(derive context) exprs
      >>| List.unzip
-     >>| fun (tys, cs) -> (Type.of_elem (TyTuple tys), Conj cs)
+     >>| fun (tys, cs) -> (Type.of_elem (TyTuple tys), C.Conj cs)
   | App (_line, f, args) ->
      derive context f >>= fun (tyf, cf) ->
      result_map_m
@@ -29,7 +30,7 @@ let rec derive context = function
            derive context arg >>|
            fun (ty, c) ->
              let alpha = new_tyvar () in
-             (alpha, [Subtype (ty, alpha); c]))
+             (alpha, [C.Subtype {lhs=ty; rhs=alpha}; c]))
        args
      >>= fun derived_form_args_with_alpha ->
      let alpha = new_tyvar () in
@@ -41,12 +42,12 @@ let rec derive context = function
        |> List.concat
      in
      let constraints =
-         Eq (tyf, Type.of_elem (TyFun (alphas, alpha))) ::
-         Subtype (beta, alpha) ::
+         C.Eq {lhs=tyf; rhs=Type.of_elem (TyFun (alphas, alpha))} ::
+         C.Subtype {lhs=beta; rhs=alpha} ::
          cf ::
          args_constraints
      in
-     Ok (beta, Conj constraints)
+     Ok (beta, C.Conj constraints)
   | Abs (_line, {args=vs; body=e}) ->
      let new_tyvars = List.map ~f:(fun v -> (v, (new_tyvar ()))) vs in
      let added_context =
@@ -60,7 +61,7 @@ let rec derive context = function
   | Let (_line, v, e1, e2) ->
      derive context e1 >>= fun (ty_e1, c1) ->
      derive (Context.add (Context.Key.Var v) ty_e1 context) e2 >>= fun (ty_e2, c2) ->
-     Ok (ty_e2, Conj [c1; c2])
+     Ok (ty_e2, C.Conj [c1; c2])
   | Letrec (line, lets , e) ->
      let new_tyvars = List.map ~f:(fun (v, f) -> (v, f, (new_tyvar ()))) lets in
      let added_context =
@@ -74,16 +75,16 @@ let rec derive context = function
      let constraints_result =
        new_tyvars
        |> result_map_m ~f:(fun (_, f, tyvar) -> derive added_context (Abs (line, f)) >>| fun(ty, c) -> (ty, c, tyvar))
-       >>| List.map ~f:(fun (ty, c, tyvar) -> [Eq (tyvar, ty); c])
+       >>| List.map ~f:(fun (ty, c, tyvar) -> [C.Eq {lhs=tyvar; rhs=ty}; c])
        >>| List.concat
      in
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
-     Ok (ty, Conj (c :: constraints))
+     Ok (ty, C.Conj (c :: constraints))
   | LocalFun {function_name; arity} ->
      let key = Context.Key.LocalFun {function_name; arity} in
      begin match Context.find context key with
-     | Some ty -> Ok (ty, Empty)
+     | Some ty -> Ok (ty, C.Empty)
      | None ->
         let filename = "TODO:filename" in
         let line = -1 (*TODO: line*) in
@@ -94,7 +95,7 @@ let rec derive context = function
      let mfa = Context.Key.MFA {module_name=m; function_name=f; arity=a} in
      begin match Context.find context mfa with
      | Some ty ->
-        Ok (ty, Empty)
+        Ok (ty, C.Empty)
      | None ->
         let filename = "TODO:filename" in
         let line = -1 (*TODO: line*) in
@@ -108,12 +109,12 @@ let rec derive context = function
      derive context a >>= fun (ty_a, c_a) ->
      let cs =
        [c_m; c_f; c_a;
-        Subtype (ty_m, Type.of_elem TyAtom);
-        Subtype (ty_f, Type.of_elem TyAtom);
-        Subtype (ty_a, Type.of_elem TyNumber);
-        Subtype (tyvar_mfa, TyAny)] (* cannot be TyFun (.., ..) because the arity is unknown. give up *)
+        C.Subtype {lhs=ty_m; rhs=Type.of_elem TyAtom};
+        C.Subtype {lhs=ty_f; rhs=Type.of_elem TyAtom};
+        C.Subtype {lhs=ty_a; rhs=Type.of_elem TyNumber};
+        C.Subtype {lhs=tyvar_mfa; rhs=TyAny}] (* cannot be TyFun (.., ..) because the arity is unknown. give up *)
      in
-     Ok (tyvar_mfa, Conj cs)
+     Ok (tyvar_mfa, C.Conj cs)
   | Case (e, clauses) ->
     (* translate pattern to expression *)
     let rec pattern_to_expr = function
@@ -149,17 +150,18 @@ let rec derive context = function
       derive added_context g_n >>= fun(ty_g_n, c_g) ->
       (* |- b_n : beta_n *)
       derive added_context b_n >>= fun(ty_beta_n, c_b) ->
-        Ok (Conj [
+        Ok (C.Conj [
           (*
             In the original paper about success typing, it's assumed that guard are true. However, we consider
             guards to be boolean type because true type constraint is too strong and not intuitive.
             Boolean type is true | false.
            *)
-          Subtype (ty_g_n, Type.bool);
-          Eq (beta, ty_beta_n); Eq (ty_e_t, ty_alpha_n); c_p; c_g; c_b
+          C.Subtype {lhs=ty_g_n; rhs=Type.bool};
+          C.Eq {lhs=beta; rhs=ty_beta_n};
+          C.Eq {lhs=ty_e_t; rhs=ty_alpha_n}; c_p; c_g; c_b
         ])
     ) in
-    results >>= fun(cs) -> Ok (beta, Conj [Disj cs; c_e])
+    results >>= fun(cs) -> Ok (beta, C.Conj [C.Disj cs; c_e])
   | ListCons (_e1, _e2) ->
      (* TODO: support cons expr *)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support cons expr"}))
