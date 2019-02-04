@@ -80,12 +80,12 @@ let%expect_test "solver" =
         ]);
   [%expect {|
             (Ok (
-              (a "'ok' | 0")
-              (b "123 | 'foo'")))
+              (a "0 | 'ok'")
+              (b "'foo' | 123")))
             |}];
 
   (*
-   * `solve_disj {X |-> number()} [(X <: 1); (X <: 2)]` should be `{X |-> 1 | 2}`
+   * `solve_disj {X |-> number()} [(X <: 1); (X <: 2)]` should be `{X |-> 1 | 2}`.
    * see: https://github.com/dwango/fialyzer/issues/176
    *)
   let [a] = create_vars 1 in
@@ -96,6 +96,6 @@ let%expect_test "solver" =
                  Subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 2)));
                ]
            ]);
-  [%expect {| (Ok ((a "2 | 1"))) |}];
+  [%expect {| (Ok ((a "1 | 2"))) |}];
 
   ()

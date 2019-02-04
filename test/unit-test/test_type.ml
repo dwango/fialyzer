@@ -102,17 +102,17 @@ let%expect_test "sup" =
   print (of_elem (TySingleton (Number 1))) (of_elem (TySingleton (Number 2)));
   [%expect {|
     (TyUnion (
-      (TySingleton (Number 2))
-      (TySingleton (Number 1)))) |}];
+      (TySingleton (Number 1))
+      (TySingleton (Number 2)))) |}];
 
   print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3); ])
         (TyUnion [TySingleton (Number 2); TySingleton (Number 3); TySingleton (Number 4); ]);
   [%expect {|
     (TyUnion (
-      (TySingleton (Number 4))
       (TySingleton (Number 1))
       (TySingleton (Number 2))
-      (TySingleton (Number 3)))) |}];
+      (TySingleton (Number 3))
+      (TySingleton (Number 4)))) |}];
 
   print (TyUnion [TySingleton (Number 1); TySingleton (Number 2); TySingleton (Number 3);]) (of_elem TyNumber);
   [%expect {| (TyUnion (TyNumber)) |}];
