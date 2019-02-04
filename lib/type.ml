@@ -13,6 +13,7 @@ type t =
     | TySingleton of Constant.t
     | TyVar of Type_variable.t
     | TyTuple of t list
+    | TyList of t
     | TyFun of t list * t
 [@@deriving sexp_of]
 
@@ -28,6 +29,7 @@ and pp_t_union_elem = function
   | TySingleton c -> Constant.pp c
   | TyVar var -> Type_variable.to_string var
   | TyTuple ts -> "{" ^ (ts |> List.map ~f:pp |> String.concat ~sep:", ") ^ "}"
+  | TyList t -> "[" ^ (pp t) ^ "]"
   | TyFun (args, ret) ->
      let args_str = "(" ^ (args |> List.map ~f:pp |> String.concat ~sep:", ") ^ ")" in
      let ret_str = pp ret in
@@ -81,6 +83,7 @@ and sup_elems_to_list store = function
          TyTuple ty2s :: store
      in
      sup_elems_to_list store' ty1s
+  | TyList t :: ty1s -> failwith "WIP"
   | TyFun (args, range) :: ty1s ->
      let store' =
        if List.exists ~f:(function TyFun (args0, _) when List.length args0 = List.length args -> true | _ -> false) store then

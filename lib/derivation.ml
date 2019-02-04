@@ -162,9 +162,15 @@ let rec derive context = function
         ])
     ) in
     results >>= fun(cs) -> Ok (beta, C.Conj [C.Disj cs; c_e])
-  | ListCons (_e1, _e2) ->
-     (* TODO: support cons expr *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support cons expr"}))
+  | ListCons (hd, tl) ->
+    let alpha = new_tyvar() in
+    derive context hd >>= fun (ty_hd, c_hd) ->
+    derive context tl >>= fun (ty_tl, c_tl) ->
+    Ok (Type.of_elem (TyList alpha), C.Conj [
+      C.Subtype {lhs=ty_hd; rhs=alpha};
+      C.Subtype {lhs=ty_tl; rhs=Type.of_elem (TyList alpha)};
+      c_hd;
+      c_tl
+    ])
   | ListNil ->
-     (* TODO: support nil expr *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support nil expr"}))
+     Ok (Type.of_elem (TyList TyBottom), C.Empty)

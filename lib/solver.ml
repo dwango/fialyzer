@@ -29,6 +29,7 @@ let rec lookup_type sol = function
 and lookup_elem sol = function
   | TyTuple tys ->
      TyUnion [TyTuple(List.map ~f:(lookup_type sol) tys)]
+  | TyList t -> TyUnion [TyList t]
   | TyFun (tys, ty) ->
      TyUnion [TyFun (List.map ~f:(lookup_type sol) tys, lookup_type sol ty)]
   | TyNumber -> TyUnion [TyNumber]
