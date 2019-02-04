@@ -7,6 +7,12 @@ let sexp_of_solution sol =
   Map.map ~f:pp sol
   |> [%sexp_of: string Map.M(Type_variable).t]
 
+let eq (ty1, ty2) =
+  Constraint.Eq {lhs=ty1; rhs=ty2}
+
+let subtype (ty1, ty2) =
+  Constraint.Subtype {lhs=ty1; rhs=ty2}
+
 let%expect_test "solver" =
   let print c =
     solve init c
@@ -22,15 +28,15 @@ let%expect_test "solver" =
   [%expect {| (Ok ()) |}];
 
   let [a] = create_vars 1 in
-  print (Eq (Type.of_elem (TyVar a), Type.of_elem TyNumber));
+  print (eq (Type.of_elem (TyVar a), Type.of_elem TyNumber));
   [%expect {| (Ok ((a "number()"))) |}];
 
   let [a] = create_vars 1 in
-  print (Subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber));
+  print (subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber));
   [%expect {| (Ok ((a "number()"))) |}];
 
   let [a; b] = create_vars 2 in
-  print (Subtype
+  print (subtype
            (Type.of_elem (TyTuple [Type.of_elem (TyVar a); Type.of_elem (TyVar b)]),
             Type.of_elem (TyTuple [Type.of_elem TyNumber; Type.of_elem TyAtom])));
   [%expect {|
@@ -39,25 +45,25 @@ let%expect_test "solver" =
       (b "atom()"))) |}];
 (*
   let [a; b] = create_vars 2 in
-  print (Subtype (TyUnion [TyVar a; TyVar b], TyNumber));
+  print (subtype (TyUnion [TyVar a; TyVar b], TyNumber));
   [%expect {|
     (Ok (
       (a TyNumber)
       (b TyNumber))) |}];
  *)
-  print (Subtype (TyBottom, TyAny));
+  print (subtype (TyBottom, TyAny));
   [%expect {| (Ok ()) |}];
 
-  print (Subtype (TyAny, TyAny));
+  print (subtype (TyAny, TyAny));
   [%expect {| (Ok ()) |}];
 
-  print (Subtype (TyBottom, TyAny));
+  print (subtype (TyBottom, TyAny));
   [%expect {| (Ok ()) |}];
 
-  print (Subtype (TyBottom, TyBottom));
+  print (subtype (TyBottom, TyBottom));
   [%expect {| (Ok ()) |}];
 
-  print (Subtype (Type.of_elem TyNumber, Type.of_elem TyAtom));
+  print (subtype (Type.of_elem TyNumber, Type.of_elem TyAtom));
   [%expect {|
     (Error (
       lib/known_error.ml.FialyzerError (
@@ -73,10 +79,10 @@ let%expect_test "solver" =
    *)
   let [a; b] = create_vars 2 in
   print (Disj [
-             Conj [Eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Atom "foo")));
-                   Eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 0)))];
-             Conj [Eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Number 123)));
-                   Eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Atom "ok")))];
+             Conj [eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Atom "foo")));
+                   eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 0)))];
+             Conj [eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Number 123)));
+                   eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Atom "ok")))];
         ]);
   [%expect {|
             (Ok (
@@ -90,10 +96,10 @@ let%expect_test "solver" =
    *)
   let [a] = create_vars 1 in
   print (Conj [
-             Subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber);
+             subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber);
              Disj [
-                 Subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 1)));
-                 Subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 2)));
+                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 1)));
+                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 2)));
                ]
            ]);
   [%expect {| (Ok ((a "1 | 2"))) |}];
