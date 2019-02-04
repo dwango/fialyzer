@@ -13,6 +13,7 @@ type t =
     | TySingleton of Constant.t
     | TyVar of Type_variable.t
     | TyTuple of t list
+    | TyList of t
     | TyFun of t list * t
 [@@deriving sexp_of]
 
@@ -28,6 +29,7 @@ and pp_t_union_elem = function
   | TySingleton c -> Constant.pp c
   | TyVar var -> Type_variable.to_string var
   | TyTuple ts -> "{" ^ (ts |> List.map ~f:pp |> String.concat ~sep:", ") ^ "}"
+  | TyList t -> "[" ^ (pp t) ^ "]"
   | TyFun (args, ret) ->
      let args_str = "(" ^ (args |> List.map ~f:pp |> String.concat ~sep:", ") ^ ")" in
      let ret_str = pp ret in
@@ -45,6 +47,8 @@ and variables_elem = function
   | TyNumber
   | TyAtom
   | TySingleton _ -> []
+  | TyList t ->
+    variables t
   | TyTuple ts ->
      List.concat_map ~f:variables ts
   | TyFun (args, ret) ->
@@ -83,6 +87,17 @@ and sup_elems_to_list store = function
      sup_elems_to_list store ty1s
   | TySingleton (Atom a) :: ty1s ->
      sup_elems_to_list (TySingleton (Atom a) :: store) ty1s
+  | TyList ty2 :: ty1s ->
+    let store' =
+       if List.exists ~f:(function TyList ty -> true | _ -> false) store then
+         store |> List.map ~f:(function
+         | TyList ty1 -> TyList (sup ty1 ty2)
+         | t -> t
+         )
+       else
+         TyList ty2 :: store
+    in
+    sup_elems_to_list store' ty1s
   | TyTuple ty2s :: ty1s ->
      let store' =
        if List.exists ~f:(function TyTuple tys when List.length ty2s = List.length tys -> true | _ -> false) store then
@@ -131,7 +146,7 @@ let rec inf ty1 ty2 =  (* ty1 and ty2 should be a TyAny, TyBottom, TyVar or TyUn
      | [] -> TyBottom
      | ty1s -> TyUnion ty1s
      end
-and inf_elem ty1 ty2 =  (* ty1 and ty2 should be a TyNumber, TySingleton, TyAtom, TyTuple or TyFun *)
+and inf_elem ty1 ty2 =  (* ty1 and ty2 should be a TyNumber, TySingleton, TyAtom, TyTuple, TyList or TyFun *)
   match (ty1, ty2) with
   | (TyVar _, _) | (_, TyVar _) -> failwith "cannot reach here"
   | _ when ty1 = ty2 -> Some ty1
@@ -142,6 +157,8 @@ and inf_elem ty1 ty2 =  (* ty1 and ty2 should be a TyNumber, TySingleton, TyAtom
   | (TyTuple tys1, TyTuple tys2) when List.length tys1 = List.length tys2 ->
      List.map2_exn ~f:inf tys1 tys2
      |> fun tys -> Some (TyTuple tys)
+  | (TyList t1, TyList t2) ->
+    Some (TyList (inf t1 t2))
   | (TyFun (args1, range1), TyFun (args2, range2)) when List.length args1 = List.length args2 ->
      let args' = List.map2_exn ~f:inf args1 args2 in
      let range' = inf range1 range2 in

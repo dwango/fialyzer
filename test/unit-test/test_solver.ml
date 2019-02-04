@@ -106,4 +106,33 @@ let%expect_test "solver" =
            ]);
   [%expect {| (Ok ((a "1 | 2"))) |}];
 
+  let [a; b] = create_vars 2 in
+  print (Conj [
+             subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber);
+             Disj [
+                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 1)));
+                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 2)));
+             ];
+             subtype (Type.of_elem (TyVar b), Type.of_elem (TyList (Type.of_elem (TyVar a))));
+           ]);
+  [%expect {|
+    (Ok (
+      (a "1 | 2")
+      (b "[1 | 2]"))) |}];
+
+  let [a] = create_vars 1 in
+  print (Disj [
+    subtype (Type.of_elem (TyVar a), Type.of_elem (TyList TyBottom));
+    subtype (Type.of_elem (TyVar a), Type.of_elem (TyList (Type.of_elem TyAtom)))
+  ]);
+  [%expect {| (Ok ((a "[atom()]"))) |}];
+
+  let [a] = create_vars 1 in
+  print (Conj [
+    eq (Type.of_elem (TyList TyBottom), Type.of_elem (TyList (Type.of_elem (TyVar a))))
+  ]);
+  [%expect {|
+    (Ok ((a "none()"))) |}];
+
+
   ()
