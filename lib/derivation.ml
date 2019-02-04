@@ -112,7 +112,7 @@ let rec derive context = function
         C.Subtype {lhs=ty_m; rhs=Type.of_elem TyAtom};
         C.Subtype {lhs=ty_f; rhs=Type.of_elem TyAtom};
         C.Subtype {lhs=ty_a; rhs=Type.of_elem TyNumber};
-        C.Subtype {lhs=tyvar_mfa; rhs=TyAny}] (* cannot be TyFun (.., ..) because the arity is unknown. give up *)
+       ]
      in
      Ok (tyvar_mfa, C.Conj cs)
   | Case (e, clauses) ->
