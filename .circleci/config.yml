@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: Install System Deps
-          command: apk add --no-cache ca-certificates make
+          command: apk add --no-cache ca-certificates make bash
       - run:
           name: Compile erl files
           command: make beam
