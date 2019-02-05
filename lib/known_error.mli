@@ -1,4 +1,4 @@
-type type_error = {filename: string; expr: Ast.t; actual : Type.t; expected: Type.t; message: string}
+type type_error = {filename: string; line: int; actual : Type.t; expected: Type.t; message: string}
 [@@deriving sexp_of]
 
 type t =

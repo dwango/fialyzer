@@ -77,10 +77,11 @@ let solve_sub expr sol ty1 ty2 =
     Ok sol
   else if inf = TyBottom then
     let filename = "TODO:filename" in
+    let line = Ast.line_number_of_t expr in
     let actual = ty1' in
     let expected = ty2' in
     let message = !%"there is no solution that satisfies subtype constraints" in
-    Error Known_error.(FialyzerError(TypeError [{filename; expr; actual; expected; message}]))
+    Error Known_error.(FialyzerError(TypeError [{filename; line; actual; expected; message}]))
   else
     unify ty1 inf
     |> List.fold_left ~f:(fun sol (v,ty) -> set (v, ty) sol) ~init:sol

@@ -1,4 +1,4 @@
-TODO:filename:5: Type error: type mismatch at the expression '(Constant 5 (Atom you))';
+TODO:filename:5: Type error: type mismatch;
   found   : 'you'
   required: number()
 there is no solution that satisfies subtype constraints

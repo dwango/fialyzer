@@ -1,7 +1,7 @@
 open Base
 open Common
 
-type type_error = {filename: string; expr: Ast.t; actual : Type.t; expected: Type.t; message: string}
+type type_error = {filename: string; line: int; actual : Type.t; expected: Type.t; message: string}
 [@@deriving sexp_of]
 
 type t =
@@ -31,9 +31,7 @@ let to_message = function
      !%"%s:%d: Unknown function: %s" filename line (Mfa.show mfa)
   | TypeError errs ->
      let f err =
-     !%"%s:%d: Type error: type mismatch at the expression '%s';\n  found   : %s\n  required: %s\n%s" err.filename
-       (Ast.line_number_of_t err.expr)
-       (Ast.string_of_t err.expr)
+     !%"%s:%d: Type error: type mismatch;\n  found   : %s\n  required: %s\n%s" err.filename err.line
        (Type.pp err.actual)
        (Type.pp err.expected)
        err.message
