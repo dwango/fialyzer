@@ -173,4 +173,4 @@ let rec derive context = function
       c_tl
     ])
   | ListNil ->
-     Ok (Type.of_elem (TyList TyBottom), C.Empty)
+     Ok (Type.of_elem (TySingleton Nil), C.Empty)

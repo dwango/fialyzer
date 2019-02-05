@@ -330,7 +330,7 @@ let%expect_test "derivation" =
 
   (* [] *)
   print Context.empty (ListNil);
-  [%expect {| (Ok ("[none()]" Empty)) |}];
+  [%expect {| (Ok ([] Empty)) |}];
 
   (* [1] *)
   print Context.empty (ListCons (Constant(-1, Number 1), ListNil));
@@ -338,9 +338,8 @@ let%expect_test "derivation" =
     (Ok (
       [a] (
         Conj (
-          (Subtype 1        a)
-          (Subtype "[none()]"
-          [a])
+          (Subtype 1  a)
+          (Subtype [] [a])
           Empty
           Empty)))) |}];
   

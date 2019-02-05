@@ -70,6 +70,7 @@ and sup_elems_to_list store = function
      sup_elems_to_list store ty1s
   | TySingleton (Atom a) :: ty1s ->
      sup_elems_to_list (TySingleton (Atom a) :: store) ty1s
+  | TySingleton Nil :: ty1s -> failwith "WIP"
   | TyTuple ty2s :: ty1s ->
      let store' =
        if List.exists ~f:(function TyTuple tys when List.length ty2s = List.length tys -> true | _ -> false) store then
