@@ -70,7 +70,17 @@ and sup_elems_to_list store = function
      sup_elems_to_list store ty1s
   | TySingleton (Atom a) :: ty1s ->
      sup_elems_to_list (TySingleton (Atom a) :: store) ty1s
-  | TySingleton Nil :: ty1s -> failwith "WIP"
+  | TyList t :: ty1s ->
+     let is_not_nil = function TySingleton Nil -> false | _ -> true in
+     let store' = TyList t :: List.filter ~f:is_not_nil store in
+     sup_elems_to_list store' ty1s
+  | TySingleton Nil :: ty1s when List.exists ~f:(function
+    | TyList _ -> true
+    | _ -> false
+    ) store ->
+     sup_elems_to_list store ty1s
+  | TySingleton Nil :: ty1s -> 
+     sup_elems_to_list (TySingleton Nil :: store) ty1s
   | TyTuple ty2s :: ty1s ->
      let store' =
        if List.exists ~f:(function TyTuple tys when List.length ty2s = List.length tys -> true | _ -> false) store then
@@ -84,7 +94,6 @@ and sup_elems_to_list store = function
          TyTuple ty2s :: store
      in
      sup_elems_to_list store' ty1s
-  | TyList t :: ty1s -> failwith "WIP"
   | TyFun (args, range) :: ty1s ->
      let store' =
        if List.exists ~f:(function TyFun (args0, _) when List.length args0 = List.length args -> true | _ -> false) store then

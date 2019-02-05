@@ -104,4 +104,8 @@ let%expect_test "solver" =
            ]);
   [%expect {| (Ok ((a "1 | 2"))) |}];
 
+  let [a] = create_vars 1 in
+  print (subtype (Type.of_elem (TyVar a), Type.of_elem (TyList (Type.of_elem TyNumber))));
+  [%expect {| (Ok ((a "[number()]"))) |}];
+
   ()
