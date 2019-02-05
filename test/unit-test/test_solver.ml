@@ -108,4 +108,11 @@ let%expect_test "solver" =
   print (subtype (Type.of_elem (TyVar a), Type.of_elem (TyList (Type.of_elem TyNumber))));
   [%expect {| (Ok ((a "[number()]"))) |}];
 
+  let [a] = create_vars 1 in
+  print (Disj [
+    subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton Nil));
+    subtype (Type.of_elem (TyVar a), Type.of_elem (TyList (Type.of_elem TyAtom)))
+  ]);
+  [%expect {| (Ok ((a "[atom()]"))) |}];
+
   ()
