@@ -1,16 +1,16 @@
-TODO:filename:-1: Type error: type mismatch;
+TODO:filename:8: Type error: type mismatch at the expression '(Constant 8 (Atom foo))';
   found   : 123
   required: 'foo'
 there is no solution that satisfies subtype constraints
-TODO:filename:-1: Type error: type mismatch;
+TODO:filename:8: Type error: type mismatch at the expression '(Constant 8 (Atom foo))';
   found   : 'foo'
   required: 123
 there is no solution that satisfies subtype constraints
-TODO:filename:-1: Type error: type mismatch;
+TODO:filename:-1: Type error: type mismatch at the expression '(Constant -1 (Number 1))';
   found   : 'ok'
   required: 1
 there is no solution that satisfies subtype constraints
-TODO:filename:-1: Type error: type mismatch;
+TODO:filename:-1: Type error: type mismatch at the expression '(Constant -1 (Number 1))';
   found   : 1
   required: 'ok'
 there is no solution that satisfies subtype constraints

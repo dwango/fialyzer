@@ -71,7 +71,7 @@ let%expect_test "solver" =
       lib/known_error.ml.FialyzerError (
         TypeError ((
           (filename TODO:filename)
-          (line     -1)
+          (expr (Var -1 __dummy_expr__))
           (actual   (TyUnion (TyNumber)))
           (expected (TyUnion (TyAtom)))
           (message "there is no solution that satisfies subtype constraints")))))) |}];
