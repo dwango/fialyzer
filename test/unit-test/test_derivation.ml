@@ -51,8 +51,7 @@ let%expect_test "derivation" =
    *   X when true -> X
    * end
    *)
-  print Context.empty (Case (Constant (-1, Number 42), [(PatVar "X", Constant (-1, Atom "true")), Var (-1, "X")]));
-  [%expect {|
+  print Context.empty (Case (Constant (-1, Number 42), [(PatVar "X", Constant (-1, Atom "true")), Var (-1, "X")])); [%expect {|
      (Ok (
        a (
          Conj (
@@ -328,5 +327,22 @@ let%expect_test "derivation" =
                         (Subtype 'f' "atom()")
                         (Subtype 0   "number()")))))))))))))
   |}];
+
+  (* [] *)
+  print Context.empty (ListNil);
+  [%expect {| (Ok ("[none()]" Empty)) |}];
+
+  (* [1] *)
+  print Context.empty (ListCons (Constant(-1, Number 1), ListNil));
+  [%expect {|
+    (Ok (
+      [a] (
+        Conj (
+          (Subtype 1        a)
+          (Subtype "[none()]"
+          [a])
+          Empty
+          Empty)))) |}];
+  
 
   ()
