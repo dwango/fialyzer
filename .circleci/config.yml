@@ -26,7 +26,7 @@ jobs:
       - run:
           name: Install System Deps
           # NOTE: You must install git and openssh before checkout, otherwise submodule will not be updated.
-          command: sudo apk add --no-cache m4 make zlib-dev gmp-dev perl git openssh
+          command: sudo apk add --no-cache m4 make zlib-dev gmp-dev perl git openssh bash
       - checkout
       - attach_workspace:
           at: .
