@@ -128,6 +128,8 @@ and inf_elem ty1 ty2 =  (* ty1 and ty2 should be a TyNumber, TySingleton, TyAtom
      Some (TySingleton (Number n))
   | (TyAtom, TySingleton (Atom a)) | (TySingleton (Atom a), TyAtom) ->
      Some (TySingleton (Atom a))
+  | (TyList _, TySingleton Nil) | (TySingleton Nil, TyList _) ->
+     Some (TySingleton Nil)
   | (TyTuple tys1, TyTuple tys2) when List.length tys1 = List.length tys2 ->
      List.map2_exn ~f:inf tys1 tys2
      |> fun tys -> Some (TyTuple tys)
