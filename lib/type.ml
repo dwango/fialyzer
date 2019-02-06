@@ -15,6 +15,7 @@ type t =
     | TyTuple of t list
     | TyList of t
     | TyFun of t list * t
+    | TyMap of (t * t) list     (* Currently, we support only exact assocs (e.g., #{K1 := V1, K2 := V2, ...}) *)
 [@@deriving sexp_of]
 
 (* ref: http://erlang.org/doc/reference_manual/typespec.html *)
@@ -34,6 +35,7 @@ and pp_t_union_elem = function
      let args_str = "(" ^ (args |> List.map ~f:pp |> String.concat ~sep:", ") ^ ")" in
      let ret_str = pp ret in
      "fun(" ^ args_str ^ " -> " ^ ret_str ^ ")"
+  | TyMap assocs -> "#{" ^ (assocs |> List.map ~f:(fun (k, v) -> pp k ^ " := " ^ pp v) |> String.concat ~sep:", ") ^ "}"
 
 let bool = TyUnion [TySingleton (Atom "true"); TySingleton (Atom "false")]
 let of_elem e = TyUnion [e]
@@ -127,6 +129,7 @@ and sup_elems_to_list store = function
          TyFun (args, range) :: store
      in
      sup_elems_to_list store' ty1s
+  | TyMap
 
 let union_list tys =
   List.reduce_exn ~f:sup tys

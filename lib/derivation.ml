@@ -177,5 +177,8 @@ let rec derive context = function
   | ListNil ->
     Ok (Type.of_elem (TyList TyBottom), C.Empty)
   | Map assocs ->
-     (* TODO: support map expr *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/122"]; message="support map expr"}))
+     result_map_m ~f:(fun (k, v) -> derive context k >>= fun (ty_k, c_k) ->
+                                    derive context v >>= fun (ty_v, c_v) ->
+                                    Ok ((ty_k, ty_v), [c_k; c_v])) assocs
+     >>| List.unzip
+     >>| fun (ty_kvs, c_kvs) -> (Type.of_elem (TyMap ty_kvs), Conj (List.concat c_kvs))
