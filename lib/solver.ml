@@ -125,10 +125,10 @@ let merge_errors errs =
 
 let rec solve1 sol = function
   | C.Empty -> Ok sol
-  | C.Eq {lhs=ty1; rhs=ty2; expr} ->
-     solve_eq expr sol ty1 ty2
-  | C.Subtype {lhs=ty1; rhs=ty2; expr} ->
-     solve_sub expr sol ty1 ty2
+  | C.Eq {lhs=ty1; rhs=ty2; link} ->
+     solve_eq link sol ty1 ty2
+  | C.Subtype {lhs=ty1; rhs=ty2; link} ->
+     solve_sub link sol ty1 ty2
   | C.Conj cs ->
      solve_conj sol cs
   | C.Disj cs ->
@@ -155,10 +155,10 @@ and solve_disj sol cs =
  *)
 let rec find_error_clauses sol = function
   | C.Empty -> []
-  | C.Eq {lhs=ty1; rhs=ty2; expr} ->
-     find_error_clauses sol (Subtype {lhs=ty1; rhs=ty2; expr})
-     @ find_error_clauses sol (Subtype {lhs=ty2; rhs=ty1; expr})
-  | C.Subtype {lhs=ty1; rhs=ty2; expr} ->
+  | C.Eq {lhs=ty1; rhs=ty2; link} ->
+     find_error_clauses sol (Subtype {lhs=ty1; rhs=ty2; link})
+     @ find_error_clauses sol (Subtype {lhs=ty2; rhs=ty1; link})
+  | C.Subtype {lhs=ty1; rhs=ty2; link=expr} ->
      begin match solve_sub expr sol ty1 ty2 with
      | Ok _ -> []
      | Error e -> [e]

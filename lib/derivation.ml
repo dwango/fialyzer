@@ -30,7 +30,7 @@ let rec derive context = function
            derive context arg >>|
            fun (ty, c) ->
              let alpha = new_tyvar () in
-             (alpha, [C.Subtype {lhs=ty; rhs=alpha; expr=arg}; c]))
+             (alpha, [C.Subtype {lhs=ty; rhs=alpha; link=arg}; c]))
        args
      >>= fun derived_form_args_with_alpha ->
      let alpha = new_tyvar () in
@@ -42,8 +42,8 @@ let rec derive context = function
        |> List.concat
      in
      let constraints =
-         C.Eq {lhs=tyf; rhs=Type.of_elem (TyFun (alphas, alpha)); expr=f} ::
-         C.Subtype {lhs=beta; rhs=alpha; expr=app} ::
+         C.Eq {lhs=tyf; rhs=Type.of_elem (TyFun (alphas, alpha)); link=f} ::
+         C.Subtype {lhs=beta; rhs=alpha; link=app} ::
          cf ::
          args_constraints
      in
@@ -75,7 +75,7 @@ let rec derive context = function
      let constraints_result =
        new_tyvars
        |> result_map_m ~f:(fun (_, f, tyvar) -> derive added_context (Abs (line, f)) >>| fun(ty, c) -> (Abs (line, f), ty, c, tyvar))
-       >>| List.map ~f:(fun (abs, ty, c, tyvar) -> [C.Eq {lhs=tyvar; rhs=ty; expr=abs}; c])
+       >>| List.map ~f:(fun (abs, ty, c, tyvar) -> [C.Eq {lhs=tyvar; rhs=ty; link=abs}; c])
        >>| List.concat
      in
      constraints_result >>= fun constraints ->
@@ -109,9 +109,9 @@ let rec derive context = function
      derive context a >>= fun (ty_a, c_a) ->
      let cs =
        [c_m; c_f; c_a;
-        C.Subtype {lhs=ty_m; rhs=Type.of_elem TyAtom; expr=m};
-        C.Subtype {lhs=ty_f; rhs=Type.of_elem TyAtom; expr=f};
-        C.Subtype {lhs=ty_a; rhs=Type.of_elem TyNumber; expr=a};
+        C.Subtype {lhs=ty_m; rhs=Type.of_elem TyAtom; link=m};
+        C.Subtype {lhs=ty_f; rhs=Type.of_elem TyAtom; link=f};
+        C.Subtype {lhs=ty_a; rhs=Type.of_elem TyNumber; link=a};
        ]
      in
      Ok (tyvar_mfa, C.Conj cs)
@@ -156,9 +156,9 @@ let rec derive context = function
             guards to be boolean type because true type constraint is too strong and not intuitive.
             Boolean type is true | false.
            *)
-          C.Subtype {lhs=ty_g_n; rhs=Type.bool; expr=g_n};
-          C.Eq {lhs=beta; rhs=ty_beta_n; expr=b_n};
-          C.Eq {lhs=ty_e_t; rhs=ty_alpha_n; expr=p_n_expr}; c_p; c_g; c_b
+          C.Subtype {lhs=ty_g_n; rhs=Type.bool; link=g_n};
+          C.Eq {lhs=beta; rhs=ty_beta_n; link=b_n};
+          C.Eq {lhs=ty_e_t; rhs=ty_alpha_n; link=p_n_expr}; c_p; c_g; c_b
         ])
     ) in
     results >>= fun(cs) -> Ok (beta, C.Conj [C.Disj cs; c_e])

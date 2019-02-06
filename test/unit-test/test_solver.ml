@@ -8,12 +8,12 @@ let sexp_of_solution sol =
   |> [%sexp_of: string Map.M(Type_variable).t]
 
 let eq (ty1, ty2) =
-  let expr = Ast.Var (-1, "__dummy_expr__") in
-  Constraint.Eq {lhs=ty1; rhs=ty2; expr}
+  let link = Ast.Var (-1, "__dummy_expr__") in
+  Constraint.Eq {lhs=ty1; rhs=ty2; link}
 
 let subtype (ty1, ty2) =
-  let expr = Ast.Var (-1, "__dummy_expr__") in
-  Constraint.Subtype {lhs=ty1; rhs=ty2; expr}
+  let link = Ast.Var (-1, "__dummy_expr__") in
+  Constraint.Subtype {lhs=ty1; rhs=ty2; link}
 
 let%expect_test "solver" =
   let print c =
