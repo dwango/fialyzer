@@ -129,3 +129,46 @@ let%expect_test "sup" =
   |}];
 
   ()
+
+let%expect_test "of_erl_type" =
+  let {Plt.contracts; _} = Result.ok_exn (Plt.of_file "plt/specs.plt") in
+
+  let print function_name =
+    let erl_type =
+      match Map.find_exn contracts Mfa.{module_name="specs"; function_name; arity=1} with
+      | {Plt.contracts=[(erl_type, _)]; _} -> erl_type
+      | _ -> failwith "unexpected error"
+    in
+    of_erl_type erl_type
+    |> [%sexp_of: Type.t]
+    |> Expect_test_helpers_kernel.print_s in
+
+  print "f_any"; (* (any()) -> ok *)
+  [%expect {| (TyUnion ((TyFun (TyAny) (TyUnion ((TySingleton (Atom ok))))))) |}];
+
+  print "f_tuple"; (* ({foo, bar}) -> ok *)
+  [%expect {|
+    (TyUnion ((
+      TyFun
+      ((
+        TyUnion ((
+          TyTuple (
+            (TyUnion ((TySingleton (Atom foo))))
+            (TyUnion ((TySingleton (Atom bar)))))))))
+      (TyUnion ((TySingleton (Atom ok))))))) |}];
+
+  print "f_union2"; (* (foo | bar | fun((0..12) -> 0..255) | 42 | {1} | {2} | {1, 1} | {2, 2}) -> ok *)
+  [%expect {|
+    (TyUnion ((
+      TyFun
+      ((
+        TyUnion (
+          (TySingleton (Atom bar))
+          (TySingleton (Atom foo))
+          (TyFun ((TyUnion (TyNumber))) (TyUnion (TyNumber)))
+          (TySingleton (Number 42))
+          (TyTuple ((TyUnion (TyNumber))))
+          (TyTuple (
+            (TyUnion (TyNumber))
+            (TyUnion (TyNumber)))))))
+      (TyUnion ((TySingleton (Atom ok))))))) |}];

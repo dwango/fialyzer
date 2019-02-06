@@ -8,10 +8,17 @@ type qualifier
 type ident_type = IPort | IPid | IReference
 [@@deriving show, sexp_of]
 
-type var_id
+type var_id =
+  | VAtom of string
+  | VInt of int
 [@@deriving show, sexp_of]
 
-type number
+type number =
+  | IntRange of {min: min; max: max}
+  | IntSet of int list
+  | AnyInteger (* integer() *)
+  | AnyFloat   (* float()   *)
+  | AnyNumber     (* number()  *)
 and min
 and max
 [@@deriving show, sexp_of]
@@ -63,7 +70,10 @@ and tuple = {
     arity : int;         (* size *)
     tag : string option; (* first element's tag (may be record name) *)
   }
-and n_tuples
+and n_tuples = {
+  n: int;
+  tuples: tuple list
+}
 [@@deriving show, sexp_of]
 
 val of_etf : Etf.t -> (t, exn) Result.t

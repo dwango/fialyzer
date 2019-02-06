@@ -260,7 +260,7 @@ let%expect_test "Plt.of_file" =
                   None
                   (IdentifierUnion (IPid IPort))
                   None
-                  (Number (IntSet (set (1 2))))
+                  (Number (IntSet (1 2)))
                   None
                   None
                   None
@@ -274,8 +274,71 @@ let%expect_test "Plt.of_file" =
               None
               (IdentifierUnion (IPid IPort))
               None
-              (Number (IntSet (set (1 2))))
+              (Number (IntSet (1 2)))
               None
+              None
+              None
+              None))))
+          (forms ())))
+        (((module_name   specs)
+          (function_name f_union2)
+          (arity         1))
+         ((contracts ((
+            (Function
+              (params ((
+                Union (
+                  (AtomUnion (bar foo))
+                  None
+                  (Function
+                    (params ((Number (IntSet (0 1 2 3 4 5 6 7 8 9 10 11 12)))))
+                    (ret (
+                      Number (
+                        IntRange
+                        (min (Min 0))
+                        (max (Max 255))))))
+                  None
+                  None
+                  (Number (IntSet (42)))
+                  (NTuplesUnion (
+                    ((n 1)
+                     (tuples ((
+                       (types ((Number (IntSet (1 2))))) (arity 1) (tag ())))))
+                    ((n 2)
+                     (tuples ((
+                       (types (
+                         (Number (IntSet (1 2)))
+                         (Number (IntSet (1 2)))))
+                       (arity 2)
+                       (tag ())))))))
+                  None
+                  None
+                  None))))
+              (ret (AtomUnion (ok))))
+            ())))
+          (args ((
+            Union (
+              (AtomUnion (bar foo))
+              None
+              (Function
+                (params ((Number (IntSet (0 1 2 3 4 5 6 7 8 9 10 11 12)))))
+                (ret (
+                  Number (
+                    IntRange
+                    (min (Min 0))
+                    (max (Max 255))))))
+              None
+              None
+              (Number (IntSet (42)))
+              (NTuplesUnion (
+                ((n 1)
+                 (tuples (((types ((Number (IntSet (1 2))))) (arity 1) (tag ())))))
+                ((n 2)
+                 (tuples ((
+                   (types (
+                     (Number (IntSet (1 2)))
+                     (Number (IntSet (1 2)))))
+                   (arity 2)
+                   (tag ())))))))
               None
               None
               None))))

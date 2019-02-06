@@ -27,7 +27,7 @@ let qualifier_of_etf etf =
 
 type number =
   | IntRange of {min: min; max: max}
-  | IntSet of {set: int list}
+  | IntSet of int list
   | AnyInteger (* integer() *)
   | AnyFloat   (* float()   *)
   | AnyNumber     (* number()  *)
@@ -225,7 +225,7 @@ let rec of_etf = function
            begin match elems with
            | [Atom "int_set"; set_etf] ->
               (E.list_of_etf set_etf >>= result_map_m ~f:E.int_of_etf) >>= fun set ->
-              Ok (Number (IntSet {set}))
+              Ok (Number (IntSet set))
            | [Atom "int_rng"; min_etf; max_etf] ->
               begin match min_etf with
               | Atom "neg_inf" -> Result.Ok NegativeInfinity
