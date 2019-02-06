@@ -157,7 +157,7 @@ let%expect_test "of_erl_type" =
             (TyUnion ((TySingleton (Atom bar)))))))))
       (TyUnion ((TySingleton (Atom ok))))))) |}];
 
-  print "f_union2"; (* (foo | bar | fun((a) -> b) | 42 | {1} | {2} | {1, 1} | {2, 2}) -> ok *)
+  print "f_union2"; (* (foo | bar | fun((0..12) -> 0..255) | 42 | {1} | {2} | {1, 1} | {2, 2}) -> ok *)
   [%expect {|
     (TyUnion ((
       TyFun
