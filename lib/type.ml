@@ -232,5 +232,5 @@ and union_of_erl_type = function
     as other ->
      Log.debug [%here] "not implemented conversion from erl_type: %s" (Erl_type.sexp_of_t other |> Sexp.to_string_hum);
      [TySingleton (Atom "not_implemented")]
-  | other ->
-     failwith (!%"not implemented conversion from erl_type: %s" (Erl_type.sexp_of_t other |> Sexp.to_string_hum))
+  | Any | Unit ->
+     failwith "cannot reach here"
