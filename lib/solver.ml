@@ -69,7 +69,7 @@ and unify_elem elem inf =
      |> List.concat
   | _ -> []
 
-let solve_sub sol ty1 ty2 =
+let solve_sub expr sol ty1 ty2 =
   let ty1' = lookup_type sol ty1 in
   let ty2' = lookup_type sol ty2 in
   let inf = inf ty1' ty2' in
@@ -87,10 +87,10 @@ let solve_sub sol ty1 ty2 =
     |> List.fold_left ~f:(fun sol (v,ty) -> set (v, ty) sol) ~init:sol
     |> Result.return
 
-let solve_eq sol ty1 ty2 =
+let solve_eq expr sol ty1 ty2 =
   let open Result in
-  solve_sub sol ty1 ty2 >>= fun sol' ->
-  solve_sub sol' ty2 ty1
+  solve_sub expr sol ty1 ty2 >>= fun sol' ->
+  solve_sub expr sol' ty2 ty1
 
 let merge_solutions sol1 sol2 =
   let f ~key = function
@@ -125,10 +125,10 @@ let merge_errors errs =
 
 let rec solve1 sol = function
   | C.Empty -> Ok sol
-  | C.Eq {lhs=ty1; rhs=ty2} ->
-     solve_eq sol ty1 ty2
-  | C.Subtype {lhs=ty1; rhs=ty2} ->
-     solve_sub sol ty1 ty2
+  | C.Eq {lhs=ty1; rhs=ty2; link} ->
+     solve_eq link sol ty1 ty2
+  | C.Subtype {lhs=ty1; rhs=ty2; link} ->
+     solve_sub link sol ty1 ty2
   | C.Conj cs ->
      solve_conj sol cs
   | C.Disj cs ->
@@ -155,11 +155,11 @@ and solve_disj sol cs =
  *)
 let rec find_error_clauses sol = function
   | C.Empty -> []
-  | C.Eq {lhs=ty1; rhs=ty2} ->
-     find_error_clauses sol (Subtype {lhs=ty1; rhs=ty2})
-     @ find_error_clauses sol (Subtype {lhs=ty2; rhs=ty1})
-  | C.Subtype {lhs=ty1; rhs=ty2} ->
-     begin match solve_sub sol ty1 ty2 with
+  | C.Eq {lhs=ty1; rhs=ty2; link} ->
+     find_error_clauses sol (Subtype {lhs=ty1; rhs=ty2; link})
+     @ find_error_clauses sol (Subtype {lhs=ty2; rhs=ty1; link})
+  | C.Subtype {lhs=ty1; rhs=ty2; link=expr} ->
+     begin match solve_sub expr sol ty1 ty2 with
      | Ok _ -> []
      | Error e -> [e]
      end
