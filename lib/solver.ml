@@ -101,28 +101,6 @@ let merge_solutions sol1 sol2 =
   in
   Map.merge sol1 sol2 ~f
 
-let merge_errors errs =
-  let open Known_error in
-  let rec iter store = function
-    | [] -> `AllTypeError (List.rev store)
-    | FialyzerError (TypeError type_errors) :: errors ->
-       iter (type_errors :: store) errors
-    | FialyzerError (NotImplemented _ as err) :: _ ->
-       `NotImplementedExists err
-    | FialyzerError InvalidUsage :: _ | FialyzerError (NoSuchFile _) :: _
-      | FialyzerError (InvalidBeam _) :: _ | FialyzerError (UnboundVariable _) :: _ ->
-       failwith "cannot reach here"
-    | other :: _ -> (* general errors *)
-       `GeneralError other
-  in
-  match iter [] errs with
-  | `AllTypeError type_errors ->
-     FialyzerError (TypeError (List.concat type_errors))
-  | `NotImplementedExists err ->
-     FialyzerError err
-  | `GeneralError exn ->
-     exn
-
 let rec solve1 sol = function
   | C.Empty -> Ok sol
   | C.Eq {lhs=ty1; rhs=ty2; link} ->
@@ -140,53 +118,14 @@ and solve_conj sol = function
      solve1 sol c >>= fun sol' ->
      solve_conj sol' cs
 and solve_disj sol cs =
-  let results = List.map ~f:(solve1 sol) cs in
-  let valid_solutions = List.filter_map ~f:Result.ok results in
-  match valid_solutions with
-  | [] -> (* the all elements in results are error *)
-     let errors = List.map ~f:(function Error e -> e | _ -> failwith "cannot reach here") results in
-     Error (merge_errors errors)
-  | sols ->
-     Ok (List.reduce_exn ~f:merge_solutions sols)
-
-(*
-  After calculating success typing, it is finally checked whether all branches pass type checking.
-  Note that this process is outside of the success typing algorithm.
- *)
-let rec find_error_clauses sol = function
-  | C.Empty -> []
-  | C.Eq {lhs=ty1; rhs=ty2; link} ->
-     find_error_clauses sol (Subtype {lhs=ty1; rhs=ty2; link})
-     @ find_error_clauses sol (Subtype {lhs=ty2; rhs=ty1; link})
-  | C.Subtype {lhs=ty1; rhs=ty2; link=expr} ->
-     begin match solve_sub expr sol ty1 ty2 with
-     | Ok _ -> []
-     | Error e -> [e]
-     end
-  | C.Disj cs ->
-     List.map ~f:(find_error_clauses sol) cs
-     |> List.concat
-  | Conj cs ->
-     find_conj sol cs
-and find_conj sol cs =
-  let f sol' c =
-    match (find_error_clauses sol' c, solve1 sol' c) with
-    | ([], Ok sol'') -> (sol'', [])
-    | ([], Error _)  -> failwith "cannot reach here"
-    | (es, Ok sol'') -> (sol'', es)
-    | (es, Error _)  -> (sol', es)
-  in
-  List.folding_map cs ~init:sol ~f
-  |> List.concat
+  let open Result in
+  result_map_m ~f:(solve1 sol) cs >>= fun sols ->
+  Ok (List.reduce_exn ~f:merge_solutions sols)
 
 let rec solve sol cs =
   let open Result in
   solve1 sol cs >>= fun sol' ->
   if Map.equal (=) sol sol' then
-    begin match find_error_clauses sol' cs with
-    | [] -> Ok sol'
-    | _ :: _ as es ->
-       Error (merge_errors es)
-    end
+    Ok sol'
   else
     solve sol' cs
