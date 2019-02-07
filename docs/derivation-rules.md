@@ -37,8 +37,8 @@ A ⊢ e1 : τ1, C1         A ∪ {x → τ1} ⊢ e2 : τ2, C2
 ---------------------------------------------------- [LET]
 A ⊢ let x = e1 in e2 : τ2, C1 ∧ C2
 
-A' ⊢ fn1 : τ1, C1 ... A' ⊢ fnn : τn, Cn      A' ⊢ e : τ, C   where ai = length (args fi), A' = A ∪ {fun xi/ai → αi}
--------------------------------------------------------------------------------------------------------------------- [LETREC]
+A' ⊢ fn1 : τ1, C1 ... A' ⊢ fnn : τn, Cn      A' ⊢ e : τ, C      where A' = A ∪ {xi → αi}
+------------------------------------------------------------------------------------------------- [LETREC]
 A ⊢ letrec x1 = fn1, ... , xn = fnn in e : τ, C1 ∧ ... ∧ Cn ∧ C ∧ (τ1 = α1) ∧ ... ∧ (τn = αn)
 
 A ∪ {x1 → α1, ... , xn → αn} ⊢ e : τ, C
@@ -76,7 +76,6 @@ The differences from the derivation rules on the original paper are as follows.
 
 - α, β, and τ are clearly distinguished. τ is a type, and α, β are type variables.
 - LET is fixed: `e2`, not `e`.
-- LETREC is modified: restricted by local functions.
 - ABS is modified: `τ` and constrained function are omitted.
 - PAT is modified: type of `g` is `boolean()`, not `true`.
 - CASE is fixed: `τ`, not `τi`. replaced `p1`...`pn` with `pg1`...`pgn` because these are patterns with guards.
