@@ -7,18 +7,22 @@ Our derivation rules are almost same as [the original paper](https://it.uu.se/re
 ## Derivation Rules
 
 ```
-A : context (mapping of variable to type)
-τ : type
-α, β : type variable
-x : variable
-e : term
-a : arity
-f : function
-p : pattern
-g : guard
-pg : pattern with guard sequence (i.e., p when g)
-fun f/a : local function (f: function name, a: arity)
-fun m:f/a : remote function (m: module name, f: function name, a: arity)
+e ::= v | x | fn | {e, ..., e} | let x = e in e | letrec x = fn, ..., x = fn in e |
+      e(e, ..., e) | case e of pg -> e; ...; pg -> e end | fun f/a | fun m:f/a    (term)
+v ::= 0 | 'ok' | ...       (constant)
+x ::= (snip)               (variable)
+fn ::= fun(x, ..., x) -> e (function)
+pg ::= p when g; ...; g    (pattern with guard sequence)
+p ::= v | x | {e, ..., e}  (pattern)
+g ::= v | x | {e, ..., e} | e(e, ..., e)   (guard)
+m ::= e                    (module name. a term to be an atom)
+f ::= e                    (function name. a term to be an atom)
+a ::= e                    (arity. a term to be a non_neg_integer)
+τ ::= none() | any () | α | {τ, ..., τ} | (τ, ..., τ) → τ | τ ∪ τ |
+      integer() | atom() | 42 | 'ok' ...       (type)
+α, β ::= (snip)                                (type variable)
+C ::= (τ ⊆ τ) | (C ∧ ... ∧ C) | (C ∨ ... ∨ C)  (constraint)
+A ::= A ∪ A | {x → τ, ..., x → τ}              (context. mapping of variable to type)
 ```
 
 ```
@@ -33,9 +37,9 @@ A ⊢ e1 : τ1, C1         A ∪ {x → τ1} ⊢ e2 : τ2, C2
 ---------------------------------------------------- [LET]
 A ⊢ let x = e1 in e2 : τ2, C1 ∧ C2
 
-A' ⊢ f1 : τ1, C1 ... A' ⊢ fn : τn, Cn      A' ⊢ e : τ, C   where ai = length (args fi), A' = A ∪ {fun xi/ai → αi}
+A' ⊢ fn1 : τ1, C1 ... A' ⊢ fnn : τn, Cn      A' ⊢ e : τ, C   where ai = length (args fi), A' = A ∪ {fun xi/ai → αi}
 -------------------------------------------------------------------------------------------------------------------- [LETREC]
-A ⊢ letrec x1 = f1, ... , xn = fn in e : τ, C1 ∧ ... ∧ Cn ∧ C ∧ (τ1 = α1) ∧ ... ∧ (τn = αn)
+A ⊢ letrec x1 = fn1, ... , xn = fnn in e : τ, C1 ∧ ... ∧ Cn ∧ C ∧ (τ1 = α1) ∧ ... ∧ (τn = αn)
 
 A ∪ {x1 → α1, ... , xn → αn} ⊢ e : τ, C
 ----------------------------------------------------- [ABS]
