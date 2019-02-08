@@ -73,9 +73,9 @@ let solve_sub expr sol ty1 ty2 =
   let ty1' = lookup_type sol ty1 in
   let ty2' = lookup_type sol ty2 in
   let inf = inf ty1' ty2' in
-  if is_subtype ty1' ty2' then
+  if is_subtype ty1' ty2' && ty1' <> ty2' then
     Ok sol
-  else if inf = TyBottom then
+  else if inf = TyBottom && ty1' <> TyBottom then
     let filename = "TODO:filename" in
     let line = -1 (*TODO:line*) in
     let actual = ty1' in
