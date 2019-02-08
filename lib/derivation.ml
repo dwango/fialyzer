@@ -14,8 +14,11 @@ let rec pattern_to_expr = function
   | PatConstant c -> Constant (-1, c)
   | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
   | PatNil -> raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/201"]; message="support nil pattern"}))
-  | PatMap assocs -> assocs |> List.map ~f:(fun (k, v) -> (pattern_to_expr k, pattern_to_expr v))
-                            |> (fun kvs -> Map kvs)
+  | PatMap assocs ->
+     (* This is temporary implementation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
+     assocs
+     |> List.map ~f:(fun (k, v) -> (pattern_to_expr k, pattern_to_expr v))
+     |> (fun kvs -> MapCreation kvs)
 
 (* Extracts variables from given pattern and add new type variable *)
 let rec variables_in_pattern = function
@@ -176,9 +179,10 @@ let rec derive context = function
       ])
   | ListNil ->
     Ok (Type.of_elem (TyList TyBottom), C.Empty)
-  | Map assocs ->
-     result_map_m ~f:(fun (k, v) -> derive context k >>= fun (ty_k, c_k) ->
-                                    derive context v >>= fun (ty_v, c_v) ->
-                                    Ok ((ty_k, ty_v), [c_k; c_v])) assocs
-     >>| List.unzip
-     >>| fun (ty_kvs, c_kvs) -> (Type.of_elem (TyMap ty_kvs), Conj (List.concat c_kvs))
+  | MapCreation _assocs ->
+     (* TODO: fully support map creation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
+     Ok (Type.of_elem TyAnyMap, Empty)
+  | MapUpdate (map, _puts, _updates) ->
+     (* TODO: fully support map update. ses: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
+     derive context map >>= fun (ty_map, c_map) ->
+     Ok (Type.of_elem TyAnyMap, C.Conj [c_map; C.Subtype {lhs=ty_map; rhs=Type.of_elem TyAnyMap; link=map}])

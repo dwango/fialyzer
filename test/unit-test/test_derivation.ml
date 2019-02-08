@@ -372,7 +372,8 @@ let%expect_test "pattern_to_expr" =
 
   print (PatMap [(PatConstant (Constant.Atom "a"), PatVar "A"); (PatConstant (Constant.Atom "b"), PatVar "B")]);
   [%expect {|
-    (Map (((Constant -1 (Atom a)) (Var -1 A)) ((Constant -1 (Atom b)) (Var -1 B)))) |}]
+    (MapCreation (
+      ((Constant -1 (Atom a)) (Var -1 A)) ((Constant -1 (Atom b)) (Var -1 B)))) |}]
 
 let%expect_test "variables_in_pattern" =
   let print pat =

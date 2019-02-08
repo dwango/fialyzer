@@ -15,7 +15,7 @@ type t =
     | TyTuple of t list
     | TyList of t
     | TyFun of t list * t
-    | TyMap of (t * t) list     (* Currently, we support only exact assocs (e.g., #{K1 := V1, K2 := V2, ...}) *)
+    | TyAnyMap
 [@@deriving sexp_of]
 
 (* ref: http://erlang.org/doc/reference_manual/typespec.html *)
@@ -35,7 +35,7 @@ and pp_t_union_elem = function
      let args_str = "(" ^ (args |> List.map ~f:pp |> String.concat ~sep:", ") ^ ")" in
      let ret_str = pp ret in
      "fun(" ^ args_str ^ " -> " ^ ret_str ^ ")"
-  | TyMap assocs -> "#{" ^ (assocs |> List.map ~f:(fun (k, v) -> pp k ^ " := " ^ pp v) |> String.concat ~sep:", ") ^ "}"
+  | TyAnyMap -> "map()"
 
 let bool = TyUnion [TySingleton (Atom "true"); TySingleton (Atom "false")]
 let of_elem e = TyUnion [e]
@@ -48,7 +48,8 @@ let rec variables = function
 and variables_elem = function
   | TyNumber
   | TyAtom
-  | TySingleton _ -> []
+  | TySingleton _
+  | TyAnyMap -> []
   | TyList t ->
     variables t
   | TyTuple ts ->
@@ -129,7 +130,10 @@ and sup_elems_to_list store = function
          TyFun (args, range) :: store
      in
      sup_elems_to_list store' ty1s
-  | TyMap
+  | TyAnyMap :: ty1s ->
+     let is_not_any_map = function TyAnyMap -> false | _ -> true in
+     let store' = TyAnyMap :: List.filter ~f:is_not_any_map store in
+     sup_elems_to_list store' ty1s
 
 let union_list tys =
   List.reduce_exn ~f:sup tys
@@ -198,6 +202,7 @@ and subst_elem (v, ty0) = function
      ty0
   | TyVar x ->
      of_elem (TyVar x)
+  | TyAnyMap -> TyUnion [TyAnyMap]
 
 let rec of_absform = function
   | F.TyAnn {tyvar; _} -> of_absform tyvar
@@ -221,6 +226,7 @@ let rec of_absform = function
   | F.TyUnion {elements; _} ->
      List.map ~f:of_absform elements
      |> union_list
+  | F.TyAnyMap _ -> of_elem TyAnyMap
   | F.TyPredef {name="string"; args=[]; _} ->
      of_elem (TyList (of_elem TyNumber))
   | F.TyPredef {name="pid"; args=[]; _}
@@ -253,7 +259,6 @@ let rec of_absform = function
   | F.TyBinOp _
   | F.TyUnaryOp _
   | F.TyRange _
-  | F.TyAnyMap _
   | F.TyMap _
   | F.TyFunAny _
   | F.TyFunAnyArity _
@@ -286,13 +291,13 @@ and union_of_erl_type = function
   | NTuplesUnion n_tuples_list ->
       Erl_type.(List.concat_map ~f:(fun {tuples; _} -> List.map ~f:(fun {types; _} -> TyTuple (List.map ~f:of_erl_type types)) tuples) n_tuples_list)
   | Union erl_types -> List.concat_map ~f:union_of_erl_type erl_types
+  | AnyMap -> [TyAnyMap]
   | Var (VInt _)
   | Binary _
   | AnyIdentifier
   | IdentifierUnion _
   | List _
   | Nil
-  | AnyMap
   | Map _
   | OpaqueUnion _
   | AnyTuple
