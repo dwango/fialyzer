@@ -42,7 +42,27 @@ jobs:
           command: eval $(opam config env) && opam install odoc && make doc
       - persist_to_workspace:
           root: _build/default
-          paths: _doc/_html/
+          paths: _doc/_html
+  docs-deploy:
+    docker:
+      - image: node:8.10.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: _build/default
+      - run:
+          name: Install gh-pages and configure dependencies
+          command: |
+            npm install -g --silent gh-pages@2.0.1
+            git config user.email "ci-build@example.com"
+            git config user.name "ci-build"
+      - add_ssh_keys:
+          fingerprints:
+            - "c2:9b:11:57:ef:01:b7:0e:21:50:48:d0:35:72:e5:86"
+      - run:
+          name: Deploy docs to gh-pages branch
+          command: |
+            gh-pages --message "[skip ci] doc upload" --dist _build/default/_doc/_html
 workflows:
   version: 2
   all:
@@ -51,3 +71,6 @@ workflows:
       - build:
           requires:
             - beam
+      - docs-deploy:
+          requires:
+            - build
