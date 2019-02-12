@@ -25,7 +25,8 @@ let%expect_test "Plt.of_file" =
          (function_name h)
          (arity         1))
         ((contracts ((
-           (Function
+           (f (
+             Function
              (params ((Number AnyInteger)))
              (ret (
                List
@@ -35,8 +36,8 @@ let%expect_test "Plt.of_file" =
                    (min (Min 0))
                    (max (Max 1114111)))))
                (terminal_type Nil)
-               (is_nonempty   false))))
-           ())))
+               (is_nonempty   false)))))
+           (constraints ()))))
          (args ((Number AnyInteger)))
          (forms ())))))
       (callbacks      ())
@@ -56,39 +57,46 @@ let%expect_test "Plt.of_file" =
         (((module_name   specs)
           (function_name f_any)
           (arity         1))
-         ((contracts (((Function (params (Any)) (ret (AtomUnion (ok)))) ())))
+         ((contracts ((
+            (f (Function (params (Any)) (ret (AtomUnion (ok))))) (constraints ()))))
           (args (Any))
           (forms ())))
         (((module_name   specs)
           (function_name f_anyidentifier)
           (arity         1))
          ((contracts ((
-            (Function (params (AnyIdentifier)) (ret (AtomUnion (ok)))) ())))
+            (f (Function (params (AnyIdentifier)) (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args (AnyIdentifier))
           (forms ())))
         (((module_name   specs)
           (function_name f_anymap)
           (arity         1))
-         ((contracts (((Function (params (AnyMap)) (ret (AtomUnion (ok)))) ())))
+         ((contracts ((
+            (f (Function (params (AnyMap)) (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args (AnyMap))
           (forms ())))
         (((module_name   specs)
           (function_name f_anytuple)
           (arity         1))
-         ((contracts (((Function (params (AnyTuple)) (ret (AtomUnion (ok)))) ())))
+         ((contracts ((
+            (f (Function (params (AnyTuple)) (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args (AnyTuple))
           (forms ())))
         (((module_name   specs)
           (function_name f_binary01)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Binary
                 (unit 1)
                 (base 0))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Binary
             (unit 1)
@@ -98,13 +106,14 @@ let%expect_test "Plt.of_file" =
           (function_name f_binary02)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Binary
                 (unit 8)
                 (base 0))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Binary
             (unit 8)
@@ -114,13 +123,14 @@ let%expect_test "Plt.of_file" =
           (function_name f_binary03)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Binary
                 (unit 2222)
                 (base 1111))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Binary
             (unit 2222)
@@ -130,13 +140,14 @@ let%expect_test "Plt.of_file" =
           (function_name f_binary04)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Binary
                 (unit 0)
                 (base 0))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Binary
             (unit 0)
@@ -146,15 +157,16 @@ let%expect_test "Plt.of_file" =
           (function_name f_emptymap)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Map
                 (map_pairs ())
                 (dict (
                   (key   None)
                   (value None))))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Map
             (map_pairs ())
@@ -166,17 +178,19 @@ let%expect_test "Plt.of_file" =
           (function_name f_identifier)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((IdentifierUnion (IPid IPort))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((IdentifierUnion (IPid IPort))))
           (forms ())))
         (((module_name   specs)
           (function_name f_map)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Map
                 (map_pairs (
@@ -200,8 +214,8 @@ let%expect_test "Plt.of_file" =
                       None
                       None)))
                   (value (AtomUnion (bar foo))))))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Map
             (map_pairs (
@@ -230,7 +244,8 @@ let%expect_test "Plt.of_file" =
           (function_name f_tuple)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Tuple (
                   (types (
@@ -238,8 +253,8 @@ let%expect_test "Plt.of_file" =
                     (AtomUnion (bar))))
                   (arity 2)
                   (tag (foo))))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Tuple (
               (types (
@@ -252,7 +267,8 @@ let%expect_test "Plt.of_file" =
           (function_name f_union)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Union (
                   (AtomUnion (bar foo))
@@ -265,8 +281,8 @@ let%expect_test "Plt.of_file" =
                   None
                   None
                   None))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Union (
               (AtomUnion (bar foo))
@@ -284,7 +300,8 @@ let%expect_test "Plt.of_file" =
           (function_name f_union2)
           (arity         1))
          ((contracts ((
-            (Function
+            (f (
+              Function
               (params ((
                 Union (
                   (AtomUnion (bar foo))
@@ -313,8 +330,8 @@ let%expect_test "Plt.of_file" =
                   None
                   None
                   None))))
-              (ret (AtomUnion (ok))))
-            ())))
+              (ret (AtomUnion (ok)))))
+            (constraints ()))))
           (args ((
             Union (
               (AtomUnion (bar foo))
