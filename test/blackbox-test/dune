@@ -1,4 +1,0 @@
-(alias
- (name runtest)
- (deps (:sh test.sh) (:exe ../../bin/main.exe) (glob_files test-cases/*.{beam,expected}))
- (action (run %{sh} %{exe})))
