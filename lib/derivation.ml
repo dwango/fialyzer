@@ -182,7 +182,7 @@ let rec derive context = function
   | MapCreation _assocs ->
      (* TODO: fully support map creation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      Ok (Type.of_elem TyAnyMap, Empty)
-  | MapUpdate (map, _puts, _updates) ->
+  | MapUpdate {map; _} ->
      (* TODO: fully support map update. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      derive context map >>= fun (ty_map, c_map) ->
      Ok (Type.of_elem TyAnyMap, C.Conj [c_map; C.Subtype {lhs=ty_map; rhs=Type.of_elem TyAnyMap; link=map}])

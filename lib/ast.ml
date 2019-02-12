@@ -24,7 +24,7 @@ type t =
     | ListCons of t * t
     | ListNil
     | MapCreation of (t * t) list                  (* #{k1 => v1, ...} *)
-    | MapUpdate of t * (t * t) list * (t * t) list (* M#{k1 => v1, ..., ke1 := ve1, ...} *)
+    | MapUpdate of {map: t; assocs: (t * t) list; exact_assocs: (t * t) list} (* M#{k1 => v1, ..., ke1 := ve1, ...} *)
 and fun_abst = {args: string list; body: t}
 and pattern = pattern' * t
 and pattern' =

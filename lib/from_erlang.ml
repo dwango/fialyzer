@@ -293,15 +293,15 @@ and expr_of_erlang_expr' = function
                      | ExprAssocExact _ -> failwith "cannot reach here: map creation must not have exact assocs")
      |> (fun assocs -> MapCreation assocs)
   | ExprMapUpdate {map; assocs; _} ->
-     let assoc_divide assoc (puts, updates) = match assoc with
+     let assoc_divide assoc (assocs, exact_assocs) = match assoc with
        | F.ExprAssoc {key; value; _} ->
-          ((expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: puts, updates)
+          ((expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: assocs, exact_assocs)
        | ExprAssocExact {key; value; _} ->
-          (puts, (expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: updates)
+          (assocs, (expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: exact_assocs)
      in
      assocs
      |> List.fold_right ~init:([], []) ~f:assoc_divide
-     |> (fun (puts, updates) -> MapUpdate (expr_of_erlang_expr' map, puts, updates))
+     |> (fun (assocs, exact_assocs) -> MapUpdate {map=expr_of_erlang_expr' map; assocs; exact_assocs})
 and function_of_clauses clauses =
     (* Create a list which have n elements *)
     let rec fill e = (function
