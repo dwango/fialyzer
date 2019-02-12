@@ -1,0 +1,12 @@
+(executables
+ (names main)
+ (libraries fialyzer bitstring obeam)
+ (preprocess (pps ppx_deriving.std ppx_here)))
+
+(install
+ (section bin)
+ (files (main.exe as fialyzer)))
+
+(env
+ (dev
+  (flags (:standard -w -9))))

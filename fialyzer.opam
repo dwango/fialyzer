@@ -1,0 +1,26 @@
+opam-version: "1.2"
+name: "fialyzer"
+maintainer: ["amutake <amutake.s@mail.com>" "yutopp <yutopp@gmail.com>"]
+authors: ["amutake <amutake.s@gmail.com>" "yutopp <yutopp@gmail.com>"]
+homepage: "https://github.com/dwango/fialyzer"
+bug-reports: "https://github.com/dwango/fialyzer/issues"
+dev-repo: "git+https://github.com/dwango/fialyzer.git"
+license: "Apache-2.0"
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+]
+depends: [
+  "dune" {build}
+  "base"
+  "obeam" {= "0.1.3"}
+  "bitstring"
+  "zarith"
+  "ppx_deriving" {build}
+  "ppx_expect" {build}
+  "ppx_here" {build}
+  "expect_test_helpers_kernel"
+]
+available: [ ocaml-version >= "4.03.0" ]
+descr: "
+Faster Implementation of Dialyzer
+"
