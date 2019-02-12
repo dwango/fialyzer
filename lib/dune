@@ -1,9 +1,0 @@
-(library
- (name fialyzer)
- (public_name fialyzer)
- (libraries obeam base sexplib zarith)
- (preprocess (pps ppx_sexp_conv ppx_deriving.std ppx_here)))
-
-(env
- (dev
-  (flags (:standard -w -27))))
