@@ -37,6 +37,12 @@ jobs:
           name: Test
           # NOTE: Don't run `make test` because `make test` requires Erlang/OTP.
           command: eval $(opam config env) && make unit-test && make blackbox-test
+      - run:
+          name: OCamldoc
+          command: eval $(opam config env) && make doc
+      - persist_to_workspace:
+          root: _build/default
+          paths: _doc/_html/
 workflows:
   version: 2
   all:
