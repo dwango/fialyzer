@@ -74,3 +74,6 @@ workflows:
       - docs-deploy:
           requires:
             - build
+          filters:
+            branches:
+              only: master
