@@ -62,7 +62,7 @@ jobs:
       - run:
           name: Deploy docs to gh-pages branch
           command: |
-            gh-pages --message "[skip ci] doc upload" --dist _build/default/_doc/_html
+            gh-pages --message "[skip ci] doc upload" --dist _build/default/_doc/_html --dest odoc
 workflows:
   version: 2
   all:
