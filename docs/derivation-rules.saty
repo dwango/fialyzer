@@ -13,7 +13,7 @@ This file shows derivation rules used in fialyzer.
   }
   +p{
 Our derivation rules are almost same as \href(`https://it.uu.se/research/group/hipe/papers/succ_types.pdf`){the original success typings paper}'s one,
-but a bit modified and extended by remote function, local function, etc.
+but extended by remote call, local call, list, etc.
   }
   +math(
     ${
@@ -45,11 +45,12 @@ but a bit modified and extended by remote function, local function, etc.
   +math(
     ${
       \derive?:{\mathsc{LETREC}}{
-        | \judgement{A \cup \{\local-fun-ref{x_i}{a_i} \mapsto \tau_i\}}{f_1}{\tau'_1}{C_1} \cdots
-          \judgement-without-ctx{f_n}{\tau'_n}{C_n}
-          \judgement-without-ctx{e}{\tau}{C} |
+        | \judgement{A'}{fn_1}{\tau_1}{C_1} \cdots
+          \judgement{A'}{fn_n}{\tau_n}{C_n} |
+          \judgement{A'}{e}{\tau}{C} |
+          \mathtt{where}\ A' = A \cup \{x_i \mapsto \alpha_i\} |
       }{
-        \judgement{A}{\mathtt{letrec}\ x_1 = f_1, \cdots , x_n = f_n\ \mathtt{in}\ e}{\tau}{C_1 \wedge \cdots \wedge C_n \wedge C \wedge \(\tau'_1 = \tau_1\) \wedge \cdots \wedge \(\tau'_n = \tau_n\) \mathtt{where} a_i = \mathtt{length} \(\mathtt{args}\ f_i\)}
+        \judgement{A}{\mathtt{letrec}\ x_1 = f_1, \cdots , x_n = f_n\ \mathtt{in}\ e}{\tau}{C_1 \wedge \cdots \wedge C_n \wedge C \wedge \(\tau'_1 = \tau_1\) \wedge \cdots \wedge \(\tau'_n = \tau_n\)}
       }
     }
   );

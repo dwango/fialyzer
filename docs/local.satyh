@@ -8,12 +8,6 @@ let-math \mathsc m =
 let-math \mathtt m =
   ${\mathrm{#m}}
 
-% e : t, C
-let-math \judgement-without-ctx expr ty constr =
-  ${#expr : #ty, #constr}
-
+% A |- e : t, C
 let-math \judgement ctx expr ty constr =
-  ${#ctx \vdash \judgement-without-ctx{#expr}{#ty}{#constr}}
-
-let-math \local-fun-ref f a =
-  ${\mathtt{fun}\ #f / #a}
+  ${#ctx \vdash #expr : #ty, #constr}
