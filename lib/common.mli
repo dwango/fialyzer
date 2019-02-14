@@ -8,3 +8,5 @@ val (@?) : ('a, exn) Result.t -> string -> ('a, exn) Result.t
 val (!%) : ('a, unit, string) format -> 'a
 val (<<<) : ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
 val (>>>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
+
+val map_add_if_not_exists : 'a -> 'b -> ('a, 'b, 'c) Map.t -> ('a, 'b, 'c) Map.t

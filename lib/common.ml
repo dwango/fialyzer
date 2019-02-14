@@ -20,4 +20,10 @@ let (@?) res message =
 
 let (!%) = Printf.sprintf
 let (<<<) = Fn.compose
-let (>>>) f g = g <<< f
+let (>>>) f g = Fn.compose g f
+
+let map_add_if_not_exists key data map =
+  if not (Map.mem map key) then
+    Map.add_exn ~key ~data map
+  else
+    map
