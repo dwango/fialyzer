@@ -73,9 +73,13 @@ let solve_sub expr sol ty1 ty2 =
   let ty1' = lookup_type sol ty1 in
   let ty2' = lookup_type sol ty2 in
   let inf = inf ty1' ty2' in
-  if is_subtype ty1' ty2' && ty1' <> ty2' then
-    Ok sol
-  else if inf = TyBottom && ty1' <> TyBottom then
+  let sol' =
+    Type.variables ty1
+    |> List.fold_left ~f:(fun sol v -> map_add_if_not_exists v TyAny sol) ~init:sol
+  in
+  if is_subtype ty1' ty2' then
+    Ok sol'
+  else if inf = TyBottom then
     let filename = "TODO:filename" in
     let line = -1 (*TODO:line*) in
     let actual = ty1' in
@@ -84,7 +88,7 @@ let solve_sub expr sol ty1 ty2 =
     Error Known_error.(FialyzerError(TypeError [{filename; line; actual; expected; message}]))
   else
     unify ty1 inf
-    |> List.fold_left ~f:(fun sol (v,ty) -> set (v, ty) sol) ~init:sol
+    |> List.fold_left ~f:(fun sol (v,ty) -> set (v, ty) sol) ~init:sol'
     |> Result.return
 
 let solve_eq expr sol ty1 ty2 =
