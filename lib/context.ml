@@ -32,6 +32,12 @@ let add_bif_signatures imports ctx0 : t =
   Bif.type_sigs
   |> List.fold_left ~f:update ~init:ctx0
 
-let create ~import_modules =
+let add_plt_signatures imports plt ctx =
+  ctx
+
+let create ~import_modules plt_opt =
   empty
   |> add_bif_signatures import_modules
+  |> match plt_opt with
+     | Some plt -> add_plt_signatures import_modules plt
+     | None -> (fun ctx -> ctx)
