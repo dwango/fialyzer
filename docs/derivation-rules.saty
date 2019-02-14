@@ -17,7 +17,7 @@ but extended by remote call, local call, list, etc.
   }
   +math(
     ${
-      \derive?:{\mathsc{VAR}}{
+      \derive?:{\paren{\mathsc{VAR}}}{
         | |
       }{
         \judgement{A \cup \{x \mapsto \tau\}}{x}{\tau}{\emptyset}
@@ -26,7 +26,7 @@ but extended by remote call, local call, list, etc.
   );
   +math(
     ${
-      \derive?:{\mathsc{STRUCT}}{
+      \derive?:{\paren{\mathsc{STRUCT}}}{
         | \judgement{A}{e_1}{\tau_1}{C_1} | \cdots | \judgement{A}{e_n}{\tau_n}{C_n} |
       }{
         \judgement{A}{\{e_1, \cdots , e_n\}}{\{\tau_1, \cdots , \tau_n\}}{C_1 \wedge \cdots \wedge C_n}
@@ -35,7 +35,7 @@ but extended by remote call, local call, list, etc.
   );
   +math(
     ${
-      \derive?:{\mathsc{LET}}{
+      \derive?:{\paren{\mathsc{LET}}}{
         | \judgement{A}{e_1}{\tau_1}{C_1} | \judgement{A \cup \{x \mapsto \tau_1\}}{e_2}{\tau_2}{C_2} |
       }{
         \judgement{A}{\mathtt{let}\ x = e_1\ \mathtt{in}\ e_2}{\tau_2}{C_1 \wedge C_2}
@@ -44,13 +44,81 @@ but extended by remote call, local call, list, etc.
   );
   +math(
     ${
-      \derive?:{\mathsc{LETREC}}{
+      \derive?:{\paren{\mathsc{LETREC}}}{
         | \judgement{A'}{fn_1}{\tau_1}{C_1} \cdots
           \judgement{A'}{fn_n}{\tau_n}{C_n} |
           \judgement{A'}{e}{\tau}{C} |
           \mathtt{where}\ A' = A \cup \{x_i \mapsto \alpha_i\} |
       }{
         \judgement{A}{\mathtt{letrec}\ x_1 = f_1, \cdots , x_n = f_n\ \mathtt{in}\ e}{\tau}{C_1 \wedge \cdots \wedge C_n \wedge C \wedge \(\tau'_1 = \tau_1\) \wedge \cdots \wedge \(\tau'_n = \tau_n\)}
+      }
+    }
+  );
+  +math(
+    ${
+      \derive?:{\paren{\mathsc{ABS}}}{
+        | \judgement{A \cup \{x_1 \mapsto \alpha_1, \cdots , x_n \mapsto \alpha_n\}}{e}{\tau}{C} |
+      }{
+        \judgement{A}{\mathtt{fun}\(x_1, \cdots , x_n\) \rightarrow e}{\(\alpha_1, \cdots , \alpha_n\) \rightarrow \tau}{C}
+      }
+    }
+  );
+  +math(
+    ${
+      \derive?:{\paren{\mathsc{APP}}}{
+        | \judgement{A}{e}{\tau}{C} |
+          \judgement{A}{e_1}{\tau_1}{C_1} \cdots \judgement{A}{e_n}{\tau_n}{C_n} |
+      }{
+        \judgement{A}{e\(e_1, \cdots , e_n\)}{\beta}{\(\tau = \(\alpha_1, \cdots , \alpha_n\) \rightarrow \alpha\) \wedge \(\beta \subseteq \alpha\) \wedge \(\tau_1 \subseteq \alpha_1\) \wedge \cdots \wedge \(\tau_n \subseteq \alpha_n\) \wedge C \wedge C_1 \wedge \cdots \wedge C_n}
+      }
+    }
+  );
+  +math(
+    ${
+      \derive?:{\paren{\mathsc{PAT}}}{
+        | \judgement{A}{p}{\tau}{C_p} |
+          \judgement{A}{g}{\tau_g}{C_g} |
+      }{
+        \judgement{A}{p\ \mathtt{when}\ g}{\tau}{\(\tau \subseteq \mathtt{boolean\(\)}\) \wedge C_p \wedge C_g}
+      }
+    }
+  );
+  +math(
+    ${
+      \derive?:{\paren{\mathsc{CASE}}}{
+        | \judgement{A}{p}{\tau}{C_e} |
+          \judgement{A_i}{pg_i}{\tau_{pg_i}}{C_{pg_i}} |
+          \judgement{A_i}{b_i}{\tau_{b_i}}{C_{b_i}} |
+          \mathtt{where}\ A_i = A \cup \{v \mapsto \alpha_v \| v \in Var\(pg_i\)\} |
+      }{
+        \judgement{A}{\mathtt{case}\ e\ \mathtt{of}\ pg_1 \rightarrow b_1\;\ \cdots \ pg_n \rightarrow b_n \mathtt{end}}{\beta}{C_e \wedge \(C_1 \vee \cdots \vee C_n\)
+          \mathtt{where}\ C_i = \(\(\beta = \tau_{b_i}\) \wedge \(\tau = \tau_{pg_i}\) \wedge C_{pg_i} \wedge C_{b_i}\)
+        }
+      }
+    }
+  );
+  +math(
+    ${
+      \derive?:{\paren{\mathsc{LOCALFUN}}}{||}{
+        \judgement{A \cup \{\mathtt{fun}\ f/a \mapsto \tau\}}{\mathtt{fun}\ f/a}{\tau}{\emptyset}
+      }
+    }
+  );
+  +math(
+    ${
+      \derive?:{\text!{if ${m} and ${f} is atom literal, ${a} is non_neg_integer literal}\ \paren{\mathsc{MFA}}}{||}{
+        \judgement{A \cup \{\mathtt{fun}\ m:f/a \mapsto \tau\}}{\mathtt{fun}\ m:f/a}{\tau}{\emptyset}
+      }
+    }
+  );
+  +math(
+    ${
+      \derive?:{\text!{if neither ${m}, ${f} is atom literal nor ${a} is non_neg_integer literal}\ \paren{\mathsc{MFAEXPR}}}{
+        | \judgement{A}{m}{\tau_m}{C_m} |
+          \judgement{A}{f}{\tau_f}{C_f} |
+          \judgement{A}{a}{\tau_a}{C_a} |
+      }{
+        \judgement{A}{\mathtt{fun}\ m:f/a}{\beta}{\(\tau_m \subseteq \mathtt{atom\(\)}\) \wedge \(\tau_f \subseteq \mathtt{atom\(\)}\) \wedge \(\tau_a \subseteq \mathtt{number\(\)}\) \wedge C_m \wedge C_f \wedge C_a}
       }
     }
   );
