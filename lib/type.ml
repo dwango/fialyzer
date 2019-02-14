@@ -169,6 +169,25 @@ and inf_elem ty1 ty2 =  (* ty1 and ty2 should be a TyNumber, TySingleton, TyAtom
   | (_, _) ->
      None
 
+let rec subst (v, ty) = function
+  | TyAny -> TyAny
+  | TyBottom -> TyBottom
+  | TyUnion tys ->
+     List.map ~f:(subst_elem (v, ty)) tys
+     |> List.reduce_exn ~f:sup
+and subst_elem (v, ty0) = function
+  | TyTuple tys ->
+     TyUnion [TyTuple(List.map ~f:(subst (v,ty0)) tys)]
+  | TyFun (tys, ty) ->
+     TyUnion [TyFun (List.map ~f:(subst (v,ty0)) tys, subst (v,ty0) ty)]
+  | TyNumber -> TyUnion [TyNumber]
+  | TyAtom -> TyUnion [TyAtom]
+  | TySingleton const -> TyUnion [TySingleton const]
+  | TyVar x when x = v ->
+     ty0
+  | TyVar x ->
+     of_elem (TyVar x)
+
 let rec of_absform = function
   | F.TyAnn {tyvar; _} -> of_absform tyvar
   | F.TyLit {lit=LitAtom {atom; _}} -> of_elem (TySingleton (Atom atom))

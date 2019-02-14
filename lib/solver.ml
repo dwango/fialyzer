@@ -20,26 +20,14 @@ let init : solution = Map.empty (module Type_variable)
 let set (x, ty) sol =
   Map.set sol ~key:x ~data:ty
 
-let rec lookup_type sol = function
-  | TyAny -> TyAny
-  | TyBottom -> TyBottom
-  | TyUnion tys ->
-     List.map ~f:(lookup_elem sol) tys
-     |> List.reduce_exn ~f:Type.sup
-and lookup_elem sol = function
-  | TyTuple tys ->
-     TyUnion [TyTuple(List.map ~f:(lookup_type sol) tys)]
-  | TyList t -> TyUnion [TyList (lookup_type sol t)]
-  | TyFun (tys, ty) ->
-     TyUnion [TyFun (List.map ~f:(lookup_type sol) tys, lookup_type sol ty)]
-  | TyNumber -> TyUnion [TyNumber]
-  | TyAtom -> TyUnion [TyAtom]
-  | TySingleton const -> TyUnion [TySingleton const]
-  | TyVar v ->
-     begin match Map.find sol v with
-     | Some v_ty -> v_ty
-     | None -> TyAny
-     end
+let lookup_type sol ty =
+  let sol' = (* mapping to `any()` from variables that have not yet appeared in `sol` *)
+    Type.variables ty
+    |> List.fold_left ~f:(fun sol v -> if Map.mem sol v then sol
+                                       else Map.add_exn sol ~key:v ~data:TyAny)
+                      ~init:sol
+  in
+  Map.fold sol' ~init:ty ~f:(fun ~key:v ~data:ty0 ty -> Type.subst (v, ty0) ty)
 
 (**
   τ_1 ⊆ τ_2
