@@ -1,4 +1,4 @@
--module(case175).
+-module(case_univ_pattern).
 
 -export([main/0]).
 
