@@ -36,6 +36,21 @@ and pp_t_union_elem = function
 let bool = TyUnion [TySingleton (Atom "true"); TySingleton (Atom "false")]
 let of_elem e = TyUnion [e]
 
+let rec variables = function
+  | TyAny
+  | TyBottom -> []
+  | TyUnion es ->
+     List.concat_map ~f:variables_elem es
+and variables_elem = function
+  | TyNumber
+  | TyAtom
+  | TySingleton _ -> []
+  | TyTuple ts ->
+     List.concat_map ~f:variables ts
+  | TyFun (args, ret) ->
+     List.concat_map ~f:variables (args @ [ret])
+  | TyVar v -> [v]
+
 (**
    supremum of two types: ty1 ∪ ty2
    assume no type variable in the arguments
