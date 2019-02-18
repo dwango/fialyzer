@@ -20,25 +20,29 @@ but extended by remote call, local call, list, etc.
   +chapter{Derivation Rules}<
     +p{
       Here are the BNFs used in the derivation rules:
-      \BNFs[
-        (${e}, [${| v | x | fn | \{e, \cdots , e\} | \mathtt{let}\ x = e\ \mathtt{in}\ e | \mathtt{letrec}\ x = fn, \cdots , x = fn\ \mathtt{in}\ e |};
-                ${| e\(e, \cdots , e\) | \mathtt{case}\ e\ \mathtt{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt{end} | \mathtt{fun}\ f/a | \mathtt{fun}\ \mfa{m}{f}{a} \bnf-desc{term} |}]);
-        (${v}, [${| \mathtt{0} | \mathtt{\'ok\'} | \cdots \bnf-desc{constant} |}]);
-        (${x}, [${| \(\mathrm{snip}\) \bnf-desc{variable} |}]);
-        (${fn}, [${| \mathtt{fun}\(x, \cdots , x\) \rightarrow e \bnf-desc{function} |}]);
-        (${pg}, [${| p\ \mathtt{when}\ g\; \cdots \; g \bnf-desc{pattern\ with\ guard\ sequence} |}]);
-        (${p}, [${| v | x | \{p, \cdots , p\} \bnf-desc{pattern} |}]);
-        (${g}, [${| v | x | \{e, \cdots , e\} | e\(e, \cdots , e\) \bnf-desc{guard} |}]);
-        (${m}, [${| e \bnf-desc{module\ name.\ a\ term\ to\ be\ an\ atom} |}]);
-        (${f}, [${| e \bnf-desc{function\ name.\ a\ term\ to\ be\ an\ atom} |}]);
-        (${a}, [${| e \bnf-desc{arity.\ a\ term\ to\ be\ a\ non\_neg\_integer} |}]);
-        (${\tau}, [${| \mathtt{none\(\)} | \mathtt{any\(\)} | \alpha | \{\tau, \cdots, \tau\} | \(\tau, \cdots, \tau\) \rightarrow \tau | \tau \cup \tau |};
-                   ${| \mathtt{integer\(\)} | \mathtt{atom\(\)} | 42 | \mathtt{\'ok\'} | \cdots \bnf-desc{type} |}]);
-        (${\alpha, \beta}, [${| \(\mathrm{snip}\) \bnf-desc{type\ variable} |}]);
-        (${C}, [${| \(\tau \subseteq \tau\) | \( C \wedge \cdots \wedge C\) | \(C \vee \cdots \vee C\) \bnf-desc{constraint} |}]);
-        (${A}, [${| A \cup A | \{x \mapsto \tau, \cdots, x \mapsto \tau\} \bnf-desc{context.\ mapping\ of\ variable\ to\ type} |}])
-      ];
     }
+    +small-block<
+      +p{
+        \BNFs[
+          (${e}, [${| v | x | fn | \{e, \cdots , e\} | \mathtt{let}\ x = e\ \mathtt{in}\ e | \mathtt{letrec}\ x = fn, \cdots , x = fn\ \mathtt{in}\ e |};
+                  ${| e\(e, \cdots , e\) | \mathtt{case}\ e\ \mathtt{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt{end} | \mathtt{fun}\ f/a | \mathtt{fun}\ \mfa{m}{f}{a} \bnf-desc{term} |}]);
+          (${v}, [${| \mathtt{0} | \mathtt{\'ok\'} | \cdots \bnf-desc{constant} |}]);
+          (${x}, [${| \(\mathrm{snip}\) \bnf-desc{variable} |}]);
+          (${fn}, [${| \mathtt{fun}\(x, \cdots , x\) \rightarrow e \bnf-desc{function} |}]);
+          (${pg}, [${| p\ \mathtt{when}\ g\; \cdots \; g \bnf-desc{pattern\ with\ guard\ sequence} |}]);
+          (${p}, [${| v | x | \{p, \cdots , p\} \bnf-desc{pattern} |}]);
+          (${g}, [${| v | x | \{e, \cdots , e\} | e\(e, \cdots , e\) \bnf-desc{guard} |}]);
+          (${m}, [${| e \bnf-desc{module\ name.\ a\ term\ to\ be\ an\ atom} |}]);
+          (${f}, [${| e \bnf-desc{function\ name.\ a\ term\ to\ be\ an\ atom} |}]);
+          (${a}, [${| e \bnf-desc{arity.\ a\ term\ to\ be\ a\ non\_neg\_integer} |}]);
+          (${\tau}, [${| \mathtt{none\(\)} | \mathtt{any\(\)} | \alpha | \{\tau, \cdots, \tau\} | \(\tau, \cdots, \tau\) \rightarrow \tau | \tau \cup \tau |};
+                     ${| \mathtt{integer\(\)} | \mathtt{atom\(\)} | 42 | \mathtt{\'ok\'} | \cdots \bnf-desc{type} |}]);
+          (${\alpha, \beta}, [${| \(\mathrm{snip}\) \bnf-desc{type\ variable} |}]);
+          (${C}, [${| \(\tau \subseteq \tau\) | \( C \wedge \cdots \wedge C\) | \(C \vee \cdots \vee C\) \bnf-desc{constraint} |}]);
+          (${A}, [${| A \cup A | \{x \mapsto \tau, \cdots, x \mapsto \tau\} \bnf-desc{context.\ mapping\ of\ variable\ to\ type} |}])
+        ];
+      }
+    >
     +p{
       Here are the derivation rules:
     }
@@ -161,7 +165,7 @@ but extended by remote call, local call, list, etc.
     +small-block<
       +math(
         ${
-          \derive?:{\text!{if neither ${m}, ${f} is atom literal nor ${a} is non_neg_integer literal}\ \paren{\mathsc{MFAEXPR}}}{
+          \derive?:{\text!{if ${\diamond}}\ \paren{\mathsc{MFAEXPR}}}{
             | \judgement{A}{m}{\tau_m}{C_m} |
               \judgement{A}{f}{\tau_f}{C_f} |
               \judgement{A}{a}{\tau_a}{C_a} |
@@ -171,6 +175,7 @@ but extended by remote call, local call, list, etc.
         }
       );
     >
+    +small-block<+math(${\diamond: \text!{neither ${m}, ${f} is atom literal nor ${a} is non_neg_integer literal}});>
     +section{Differences from the original paper}<
       +p{
         The differences from the derivation rules on the original paper are as follows.
