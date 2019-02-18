@@ -2,6 +2,7 @@
 @require: itemize
 @require: tabular
 @require: proof
+@require: bnf
 @import: local
 
 document (|
@@ -14,6 +15,26 @@ This file shows derivation rules used in fialyzer.
   +p{
 Our derivation rules are almost same as \href(`https://it.uu.se/research/group/hipe/papers/succ_types.pdf`){the original success typings paper}'s one,
 but extended by remote call, local call, list, etc.
+  }
+  +p{
+    \BNFs[
+      (${e}, [${| v | x | fn | \{e, \cdots , e\} | \mathtt{let}\ x = e\ \mathtt{in}\ e | \mathtt{letrec}\ x = fn, \cdots , x = fn\ \mathtt{in}\ e |};
+              ${| e\(e, \cdots , e\) | \mathtt{case}\ e\ \mathtt{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt{end} | \mathtt{fun}\ f/a | \mathtt{fun}\ \mfa{m}{f}{a} |}]);
+      (${v}, [${| \mathtt{0} | \mathtt{\'ok\'} | \cdots |}]);
+      (${x}, [${| \(\mathrm{snip}\) |}]);
+      (${fn}, [${| \mathtt{fun}\(x, \cdots , x\) \rightarrow e |}]);
+      (${pg}, [${| p\ \mathtt{when}\ g\; \cdots \; g |}]);
+      (${p}, [${| v | x | \{p, \cdots , p\} |}]);
+      (${g}, [${| v | x | \{e, \cdots , e\} | e\(e, \cdots , e\) |}]);
+      (${m}, [${| e |}]);
+      (${f}, [${| e |}]);
+      (${a}, [${| e |}]);
+      (${\tau}, [${| \mathtt{none\(\)} | \mathtt{any\(\)} | \alpha | \{\tau, \cdots, \tau\} | \(\tau, \cdots, \tau\) \rightarrow \tau | \tau \cup \tau |};
+                 ${| \mathtt{integer\(\)} | \mathtt{atom\(\)} | 42 | \mathtt{\'ok\'} | \cdots |}]);
+      (${\alpha, \beta}, [${| \(\mathrm{snip}\) |}]);
+      (${C}, [${| \(\tau \subseteq \tau\) | \( C \wedge \cdots \wedge C\) | \(C \vee \cdots \vee C\) |}]);
+      (${A}, [${| A \cup A | \{x \mapsto \tau, \cdots, x \mapsto \tau\} |}])
+    ];
   }
   +math(
     ${
@@ -107,7 +128,7 @@ but extended by remote call, local call, list, etc.
   +math(
     ${
       \derive?:{\text!{if ${m} and ${f} is atom literal, ${a} is non_neg_integer literal}\ \paren{\mathsc{MFA}}}{||}{
-        \judgement{A \cup \{\mathtt{fun}\ m:f/a \mapsto \tau\}}{\mathtt{fun}\ m:f/a}{\tau}{\emptyset}
+        \judgement{A \cup \{\mathtt{fun}\ \mfa{m}{f}{a} \mapsto \tau\}}{\mathtt{fun}\ \mfa{m}{f}{a}}{\tau}{\emptyset}
       }
     }
   );
@@ -118,7 +139,7 @@ but extended by remote call, local call, list, etc.
           \judgement{A}{f}{\tau_f}{C_f} |
           \judgement{A}{a}{\tau_a}{C_a} |
       }{
-        \judgement{A}{\mathtt{fun}\ m:f/a}{\beta}{\(\tau_m \subseteq \mathtt{atom\(\)}\) \wedge \(\tau_f \subseteq \mathtt{atom\(\)}\) \wedge \(\tau_a \subseteq \mathtt{number\(\)}\) \wedge C_m \wedge C_f \wedge C_a}
+        \judgement{A}{\mathtt{fun}\ \mfa{m}{f}{a}}{\beta}{\(\tau_m \subseteq \mathtt{atom\(\)}\) \wedge \(\tau_f \subseteq \mathtt{atom\(\)}\) \wedge \(\tau_a \subseteq \mathtt{number\(\)}\) \wedge C_m \wedge C_f \wedge C_a}
       }
     }
   );

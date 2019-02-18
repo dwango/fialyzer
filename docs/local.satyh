@@ -1,9 +1,11 @@
 @require: math
 
+% small capital
 % TODO: implement
 let-math \mathsc m =
   ${\mathrm{#m}}
 
+% type writer
 % TODO: implement
 let-math \mathtt m =
   ${\mathrm{#m}}
@@ -11,3 +13,8 @@ let-math \mathtt m =
 % A |- e : t, C
 let-math \judgement ctx expr ty constr =
   ${#ctx \vdash #expr : #ty, #constr}
+
+% m:f/a in math area
+% TODO: narrow the width of `:`
+let-math \mfa m f a =
+  ${#m\colon-rel#f/#a}
