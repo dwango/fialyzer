@@ -10,10 +10,12 @@ let-math \bnf-desc it =
 let-math \mathsc m =
   ${\mathrm{#m}}
 
+let-inline ctx \texttt it =
+  read-inline (ctx |> StdJaReport.set-latin-font StdJaReport.font-latin-mono) it
+
 % type writer
-% TODO: implement
 let-math \mathtt m =
-  ${\mathrm{#m}}
+  ${\text!{\texttt{#m;}}}
 
 % A |- e : t, C
 let-math \judgement ctx expr ty constr =
