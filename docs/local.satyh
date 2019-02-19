@@ -1,3 +1,4 @@
+@require: stdjareport
 @require: math
 
 % description for BNF
@@ -27,3 +28,9 @@ let-block ctx +small-block bt =
   let size = get-font-size ctx in
   let ctx = set-font-size (size *' 0.8) ctx in
   read-block ctx bt
+
+let-inline ctx \bib authors title book-title pages org year =
+  let ib-start = read-inline ctx {#authors;. #title;. In} in
+  let ib-book-title = read-inline (ctx |> StdJaReport.set-latin-font StdJaReport.font-latin-italic) book-title in
+  let ib-end = read-inline ctx {, pages #pages;. #org;, #year;.} in
+  ib-start ++ ib-book-title ++ ib-end

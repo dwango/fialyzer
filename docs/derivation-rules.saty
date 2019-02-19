@@ -14,7 +14,7 @@ document (|
 This file shows derivation rules used in fialyzer.
   }
   +p{
-Our derivation rules are almost same as \href(`https://it.uu.se/research/group/hipe/papers/succ_types.pdf`){the original success typings paper}'s one,
+Our derivation rules are almost same as the original success typings paper\footnote{\bib{T. Lindahl and K. Sagonas}{Practical Type Inference Based on Success Typings}{Proceedings of the 8th ACM SIGPLAN International Conference on Principles and Practice of Declarative Programming}{167–178}{ACM}{2006}}'s one,
 but extended by remote call, local call, list, etc.
   }
   +chapter{Derivation Rules}<
