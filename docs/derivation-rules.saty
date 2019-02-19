@@ -132,7 +132,7 @@ but extended by remote call, local call, list, etc.
       +math(
         ${
           \derive?:{\paren{\mathsc{CASE}}}{
-            | \judgement{A}{p}{\tau}{C_e} |
+            | \judgement{A}{e}{\tau}{C_e} |
               \judgement{A_i}{pg_i}{\tau_{pg_i}}{C_{pg_i}} |
               \judgement{A_i}{b_i}{\tau_{b_i}}{C_{b_i}} |
               \mathtt{where}\ A_i = A \cup \{v \mapsto \alpha_v \| v \in Var\(pg_i\)\} |
