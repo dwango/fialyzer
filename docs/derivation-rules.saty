@@ -25,12 +25,13 @@ but extended by remote call, local call, list, etc.
       +p{
         \BNFs[
           (${e}, [${| v | x | fn | \{e, \cdots , e\} | \mathtt!{let}\ x = e\ \mathtt!{in}\ e | \mathtt!{letrec}\ x = fn, \cdots , x = fn\ \mathtt!{in}\ e |};
-                  ${| e\(e, \cdots , e\) | \mathtt!{case}\ e\ \mathtt!{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt!{end} | \mathtt!{fun}\ f/a | \mathtt!{\[}e\mathtt!{\|}e\mathtt!{\]} | \mathtt!{\[\]} | \mathtt!{fun}\ \mfa{m}{f}{a} \bnf-desc{term} |}]);
+                  ${| e\(e, \cdots , e\) | \mathtt!{case}\ e\ \mathtt!{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt!{end} | \mathtt!{fun}\ f/a | \mathtt!{\[}e\mathtt!{\|}e\mathtt!{\]} | \mathtt!{\[\]} | \mathtt!{fun}\ \mfa{m}{f}{a}|};
+                  ${| \map{e \assoc e, \cdots, e \assoc e} | e\map{e \assoc e, \cdots, e \assoc e, e \exact-assoc e, \cdots, e \exact-assoc e} \bnf-desc{term} |}]);
           (${v}, [${| \mathtt!{0} | \mathtt!{\'ok\'} | \cdots \bnf-desc{constant} |}]);
           (${x}, [${| \(\mathrm{snip}\) \bnf-desc{variable} |}]);
           (${fn}, [${| \mathtt!{fun}\(x, \cdots , x\) \rightarrow e \bnf-desc{function} |}]);
           (${pg}, [${| p\ \mathtt!{when}\ g\; \cdots \; g \bnf-desc{pattern\ with\ guard\ sequence} |}]);
-          (${p}, [${| v | x | \{p, \cdots , p\} | \mathtt!{\[}p\mathtt!{\|}p\mathtt!{\]} | \mathtt!{\[\]} \bnf-desc{pattern} |}]);
+          (${p}, [${| v | x | \{p, \cdots , p\} | \mathtt!{\[}p\mathtt!{\|}p\mathtt!{\]} | \mathtt!{\[\]} | \map{e \exact-assoc p, \cdots, e \exact-assoc p} \bnf-desc{pattern} |}]);
           (${g}, [${| v | x | \{e, \cdots , e\} | \mathtt!{\[}e\mathtt!{\|}e\mathtt!{\]} | \mathtt!{\[\]} | e\(e, \cdots , e\) \bnf-desc{guard} |}]);
           (${m}, [${| e \bnf-desc{module\ name.\ a\ term\ to\ be\ an\ atom} |}]);
           (${f}, [${| e \bnf-desc{function\ name.\ a\ term\ to\ be\ an\ atom} |}]);
@@ -206,6 +207,26 @@ but extended by remote call, local call, list, etc.
       );
     >
     +small-block<+math(${\diamond: \text!{neither ${m}, ${f} is atom literal nor ${a} is non_neg_integer literal}});>
+    +small-block<
+      +math(
+        ${
+          \derive?:{\paren{\mathsc{MAPCREATION}}}{||}{
+            \judgement{A}{\map{\cdots}}{\mathtt!{map\(\)}}{\emptyset}
+          }
+        }
+      );
+    >
+    +small-block<
+      +math(
+        ${
+          \derive?:{\paren{\mathsc{MAPUPDATE}}}{
+            | \judgement{A}{e}{\tau}{C} |
+          }{
+            \judgement{A}{e\map{\cdots}}{\mathtt!{map\(\)}}{\paren{\tau \subseteq \mathtt!{map\(\)}} \wedge C}
+          }
+        }
+      );
+    >
     +section{Differences from the original paper}<
       +p{
         The differences from the derivation rules on the original paper are as follows.
@@ -218,6 +239,8 @@ but extended by remote call, local call, list, etc.
           * LOCALFUN is added.
           * MFA is added.
           * MFAEXPR is added.
+          * MAPCREATION is added (temporary definition).
+          & MAPUPDATE is added (temporary definition).
           * ...and some variables are ${\alpha}-converted for understandability.
         }
       }
