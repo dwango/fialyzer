@@ -164,15 +164,6 @@ let rec derive context = function
     results >>= fun(cs) -> Ok (beta, C.Conj [C.Disj cs; c_e])
   | ListCons (hd, tl) ->
     let alpha = new_tyvar() in
-    let union_of elements1 elements2 = match (elements1, elements2) with
-    | (TyUnion elements1, TyUnion elements2) -> TyUnion (List.append elements1 elements2)
-    | (TyUnion elements, _) -> TyUnion elements
-    | (_, TyUnion elements) -> TyUnion elements
-    | (TyAny, TyAny) -> TyAny
-    | (TyAny, TyBottom) -> TyAny
-    | (TyBottom, TyBottom) -> TyBottom
-    | (TyBottom, TyAny) -> TyAny
-    in
     derive context hd >>= fun (ty_hd, c_hd) ->
     derive context tl >>= fun (ty_tl, c_tl) ->
       Ok (Type.of_elem (TyList (Type.sup alpha ty_hd)), C.Conj [

@@ -68,7 +68,10 @@ let rec sup ty1 ty2 =
      TyUnion (sup_elems_to_list tys2 (List.rev tys1)) (* has one or more element *)
 and sup_elems_to_list store = function
   | [] -> store
-  | TyVar _ :: _ -> failwith "cannot reach here"
+  | TyVar v1 :: ty1s when List.exists ~f:(function TyVar v2 -> v1 = v2 | _ -> false) store ->
+    sup_elems_to_list store ty1s
+  | TyVar v1 :: ty1s ->
+    sup_elems_to_list ((TyVar v1) :: store) ty1s
   | ty1 :: ty1s when List.exists ~f:((=) ty1) store ->
      sup_elems_to_list store ty1s
   | TyNumber :: ty1s ->
