@@ -39,7 +39,7 @@ jobs:
           command: eval $(opam config env) && make unit-test && make blackbox-test
       - run:
           name: OCamldoc
-          command: eval $(opam config env) && opam install odoc && make doc
+          command: eval $(opam config env) && opam install odoc && make odoc
       - persist_to_workspace:
           root: _build/default
           paths: _doc/_html

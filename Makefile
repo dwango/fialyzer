@@ -18,8 +18,13 @@ blackbox-test:
 promote:
 	dune promote
 
-doc:
+doc: odoc pdf
+
+odoc:
 	dune build @doc
+
+pdf:
+	ls docs/*.saty | xargs -L 1 docker run --rm -v $(PWD):/home/opam/satysfi amutake/satysfi:0.0.3-dev2019.02.13 satysfi {}
 
 install:
 	dune install $(INSTALL_ARGS)

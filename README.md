@@ -12,8 +12,9 @@ Prerequisite
 - opam-2.0.0 or higher
 - GMP
 - Perl
-- odoc (optional, for `make doc`)
+- odoc (optional, for `make odoc`)
 - Erlang/OTP (optional, for `make test`)
+- Docker (optional, for `make pdf`)
 
 Build
 -----
