@@ -76,6 +76,13 @@ let file_plt_of_etf = function
    PLT
    ========================================================================== *)
 
+type contract_constraint =
+  | Subtyping of {lhs : Erl_type.var_id; rhs : Erl_type.t}
+[@@deriving sexp_of]
+
+type contract_pair =
+  {f : Erl_type.t; constraints : contract_constraint list}
+[@@deriving sexp_of]
 
 (**
 {v
@@ -89,7 +96,7 @@ v}
 @see <https://github.com/erlang/otp/blob/OTP-21.1.1/lib/dialyzer/src/dialyzer.hrl>
  *)
 type contract = {
-    contracts: (Erl_type.t * (Erl_type.t * Erl_type.t) list) list;
+    contracts: contract_pair list;
     args : Erl_type.t list;
     forms: unit; (*TODO: (Etf.t * Etf.t) list; (*???*)*)
   }
@@ -143,7 +150,12 @@ let contr_constr_of_etf = function
      let open Result in
      Erl_type.of_etf e1 >>= fun ty1 ->
      Erl_type.of_etf e2 >>= fun ty2 ->
-     Ok (ty1, ty2)
+     begin match ty1 with
+     | Erl_type.Var v ->
+        Ok (Subtyping {lhs=v; rhs=ty2})
+     | _ ->
+        Error (Failure (!%"contr_constr_of_etf left hand side is not a variable: %s" (Erl_type.show ty1)))
+     end
   | other ->
      Error (Failure (!%"contr_constr_of_etf error: %s" (E.show_etf other)))
 
@@ -159,8 +171,8 @@ let contract_of_etf = function
        E.pair_of_etf etf >>= fun (x, y) ->
        Erl_type.of_etf x >>= fun ty ->
        E.list_of_etf y >>= fun ys ->
-       result_map_m ~f:contr_constr_of_etf ys >>= fun constrs ->
-       Ok (ty, constrs)
+       result_map_m ~f:contr_constr_of_etf ys >>= fun constraints ->
+       Ok {f=ty; constraints}
      in
      E.list_of_etf contracts_etf >>= fun contract_etfs ->
      result_map_m ~f:elem_of_etf contract_etfs >>= fun contracts ->

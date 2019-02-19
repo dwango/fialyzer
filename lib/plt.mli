@@ -13,8 +13,16 @@
 open Base
 module Format = Caml.Format
 
+type contract_constraint =
+  | Subtyping of {lhs : Erl_type.var_id; rhs : Erl_type.t}
+[@@deriving sexp_of]
+
+type contract_pair =
+  {f : Erl_type.t; constraints : contract_constraint list}
+[@@deriving sexp_of]
+
 type contract = {
-    contracts: (Erl_type.t * (Erl_type.t * Erl_type.t) list) list;
+    contracts: contract_pair list;
     args : Erl_type.t list;
     forms: unit; (*TODO: (Etf.t * Etf.t) list; (*???*)*)
   }

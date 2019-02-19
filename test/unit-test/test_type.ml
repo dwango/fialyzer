@@ -136,7 +136,7 @@ let%expect_test "of_erl_type" =
   let print function_name =
     let erl_type =
       match Map.find_exn contracts Mfa.{module_name="specs"; function_name; arity=1} with
-      | {Plt.contracts=[(erl_type, _)]; _} -> erl_type
+      | {Plt.contracts=[{f=erl_type; _}]; _} -> erl_type
       | _ -> failwith "unexpected error"
     in
     of_erl_type erl_type
