@@ -43,13 +43,25 @@ jobs:
       - persist_to_workspace:
           root: _build/default
           paths: _doc/_html
+  satysfi:
+    working_directory: ~/fialyzer
+    docker:
+      - image: amutake/satysfi:0.0.3-dev2019.02.13
+    steps:
+      - checkout
+      - run:
+          name: Build PDF
+          command: eval $(opam env) && for SATY in $(ls docs/*.saty); do satysfi $SATY; done
+      - persist_to_workspace:
+          root: .
+          paths: docs/*.pdf
   docs-deploy:
     docker:
       - image: node:8.10.0
     steps:
       - checkout
       - attach_workspace:
-          at: _build/default
+          at: workspace
       - run:
           name: Install gh-pages and configure dependencies
           command: |
@@ -62,7 +74,8 @@ jobs:
       - run:
           name: Deploy docs to gh-pages branch
           command: |
-            gh-pages --message "[skip ci] doc upload" --dist _build/default/_doc/_html --dest odoc
+            gh-pages --message "[skip ci] doc upload" --dist workspace/_doc/_html --dest odoc
+            gh-pages --message "[skip ci] doc upload" --dist workspace/docs --dest docs
 workflows:
   version: 2
   all:
@@ -71,9 +84,11 @@ workflows:
       - build:
           requires:
             - beam
+      - satysfi
       - docs-deploy:
           requires:
             - build
+            - satysfi
           filters:
             branches:
               only: master

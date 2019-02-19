@@ -1,0 +1,29 @@
+@require: math
+
+% description for BNF
+let-math \bnf-desc it =
+  ${\ \ \ \ \mathrm{\(#it\)}}
+
+% small capital
+% TODO: implement
+let-math \mathsc m =
+  ${\mathrm{#m}}
+
+% type writer
+% TODO: implement
+let-math \mathtt m =
+  ${\mathrm{#m}}
+
+% A |- e : t, C
+let-math \judgement ctx expr ty constr =
+  ${#ctx \vdash #expr : #ty, #constr}
+
+% m:f/a in math area
+% TODO: narrow the width of `:`
+let-math \mfa m f a =
+  ${#m\colon-rel#f/#a}
+
+let-block ctx +small-block bt =
+  let size = get-font-size ctx in
+  let ctx = set-font-size (size *' 0.8) ctx in
+  read-block ctx bt
