@@ -122,7 +122,7 @@ let rec derive context = function
       | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
       | PatConstant c -> Constant (-1, c)
       | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
-      | PatNil -> ListNil
+      | PatNil -> raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/201"]; message="support nil pattern"}))
     in
     (* Var(p) *)
     let rec variables = function
@@ -162,9 +162,14 @@ let rec derive context = function
         ])
     ) in
     results >>= fun(cs) -> Ok (beta, C.Conj [C.Disj cs; c_e])
-  | ListCons (_e1, _e2) ->
-     (* TODO: support cons expr *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support cons expr"}))
+  | ListCons (hd, tl) ->
+    let alpha = new_tyvar() in
+    derive context hd >>= fun (ty_hd, c_hd) ->
+    derive context tl >>= fun (ty_tl, c_tl) ->
+      Ok (Type.of_elem (TyList (Type.sup alpha ty_hd)), C.Conj [
+        C.Eq {lhs=ty_tl; rhs=Type.of_elem (TyList alpha); link=tl};
+        c_hd;
+        c_tl
+      ])
   | ListNil ->
-     (* TODO: support nil expr *)
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/90"]; message="support nil expr"}))
+    Ok (Type.of_elem (TyList TyBottom), C.Empty)

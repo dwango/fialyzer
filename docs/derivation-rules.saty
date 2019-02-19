@@ -25,13 +25,13 @@ but extended by remote call, local call, list, etc.
       +p{
         \BNFs[
           (${e}, [${| v | x | fn | \{e, \cdots , e\} | \mathtt{let}\ x = e\ \mathtt{in}\ e | \mathtt{letrec}\ x = fn, \cdots , x = fn\ \mathtt{in}\ e |};
-                  ${| e\(e, \cdots , e\) | \mathtt{case}\ e\ \mathtt{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt{end} | \mathtt{fun}\ f/a | \mathtt{fun}\ \mfa{m}{f}{a} \bnf-desc{term} |}]);
+                  ${| e\(e, \cdots , e\) | \mathtt{case}\ e\ \mathtt{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt{end} | \mathtt{fun}\ f/a | \mathtt{\[}e\mathtt{\|}e\mathtt{\]} | \mathtt{\[\]} | \mathtt{fun}\ \mfa{m}{f}{a} \bnf-desc{term} |}]);
           (${v}, [${| \mathtt{0} | \mathtt{\'ok\'} | \cdots \bnf-desc{constant} |}]);
           (${x}, [${| \(\mathrm{snip}\) \bnf-desc{variable} |}]);
           (${fn}, [${| \mathtt{fun}\(x, \cdots , x\) \rightarrow e \bnf-desc{function} |}]);
           (${pg}, [${| p\ \mathtt{when}\ g\; \cdots \; g \bnf-desc{pattern\ with\ guard\ sequence} |}]);
-          (${p}, [${| v | x | \{p, \cdots , p\} \bnf-desc{pattern} |}]);
-          (${g}, [${| v | x | \{e, \cdots , e\} | e\(e, \cdots , e\) \bnf-desc{guard} |}]);
+          (${p}, [${| v | x | \{p, \cdots , p\} | \mathtt{\[}p\mathtt{\|}p\mathtt{\]} | \mathtt{\[\]} \bnf-desc{pattern} |}]);
+          (${g}, [${| v | x | \{e, \cdots , e\} | \mathtt{\[}e\mathtt{\|}e\mathtt{\]} | \mathtt{\[\]} | e\(e, \cdots , e\) \bnf-desc{guard} |}]);
           (${m}, [${| e \bnf-desc{module\ name.\ a\ term\ to\ be\ an\ atom} |}]);
           (${f}, [${| e \bnf-desc{function\ name.\ a\ term\ to\ be\ an\ atom} |}]);
           (${a}, [${| e \bnf-desc{arity.\ a\ term\ to\ be\ a\ non\_neg\_integer} |}]);
@@ -149,6 +149,36 @@ but extended by remote call, local call, list, etc.
         ${
           \derive?:{\paren{\mathsc{LOCALFUN}}}{||}{
             \judgement{A \cup \{\mathtt{fun}\ f/a \mapsto \tau\}}{\mathtt{fun}\ f/a}{\tau}{\emptyset}
+          }
+        }
+      );
+    >
+    +small-block<
+      +math(
+        ${
+          \derive?:{\paren{\mathsc{LISTCONS}}}{
+            | \judgement{A}{e_1}{\tau_1}{C_1} |
+              \judgement{A}{e_2}{\tau_2}{C_2} |
+          }{
+            \judgement{A}{\mathtt{\[} e_1 \| e_2 \mathtt{\]}}{\mathtt{list\(} \alpha \| \tau_1 \mathtt{\)}}{\tau_2 = \mathtt{list\(} \alpha \mathtt{\)} \wedge C_1 \wedge C_2}
+          }
+        }
+      );
+    >
+    +small-block<
+      +math(
+        ${
+          \derive?:{\paren{\mathsc{LISTNIL}}}{||}{
+            \judgement{A}{\mathtt{\[\]}}{\mathtt{list\(none\(\)\)}}{\emptyset}
+          }
+        }
+      );
+    >
+    +small-block<
+      +math(
+        ${
+          \derive?:{\paren{\mathsc{PATLISTNIL}}}{||}{
+            \judgement{A}{\mathtt{\[\]}}{\mathtt{list\(} \alpha \mathtt{\)}}{\emptyset}
           }
         }
       );

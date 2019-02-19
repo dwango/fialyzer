@@ -29,6 +29,7 @@ let rec lookup_type sol = function
 and lookup_elem sol = function
   | TyTuple tys ->
      TyUnion [TyTuple(List.map ~f:(lookup_type sol) tys)]
+  | TyList t -> TyUnion [TyList (lookup_type sol t)]
   | TyFun (tys, ty) ->
      TyUnion [TyFun (List.map ~f:(lookup_type sol) tys, lookup_type sol ty)]
   | TyNumber -> TyUnion [TyNumber]
@@ -61,6 +62,8 @@ and unify_elem elem inf =
   | (TyNumber, _) | (TyAtom, _) | (TySingleton _, _) -> []
   | (TyVar v, _) ->
      [(v, inf)]
+  | (TyList t1, TyUnion [TyList t2]) ->
+     unify t1 t2
   | (TyTuple tys1, TyUnion [TyTuple tys2]) when List.length tys1 = List.length tys2 ->
      List.map2_exn ~f:unify tys1 tys2
      |> List.concat
