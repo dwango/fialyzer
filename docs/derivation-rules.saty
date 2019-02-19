@@ -25,7 +25,7 @@ but extended by remote call, local call, list, etc.
       +p{
         \BNFs[
           (${e}, [${| v | x | fn | \{e, \cdots , e\} | \mathtt{let}\ x = e\ \mathtt{in}\ e | \mathtt{letrec}\ x = fn, \cdots , x = fn\ \mathtt{in}\ e |};
-                  ${| e\(e, \cdots , e\) | \mathtt{case}\ e\ \mathtt{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt{end} | \mathtt{fun}\ f/a | \mathtt{fun}\ \mfa{m}{f}{a} \bnf-desc{term} |}]);
+                  ${| e\(e, \cdots , e\) | \mathtt{case}\ e\ \mathtt{of}\ pg \rightarrow e\; \cdots \;\ pg \rightarrow e\ \mathtt{end} | \mathtt{fun}\ f/a | \mathtt{\[}e\mathtt{\|}e\mathtt{\]} | \mathtt{\[\]} | \mathtt{fun}\ \mfa{m}{f}{a} \bnf-desc{term} |}]);
           (${v}, [${| \mathtt{0} | \mathtt{\'ok\'} | \cdots \bnf-desc{constant} |}]);
           (${x}, [${| \(\mathrm{snip}\) \bnf-desc{variable} |}]);
           (${fn}, [${| \mathtt{fun}\(x, \cdots , x\) \rightarrow e \bnf-desc{function} |}]);
