@@ -240,7 +240,7 @@ but extended by remote call, local call, list, etc.
           * MFA is added.
           * MFAEXPR is added.
           * MAPCREATION is added (temporary definition).
-          & MAPUPDATE is added (temporary definition).
+          * MAPUPDATE is added (temporary definition).
           * ...and some variables are ${\alpha}-converted for understandability.
         }
       }
