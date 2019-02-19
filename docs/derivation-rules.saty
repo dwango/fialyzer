@@ -123,7 +123,7 @@ but extended by remote call, local call, list, etc.
             | \judgement{A}{p}{\tau}{C_p} |
               \judgement{A}{g}{\tau_g}{C_g} |
           }{
-            \judgement{A}{p\ \mathtt!{when}\ g}{\tau}{\(\tau \subseteq \mathtt!{boolean\(\)}\) \wedge C_p \wedge C_g}
+            \judgement{A}{p\ \mathtt!{when}\ g}{\tau}{\(\tau_g \subseteq \mathtt!{boolean\(\)}\) \wedge C_p \wedge C_g}
           }
         }
       );
