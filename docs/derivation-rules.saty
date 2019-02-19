@@ -156,6 +156,36 @@ but extended by remote call, local call, list, etc.
     +small-block<
       +math(
         ${
+          \derive?:{\paren{\mathsc{LISTCONS}}}{
+            | \judgement{A}{e_1}{\tau_1}{C_1} |
+              \judgement{A}{e_2}{\tau_2}{C_2} |
+          }{
+            \judgement{A}{\mathtt{\[} e_1 \| e_2 \mathtt{\]}}{\mathtt{list\(} \alpha \| \tau_1 \mathtt{\)}}{\tau_2 = \mathtt{list\(} \alpha \mathtt{\)} \wedge C_1 \wedge C_2}
+          }
+        }
+      );
+    >
+    +small-block<
+      +math(
+        ${
+          \derive?:{\paren{\mathsc{LISTNIL}}}{||}{
+            \judgement{A}{\mathtt{\[\]}}{\mathtt{list\(none\(\)\)}}{\emptyset}
+          }
+        }
+      );
+    >
+    +small-block<
+      +math(
+        ${
+          \derive?:{\paren{\mathsc{PATLISTNIL}}}{||}{
+            \judgement{A}{\mathtt{\[\]}}{\mathtt{list\(} \alpha \mathtt{\)}}{\emptyset}
+          }
+        }
+      );
+    >
+    +small-block<
+      +math(
+        ${
           \derive?:{\text!{if ${m} and ${f} is atom literal, ${a} is non_neg_integer literal}\ \paren{\mathsc{MFA}}}{||}{
             \judgement{A \cup \{\mathtt{fun}\ \mfa{m}{f}{a} \mapsto \tau\}}{\mathtt{fun}\ \mfa{m}{f}{a}}{\tau}{\emptyset}
           }
