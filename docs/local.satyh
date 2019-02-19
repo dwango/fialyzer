@@ -22,9 +22,9 @@ let-math \judgement ctx expr ty constr =
   ${#ctx \vdash #expr : #ty, #constr}
 
 % m:f/a in math area
-% TODO: narrow the width of `:`
 let-math \mfa m f a =
-  ${#m\colon-rel#f/#a}
+  let colon = math-char MathInner `:` in
+  ${#m#colon#f/#a}
 
 let-block ctx +small-block bt =
   let size = get-font-size ctx in
