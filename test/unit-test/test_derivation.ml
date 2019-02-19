@@ -51,7 +51,8 @@ let%expect_test "derivation" =
    *   X when true -> X
    * end
    *)
-  print Context.empty (Case (Constant (-1, Number 42), [(PatVar "X", Constant (-1, Atom "true")), Var (-1, "X")])); [%expect {|
+  print Context.empty (Case (Constant (-1, Number 42), [(PatVar "X", Constant (-1, Atom "true")), Var (-1, "X")])); 
+  [%expect {|
      (Ok (
        a (
          Conj (
