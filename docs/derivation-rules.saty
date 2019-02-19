@@ -30,8 +30,8 @@ but extended by remote call, local call, list, etc.
           (${x}, [${| \(\mathrm{snip}\) \bnf-desc{variable} |}]);
           (${fn}, [${| \mathtt{fun}\(x, \cdots , x\) \rightarrow e \bnf-desc{function} |}]);
           (${pg}, [${| p\ \mathtt{when}\ g\; \cdots \; g \bnf-desc{pattern\ with\ guard\ sequence} |}]);
-          (${p}, [${| v | x | \{p, \cdots , p\} \bnf-desc{pattern} |}]);
-          (${g}, [${| v | x | \{e, \cdots , e\} | e\(e, \cdots , e\) \bnf-desc{guard} |}]);
+          (${p}, [${| v | x | \{p, \cdots , p\} | \mathtt{\[}p\mathtt{\|}p\mathtt{\]} | \mathtt{\[\]} \bnf-desc{pattern} |}]);
+          (${g}, [${| v | x | \{e, \cdots , e\} | \mathtt{\[}e\mathtt{\|}e\mathtt{\]} | \mathtt{\[\]} | e\(e, \cdots , e\) \bnf-desc{guard} |}]);
           (${m}, [${| e \bnf-desc{module\ name.\ a\ term\ to\ be\ an\ atom} |}]);
           (${f}, [${| e \bnf-desc{function\ name.\ a\ term\ to\ be\ an\ atom} |}]);
           (${a}, [${| e \bnf-desc{arity.\ a\ term\ to\ be\ a\ non\_neg\_integer} |}]);
