@@ -10,7 +10,7 @@ beam:
 
 $(MINIMAL_PLT):
 	dialyzer --build_plt --output_plt $(MINIMAL_PLT) \
-	  --apps erts kernel stdlib mnesia
+	  --apps stdlib
 
 test: unit-test beam $(MINIMAL_PLT) blackbox-test
 
