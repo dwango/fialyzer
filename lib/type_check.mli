@@ -1,3 +1,3 @@
 open Base
 
-val check_modules : unit(*TODO plt*) -> Ast.module_ list -> (unit, exn) Result.t
+val check_modules : Plt.t option -> Ast.module_ list -> (unit, exn) Result.t

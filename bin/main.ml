@@ -51,13 +51,20 @@ let module_of_file beam_filename =
   code_of_file beam_filename >>= fun code ->
   From_erlang.code_to_module code
 
+let read_plt plt_option=
+  let open Result in
+  match plt_option with
+  | None -> Ok None
+  | Some plt_file ->
+     Plt.of_file plt_file >>| Option.return
+
 let () =
   Cui.work (fun param ->
       try
         Log.debug [%here] "=== start fialyzer ===";
-        let plt = () (*TODO*) in
         let files = [param.Cui.beam_file] in
         Result.ok_exn begin
+            read_plt param.Cui.plt_file >>= fun plt ->
             result_map_m ~f:module_of_file files >>= fun modules ->
             Type_check.check_modules plt modules
           end;

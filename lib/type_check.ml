@@ -13,7 +13,7 @@ let check_module plt ctx m =
 
 let check_modules plt modules =
   let import_modules = ["erlang"] in (*TODO: https://github.com/dwango/fialyzer/issues/166 *)
-  let ctx = Context.create ~import_modules in (*TODO: https://github.com/dwango/fialyzer/issues/167 *)
+  let ctx = Context.create ~import_modules plt in (*TODO: https://github.com/dwango/fialyzer/issues/167 *)
   let open Result in
   result_map_m ~f:(check_module plt ctx) modules >>= fun _ ->
   Result.return ()
