@@ -12,12 +12,16 @@ jobs:
       - run:
           name: Compile erl files
           command: make beam
+      - run:
+          name: Create minimal PLT file
+          command: make ./test/blackbox-test/minimal.plt
       - persist_to_workspace:
           root: .
           paths:
             # CircleCI does not support globstar pattern (`**/*.beam`).
             # So you must list concrete filepaths if you want to add BEAM files.
             - ./test/blackbox-test/test-cases/*.beam
+            - ./test/blackbox-test/minimal.plt
   build:
     working_directory: ~/fialyzer
     docker:

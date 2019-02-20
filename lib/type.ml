@@ -185,7 +185,7 @@ let rec subst (v, ty) = function
 and subst_elem (v, ty0) = function
   | TyTuple tys ->
      TyUnion [TyTuple(List.map ~f:(subst (v,ty0)) tys)]
-  | TyList t -> TyUnion [TyList (subst (v,ty0) t)]
+  | TyList t -> TyUnion [TyList (subst (v, ty0) t)]
   | TyFun (tys, ty) ->
      TyUnion [TyFun (List.map ~f:(subst (v,ty0)) tys, subst (v,ty0) ty)]
   | TyNumber -> TyUnion [TyNumber]

@@ -1,4 +1,5 @@
 INSTALL_ARGS := $(if $(PREFIX),--prefix $(PREFIX),)
+MINIMAL_PLT := test/blackbox-test/minimal.plt
 
 # Default rule
 default:
@@ -7,7 +8,11 @@ default:
 beam:
 	test/blackbox-test/compile.sh
 
-test: unit-test beam blackbox-test
+$(MINIMAL_PLT):
+	dialyzer --build_plt --output_plt $(MINIMAL_PLT) \
+	  --apps stdlib
+
+test: unit-test beam $(MINIMAL_PLT) blackbox-test
 
 unit-test:
 	dune runtest test/unit-test
@@ -36,5 +41,6 @@ reinstall: uninstall reinstall
 
 clean:
 	rm -rf _build
+	rm $(MINIMAL_PLT)
 
 .PHONY: default install beam test unit-test blackbox-test promote doc uninstall reinstall clean
