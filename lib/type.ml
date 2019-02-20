@@ -218,6 +218,8 @@ let rec of_absform = function
   | F.TyUnion {elements; _} ->
      List.map ~f:of_absform elements
      |> union_list
+  | F.TyPredef {name="string"; args=[]; _} ->
+     of_elem (TyList (of_elem TyNumber))
   | F.TyPredef {name="pid"; args=[]; _}
   | F.TyPredef {name="port"; args=[]; _}
   | F.TyPredef {name="reference"; args=[]; _}
