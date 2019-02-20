@@ -1,0 +1,4 @@
+TODO:filename:-1: Type error: type mismatch;
+  found   : {{any(), any(), any()}, {any(), 'hoge', any()}}
+  required: {{number(), number(), number()}, {number(), number(), number()}}
+there is no solution that satisfies subtype constraints
