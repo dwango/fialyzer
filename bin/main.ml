@@ -45,7 +45,10 @@ let code_of_file beam_filename =
   read_file beam_filename >>= fun beam ->
   beam_to_etf beam_filename beam >>= fun etf ->
   let sf = Simple_term_format.of_etf etf in
-  Abstract_format.of_sf sf |> map_error ~f:(fun e -> Failure (Abstract_format.sexp_of_err_t e |> Sexp.to_string))
+  Abstract_format.of_sf sf
+  |> map_error ~f:(fun e ->
+                 let message = Abstract_format.sexp_of_err_t e |> Sexp.to_string in
+                 Known_error.(FialyzerError (InvalidBeam {beam_filename; message})))
 
 let module_of_file beam_filename =
   code_of_file beam_filename >>= fun code ->
