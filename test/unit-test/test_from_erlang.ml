@@ -30,7 +30,7 @@ let%expect_test "code_to_module" =
       (name test)
       (export ())
       (functions ((
-        (specs ()) (fun_name f) (fun_abst ((args (X)) (body (Var 111 X))))))))
+        (specs ()) (fun_name f) (fun_abst ((args (X)) (body (Ref 111 (Var X)))))))))
   |}];
 
   (* patterns in toplevel *)
@@ -57,12 +57,12 @@ let%expect_test "code_to_module" =
           (args (__A__))
           (body (
             Case
-            (Tuple 111 ((Var 111 __A__)))
+            (Tuple 111 ((Ref 111 (Var __A__))))
             ((((PatTuple ((PatConstant (Atom a)))) (Constant 111 (Atom true)))
               (Constant 111 (Number 10)))
              (((PatTuple ((PatConstant (Atom b)))) (Constant 111 (Atom true)))
               (Constant 111 (Number 20))))))))))))
-            
+
   |}]
 
 let%expect_test "from_erlang" =
@@ -76,16 +76,16 @@ let%expect_test "from_erlang" =
   (* X *)
   print (ExprVar {line=1; id="X"});
   [%expect {|
-    (Var 1 X)
+    (Ref 1 (Var X))
   |}];
 
   (* {X, Y, Z} *)
   print (ExprTuple {line=1; elements=[ExprVar {line=1; id="X"}; ExprVar {line=1; id="Y"}; ExprVar {line=1; id="Z"}]});
   [%expect {|
     (Tuple 1 (
-      (Var 1 X)
-      (Var 1 Y)
-      (Var 1 Z)))
+      (Ref 1 (Var X))
+      (Ref 1 (Var Y))
+      (Ref 1 (Var Z))))
   |}];
 
 
@@ -96,7 +96,7 @@ let%expect_test "from_erlang" =
     ClsFun {line=1; patterns=[PatVar {line=1; id="X"}]; guard_sequence=None; body=ExprVar {line=1; id="X"}}
   ]});
   [%expect {|
-    (Abs 1 ((args (X)) (body (Var 1 X))))
+    (Abs 1 ((args (X)) (body (Ref 1 (Var X)))))
   |}];
 
   (*
@@ -109,7 +109,9 @@ let%expect_test "from_erlang" =
             body=ExprLocalCall {line=1; function_expr=ExprVar {line=1; id="F"}; args=[ExprVar {line=1; id="X"}]}}
   ]});
   [%expect {|
-    (Letrec 1 ((F ((args (X)) (body (App 1 (Var 1 F) ((Var 1 X))))))) (Var 1 F))
+    (Letrec 1
+      ((F ((args (X)) (body (App 1 (Ref 1 (Var F)) ((Ref 1 (Var X))))))))
+      (Ref 1 (Var F)))
   |}];
 
   (*
@@ -153,8 +155,8 @@ let%expect_test "from_erlang" =
       (body (
         Case
         (Tuple 1 (
-          (Var 1 __A__)
-          (Var 1 __B__)))
+          (Ref 1 (Var __A__))
+          (Ref 1 (Var __B__))))
         ((((PatTuple (
              (PatVar X)
              (PatTuple (
@@ -162,16 +164,16 @@ let%expect_test "from_erlang" =
                (PatVar Z)))))
            (Constant 1 (Atom true)))
           (Tuple 1 (
-            (Var 1 X)
-            (Var 1 Y)
-            (Var 1 Z))))
+            (Ref 1 (Var X))
+            (Ref 1 (Var Y))
+            (Ref 1 (Var Z)))))
          (((PatTuple (
              (PatVar X)
              (PatVar Y)))
            (Constant 1 (Atom true)))
           (Tuple 1 (
-            (Var 1 X)
-            (Var 1 Y)))))))))
+            (Ref 1 (Var X))
+            (Ref 1 (Var Y))))))))))
   |}];
 
   (*
@@ -185,7 +187,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple 1 ((Var 1 __A__)))
+        (Tuple 1 ((Ref 1 (Var __A__))))
         ((
           ((PatTuple ((PatConstant (Atom x)))) (Constant 1 (Atom true)))
           (Constant 1 (Atom y))))))))
@@ -203,7 +205,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple 1 ((Var 1 __A__)))
+        (Tuple 1 ((Ref 1 (Var __A__))))
         ((
           ((PatTuple ((PatConstant (Number 42)))) (Constant 1 (Atom true)))
           (Constant 1 (Number 43))))))))
@@ -224,14 +226,14 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple -1 ((Var -1 __A__)))
+        (Tuple -1 ((Ref -1 (Var __A__))))
         ((((PatTuple (PatNil)) (Constant 1 (Atom true))) ListNil)
          (((PatTuple ((
              PatCons
              (PatVar H)
              (PatVar T))))
            (Constant 2 (Atom true)))
-          (Var 2 T))))))) |}];
+          (Ref 2 (Var T)))))))) |}];
 
   (*
    * fun ("abc") -> ok end
@@ -244,7 +246,7 @@ let%expect_test "from_erlang" =
       (args (__A__))
       (body (
         Case
-        (Tuple 1 ((Var 1 __A__)))
+        (Tuple 1 ((Ref 1 (Var __A__))))
         ((
           ((PatTuple ((
              PatCons
@@ -269,7 +271,7 @@ let%expect_test "from_erlang" =
         (Constant 1 (Number 2))
         (ListCons (Constant 1 (Number 3)) ListNil)))
   |}];
-  
+
 
   (*
    * "abc"
@@ -317,12 +319,13 @@ let%expect_test "from_erlang" =
             ((
               ((PatVar B) (Constant 1 (Atom true)))
               (App 1
-                (MFA
+                (Ref 1 (
+                  MFA
                   (module_name   (Constant 1 (Atom   erlang)))
                   (function_name (Constant 1 (Atom   +)))
-                  (arity         (Constant 1 (Number 2))))
-                ((Var 1 A)
-                 (Var 1 B))))))))))))
+                  (arity         (Constant 1 (Number 2)))))
+                ((Ref 1 (Var A))
+                 (Ref 1 (Var B)))))))))))))
   |}]
 
 
