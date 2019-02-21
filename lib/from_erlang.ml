@@ -22,8 +22,8 @@ let expr_of_literal = function
      (* string is a list of chars in Erlang *)
      let l = String.to_list_rev str in
      List.fold_left l ~init:ListNil ~f:(fun acc c -> ListCons (Constant (line, Number (Char.to_int c)), acc))
-  | l -> 
-     let (line, c) = const_of_literal l in 
+  | l ->
+     let (line, c) = const_of_literal l in
      Constant(line, c)
 
 let pattern_of_literal = function
@@ -31,8 +31,8 @@ let pattern_of_literal = function
      (* string is a list of chars in Erlang *)
      let l = String.to_list_rev str in
      List.fold_left l ~init:PatNil ~f:(fun acc c -> PatCons (PatConstant (Number (Char.to_int c)), acc))
-  | l -> 
-     let (_, c) = const_of_literal l in 
+  | l ->
+     let (_, c) = const_of_literal l in
      PatConstant c
 
 (* Extracts nested match expressions.
@@ -180,10 +180,10 @@ let rec pattern_of_erlang_pattern = function
   | F.PatVar {id; _} -> Ast.PatVar id
   | F.PatUniversal _ -> Ast.PatVar "_"
   | F.PatLit {lit} -> pattern_of_literal lit
-  | F.PatMap _ ->
-     let issue_links = ["https://github.com/dwango/fialyzer/issues/102"] in
-     let message = "support map pattern" in
-     raise Known_error.(FialyzerError (NotImplemented {issue_links; message}))
+  | F.PatMap {assocs; _} ->
+     assocs
+     |> List.map ~f:(fun (F.PatAssocExact {key; value; _}) -> (pattern_of_erlang_pattern key, pattern_of_erlang_pattern value))
+     |> (fun assocs -> Ast.PatMap assocs)
   | F.PatTuple {pats; _} ->
      PatTuple (pats |> List.map ~f:pattern_of_erlang_pattern)
   | F.PatNil _ -> PatNil
@@ -286,8 +286,22 @@ and expr_of_erlang_expr' = function
   | ExprListComprehension _ ->
      (* TODO: support list comprehension *)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"]; message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
-  | ExprMapCreation _ | ExprMapUpdate _ ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/122"]; message="support map-related expression"}))
+  | ExprMapCreation {assocs; _} ->
+     assocs
+     |> List.map ~f:(function
+                     | F.ExprAssoc {key; value; _} -> (expr_of_erlang_expr' key, expr_of_erlang_expr' value)
+                     | ExprAssocExact _ -> failwith "cannot reach here: map creation must not have exact assocs")
+     |> (fun assocs -> MapCreation assocs)
+  | ExprMapUpdate {map; assocs; _} ->
+     let assoc_divide assoc (assocs, exact_assocs) = match assoc with
+       | F.ExprAssoc {key; value; _} ->
+          ((expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: assocs, exact_assocs)
+       | ExprAssocExact {key; value; _} ->
+          (assocs, (expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: exact_assocs)
+     in
+     assocs
+     |> List.fold_right ~init:([], []) ~f:assoc_divide
+     |> (fun (assocs, exact_assocs) -> MapUpdate {map=expr_of_erlang_expr' map; assocs; exact_assocs})
 and function_of_clauses clauses =
     (* Create a list which have n elements *)
     let rec fill e = (function
@@ -310,6 +324,7 @@ and function_of_clauses clauses =
      | ((PatCons (_, _), _), term) -> Ast.line_number_of_t term
      | ((PatVar _, _), term) -> Ast.line_number_of_t term
      | ((PatNil, _), term) -> Ast.line_number_of_t term
+     | ((PatMap _, _), term) -> Ast.line_number_of_t term
      in
      let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
      let make_case cs fresh_variables =

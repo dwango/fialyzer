@@ -36,3 +36,15 @@ let-inline ctx \bib authors title book-title pages org year =
   let ib-book-title = read-inline (ctx |> StdJaReport.set-latin-font StdJaReport.font-latin-italic) book-title in
   let ib-end = read-inline ctx {, pages #pages;. #org;, #year;.} in
   ib-start ++ ib-book-title ++ ib-end
+
+% #{...} for map
+let-math \map m =
+  ${\mathtt!{\#}\brace{#m}}
+
+% := for exact assocs
+let-math \exact-assoc =
+  math-char MathRel `:=`
+
+% => for assocs
+let-math \assoc =
+  ${\Rightarrow}

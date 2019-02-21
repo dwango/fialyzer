@@ -23,6 +23,8 @@ type t =
     | MFA of {module_name: t; function_name: t; arity: t}
     | ListCons of t * t
     | ListNil
+    | MapCreation of (t * t) list                  (* #{k1 => v1, ...} *)
+    | MapUpdate of {map: t; assocs: (t * t) list; exact_assocs: (t * t) list} (* M#{k1 => v1, ..., ke1 := ve1, ...} *)
 and fun_abst = {args: string list; body: t}
 and pattern = pattern' * t
 and pattern' =
@@ -31,6 +33,7 @@ and pattern' =
     | PatConstant of Constant.t
     | PatCons of pattern' * pattern'
     | PatNil
+    | PatMap of (pattern' * pattern') list
 [@@deriving sexp_of]
 
 let line_number_of_t = function
@@ -46,6 +49,8 @@ let line_number_of_t = function
 | MFA _ -> -1
 | ListCons (_, _) -> -1
 | ListNil -> -1
+| MapCreation _ -> -1
+| MapUpdate _ -> -1
 
 let string_of_t t =
   [%sexp_of: t] t |> Sexplib.Sexp.to_string_hum ~indent:2
