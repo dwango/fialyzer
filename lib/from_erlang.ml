@@ -170,11 +170,11 @@ and extract_match_expr e =
 
 let expr_of_atom_or_var = function
   | F.AtomVarAtom {line; atom} -> Constant (line, Atom atom)
-  | AtomVarVar {line; id} -> Var (line, id)
+  | AtomVarVar {line; id} -> Ref (line, Var id)
 
 let expr_of_integer_or_var = function
   | F.IntegerVarInteger {line; integer} -> Constant (line, Number integer)
-  | IntegerVarVar {line; id} -> Var (line, id)
+  | IntegerVarVar {line; id} -> Ref (line, Var id)
 
 let rec pattern_of_erlang_pattern = function
   | F.PatVar {id; _} -> Ast.PatVar id
@@ -239,30 +239,35 @@ and expr_of_erlang_expr' = function
           failwith "cannot reach here"
     ) in
     Case (expr_of_erlang_expr' expr, cs)
-  | ExprLocalFunRef {function_name; arity; _} ->
-     LocalFun {function_name; arity}
-  | ExprRemoteFunRef {module_name; function_name; arity; _} ->
-     MFA {module_name = expr_of_atom_or_var module_name;
-          function_name = expr_of_atom_or_var function_name;
-          arity = expr_of_integer_or_var arity}
+  | ExprLocalFunRef {line; function_name; arity} ->
+     Ref(line, LocalFun {function_name; arity})
+  | ExprRemoteFunRef {line; module_name; function_name; arity} ->
+     let mfa =
+       MFA {module_name = expr_of_atom_or_var module_name;
+            function_name = expr_of_atom_or_var function_name;
+            arity = expr_of_integer_or_var arity}
+     in
+     Ref (line, mfa)
   | ExprFun {line; name; clauses} ->
      let fun_abst = function_of_clauses clauses in
      (* If name is omitted, don't create Letrec *)
      (match name with
-     | Some name -> Letrec (line, [(name, fun_abst)], Var (line, name))
+     | Some name -> Letrec (line, [(name, fun_abst)], Ref (line, Var name))
      | None -> Abs (line, fun_abst)
      )
   | ExprLocalCall {line; function_expr=ExprLit {lit=LitAtom {atom=function_name; _}}; args} ->
      let arity = List.length args in
-     App (line, LocalFun{function_name; arity}, List.map ~f:expr_of_erlang_expr' args)
+     let local_fun = LocalFun{function_name; arity} in
+     App (line, Ref (line, local_fun), List.map ~f:expr_of_erlang_expr' args)
   | ExprLocalCall {line; function_expr; args} ->
      App (line, expr_of_erlang_expr' function_expr, List.map ~f:expr_of_erlang_expr' args)
   | ExprRemoteCall {line; module_expr; function_expr; args; _} ->
      let mfa = MFA {
        module_name=expr_of_erlang_expr' module_expr;
        function_name=expr_of_erlang_expr' function_expr;
-       arity=Constant (line, Number (List.length args))} in
-     App (line, mfa, List.map ~f:expr_of_erlang_expr' args)
+       arity=Constant (line, Number (List.length args))}
+     in
+     App (line, Ref (line, mfa), List.map ~f:expr_of_erlang_expr' args)
   | ExprMatch {line; pattern; body} ->
      (* There is no match expression in `e` by `extract_match_expr`.
       * Futhermore, this match expression is single or the last of expr sequence because
@@ -277,9 +282,9 @@ and expr_of_erlang_expr' = function
         function_name = Constant (line, Atom op);
         arity=Constant (line, Number 2)
      } in
-     App(line, func, List.map ~f:expr_of_erlang_expr' [lhs; rhs])
+     App(line, Ref (line, func), List.map ~f:expr_of_erlang_expr' [lhs; rhs])
   | ExprTuple {line; elements} -> Tuple (line, List.map ~f:expr_of_erlang_expr' elements)
-  | ExprVar {line; id} -> Var (line, id)
+  | ExprVar {line; id} -> Ref (line, Var id)
   | ExprLit {lit} -> expr_of_literal lit
   | ExprCons {head; tail; _} -> ListCons (expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
   | ExprNil _line_t -> ListNil
@@ -331,7 +336,7 @@ and function_of_clauses clauses =
        let line = line_number_of_clause (List.hd_exn cs) in
        let fresh_tuple = Tuple (
          line,
-         fresh_variables |> List.map ~f:(fun v -> Var (line, v))
+         fresh_variables |> List.map ~f:(fun v -> Ref (line, Var v))
        ) in
        (* letrec $name = fun $name(A1, A2, ...) -> b1; $name(B1, B2, ...)-> b2; ... end in $name *)
        Case (fresh_tuple, cs)
@@ -412,7 +417,8 @@ let module_to_expr m =
   let body =
     funs
     |> List.map ~f:(fun (name, ({args; body}: fun_abst)) ->
-                  Tuple (-1, [Constant (-1, Atom name); LocalFun {function_name=name; arity=List.length args}]))
+                  Tuple (-1, [Constant (-1, Atom name);
+                              Ref (-1, LocalFun {function_name=name; arity=List.length args})]))
     |> (fun es -> Tuple (-1, es))
   in
   Letrec(-1, funs, body)

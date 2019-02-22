@@ -9,7 +9,7 @@ let new_tyvar () = Type.of_elem (TyVar (Type_variable.create()))
 
 (* translate pattern to expression *)
 let rec pattern_to_expr = function
-  | PatVar v -> Var (-1, v)
+  | PatVar v -> Ref (-1, Var v)
   | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
   | PatConstant c -> Constant (-1, c)
   | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
@@ -33,7 +33,7 @@ let rec variables_in_pattern = function
 let rec derive context = function
   | Constant (_line, c) ->
      Ok (Type.of_elem (TySingleton c), C.Empty)
-  | Var (line, v) ->
+  | Ref (line, Var v) ->
      begin match Context.find context (Context.Key.Var v) with
      | Some ty ->
         Ok (ty, C.Empty)
@@ -104,7 +104,7 @@ let rec derive context = function
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, C.Conj (c :: constraints))
-  | LocalFun {function_name; arity} ->
+  | Ref (_, LocalFun {function_name; arity}) ->
      let key = Context.Key.LocalFun {function_name; arity} in
      begin match Context.find context key with
      | Some ty -> Ok (ty, C.Empty)
@@ -113,7 +113,7 @@ let rec derive context = function
         let line = -1 (*TODO: line*) in
         Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=key}))
      end
-  | MFA {module_name = Constant (_line_m, Atom m); function_name = Constant (_line_f, Atom f); arity = Constant (line_a, Number a)} ->
+  | Ref (_, MFA {module_name = Constant (_line_m, Atom m); function_name = Constant (_line_f, Atom f); arity = Constant (line_a, Number a)}) ->
      (* find MFA from context *)
      let mfa = Context.Key.MFA {module_name=m; function_name=f; arity=a} in
      begin match Context.find context mfa with
@@ -124,7 +124,7 @@ let rec derive context = function
         let line = -1 (*TODO: line*) in
         Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=mfa}))
      end
-  | MFA {module_name=m; function_name=f; arity=a} ->
+  | Ref (_, MFA {module_name=m; function_name=f; arity=a}) ->
      (* few info to find MFA *)
      let tyvar_mfa = new_tyvar () in
      derive context m >>= fun (ty_m, c_m) ->

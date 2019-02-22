@@ -29,7 +29,7 @@ let%expect_test "derivation" =
   print Context.empty (Constant (-1, Number 42));
   [%expect {| (Ok (42 Empty)) |}];
 
-  print Context.empty (Var (3, "x"));
+  print Context.empty (Ref (3, Var "x"));
   [%expect {|
     (Error (
       lib/known_error.ml.FialyzerError (
@@ -38,7 +38,7 @@ let%expect_test "derivation" =
         (line     3)
         (variable (Var x))))) |}];
 
-  print (Context.add (Context.Key.Var "x") (Type.of_elem TyNumber) Context.empty) (Var (1, "x"));
+  print (Context.add (Context.Key.Var "x") (Type.of_elem TyNumber) Context.empty) (Ref (1, Var "x"));
   [%expect {| (Ok ("number()" Empty)) |}];
 
   print Context.empty (Tuple (-1, [Constant (-1, Number 42); Constant (-1, Atom "x")]));
@@ -51,7 +51,7 @@ let%expect_test "derivation" =
    *   X when true -> X
    * end
    *)
-  print Context.empty (Case (Constant (-1, Number 42), [(PatVar "X", Constant (-1, Atom "true")), Var (-1, "X")]));
+  print Context.empty (Case (Constant (-1, Number 42), [(PatVar "X", Constant (-1, Atom "true")), Ref (-1, Var "X")]));
   [%expect {|
      (Ok (
        a (
@@ -73,7 +73,7 @@ let%expect_test "derivation" =
    *   {X, Y} when true -> {X, Y}
    * end
    *)
-  print Context.empty (Case (Tuple (-1, [Constant (-1, Number 41); Constant (-1, Number 42)]), [(PatTuple [PatVar "X"; PatVar "Y"], Constant (-1, Atom "true")), Tuple (-1, [Var (-1, "X"); Var (-1, "Y")])]));
+  print Context.empty (Case (Tuple (-1, [Constant (-1, Number 41); Constant (-1, Number 42)]), [(PatTuple [PatVar "X"; PatVar "Y"], Constant (-1, Atom "true")), Tuple (-1, [Ref (-1, Var "X"); Ref (-1, Var "Y")])]));
   [%expect {|
      (Ok (
        a (
@@ -98,8 +98,8 @@ let%expect_test "derivation" =
    *)
   print Context.empty (Case
     (Constant (-1, Number 42),
-      [(PatVar "X", Constant (-1, Atom "false")), Var (-1, "X");
-       (PatVar "X", Constant (-1, Atom "true")), Var (-1, "X")]));
+      [(PatVar "X", Constant (-1, Atom "false")), Ref (-1, Var "X");
+       (PatVar "X", Constant (-1, Atom "true")), Ref (-1, Var "X")]));
   [%expect {|
      (Ok (
        a (
@@ -177,7 +177,7 @@ let%expect_test "derivation" =
   let ctx = Context.empty |> Context.add (Context.Key.Var "X") (Type.of_elem TyNumber) in
   print ctx (Case
     (Constant (2, (Number 123)),
-      [(PatVar "X", Constant (3, Atom "true")), Var(4, "X")]));
+      [(PatVar "X", Constant (3, Atom "true")), Ref(4, Var "X")]));
   [%expect {|
     (Ok (
       a (
@@ -193,11 +193,11 @@ let%expect_test "derivation" =
           Empty))))
   |}];
 
-  print Context.empty (Abs (-1, {args=["X"]; body=Var (3, "X")}));
+  print Context.empty (Abs (-1, {args=["X"]; body=Ref (3, Var "X")}));
   [%expect {|
     (Ok ("fun((a) -> a)" Empty)) |}];
 
-  print Context.empty (Abs (-1, {args=["x"; "y"; "z"]; body=Var (1,"x")}));
+  print Context.empty (Abs (-1, {args=["x"; "y"; "z"]; body=Ref (1, Var "x")}));
   [%expect {|
   (Ok ("fun((a, b, c) -> a)" Empty)) |}];
 
@@ -225,7 +225,7 @@ let%expect_test "derivation" =
           (Subtype 57 b)
           Empty)))) |}];
 
-  print Context.empty (App (3, Abs (-1, {args=["X"]; body=Var (-1, "X")}), [Constant (-1, Number 42)]));
+  print Context.empty (App (3, Abs (-1, {args=["X"]; body=Ref (-1, Var "X")}), [Constant (-1, Number 42)]));
   [%expect {|
     (Ok (
       d (
@@ -237,7 +237,7 @@ let%expect_test "derivation" =
           Empty))))
     |}];
 
-  print Context.empty (App (3, Abs (-1, {args=["X"; "Y"]; body=Var (-1, "X")}), [Constant (-1, Number 42); Constant (-1, Number 57)]));
+  print Context.empty (App (3, Abs (-1, {args=["X"; "Y"]; body=Ref (-1, Var "X")}), [Constant (-1, Number 42); Constant (-1, Number 57)]));
   [%expect {|
     (Ok (
       f (
@@ -250,20 +250,20 @@ let%expect_test "derivation" =
           (Subtype 57 d)
           Empty)))) |}];
 
-  print Context.empty (Let (-1, "x", Constant (-1, Number 42), Var (-1, "x")));
+  print Context.empty (Let (-1, "x", Constant (-1, Number 42), Ref (-1, Var "x")));
   [%expect {|
     (Ok (42 (Conj (Empty Empty)))) |}];
 
-  print Context.empty (Letrec (-1, [("x", {args=[]; body=Constant (-1, Number 42)})], LocalFun {function_name="x"; arity=0}));
+  print Context.empty (Letrec (-1, [("x", {args=[]; body=Constant (-1, Number 42)})], Ref (-1, LocalFun {function_name="x"; arity=0})));
   [%expect {| (Ok (a (Conj (Empty (Eq a "fun(() -> 42)") Empty)))) |}];
 
   print
     Context.empty
     (Letrec
       (-1, [
-        ("f", {args=["X"]; body=App (4, LocalFun {function_name="g"; arity=1}, [Var (1, "X")])});
-        ("g", {args=["X"]; body=App (5, LocalFun {function_name="f"; arity=1}, [Var (2, "X")])})
-      ], App (6, LocalFun {function_name="f"; arity=1}, [Constant (3, (Number 42))])));
+        ("f", {args=["X"]; body=App (4, Ref (4, LocalFun {function_name="g"; arity=1}), [Ref (1, Var "X")])});
+        ("g", {args=["X"]; body=App (5, Ref (5, LocalFun {function_name="f"; arity=1}), [Ref (2, Var "X")])})
+      ], App (6, Ref (6, LocalFun {function_name="f"; arity=1}), [Constant (3, (Number 42))])));
   [%expect {|
     (Ok (
       m (
@@ -293,7 +293,7 @@ let%expect_test "derivation" =
     (Context.add (Context.Key.MFA {module_name="m"; function_name="f"; arity=0})
                  (Type.of_elem (TyFun ([], Type.of_elem (TySingleton (Atom "ok")))))
                  Context.empty)
-    (App (-1, MFA {module_name=Constant (-1, Atom "m"); function_name=Constant (-1, Atom "f"); arity=Constant (-1, Number 0)}, []));
+    (App (-1, Ref (-1, MFA {module_name=Constant (-1, Atom "m"); function_name=Constant (-1, Atom "f"); arity=Constant (-1, Number 0)}), []));
   [%expect {|
     (Ok (
       b (
@@ -309,7 +309,7 @@ let%expect_test "derivation" =
     (Let (-1, "M", Constant (-1, Atom "m"),
           Let (-1, "F", Constant (-1, Atom "f"),
                Let (-1, "A", Constant (-1, Number 0),
-                    App (-1, MFA {module_name=Var (-1, "M"); function_name=Var (-1, "F"); arity=Var (-1, "A")}, [])))));
+                    App (-1, Ref (-1, MFA {module_name=Ref (-1, Var "M"); function_name=Ref (-1, Var "F"); arity=Ref (-1, Var "A")}), [])))));
   [%expect {|
     (Ok (
       c (
@@ -355,14 +355,14 @@ let%expect_test "pattern_to_expr" =
   in
 
   print (PatVar "X");
-  [%expect {| (Var -1 X) |}];
+  [%expect {| (Ref -1 (Var X)) |}];
 
   print (PatTuple [PatVar "X"; PatVar "Y"; PatVar "Z"]);
   [%expect {|
     (Tuple -1 (
-      (Var -1 X)
-      (Var -1 Y)
-      (Var -1 Z))) |}];
+      (Ref -1 (Var X))
+      (Ref -1 (Var Y))
+      (Ref -1 (Var Z)))) |}];
 
   print (PatConstant (Constant.Atom "a"));
   [%expect {| (Constant -1 (Atom a)) |}];
@@ -374,7 +374,10 @@ let%expect_test "pattern_to_expr" =
   print (PatMap [(PatConstant (Constant.Atom "a"), PatVar "A"); (PatConstant (Constant.Atom "b"), PatVar "B")]);
   [%expect {|
     (MapCreation (
-      ((Constant -1 (Atom a)) (Var -1 A)) ((Constant -1 (Atom b)) (Var -1 B)))) |}]
+      ((Constant -1 (Atom a))
+       (Ref      -1 (Var  A)))
+      ((Constant -1 (Atom b))
+       (Ref      -1 (Var  B))))) |}]
 
 let%expect_test "variables_in_pattern" =
   let print pat =
