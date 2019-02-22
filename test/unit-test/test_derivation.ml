@@ -254,15 +254,18 @@ let%expect_test "derivation" =
   [%expect {|
     (Ok (42 (Conj (Empty Empty)))) |}];
 
-  print Context.empty (Letrec (-1, [("x", {args=[]; body=Constant (-1, Number 42)})], Ref (-1, LocalFun {function_name="x"; arity=0})));
+  let x = LocalFun {function_name="x"; arity=0} in
+  print Context.empty (Letrec (-1, [(x, {args=[]; body=Constant (-1, Number 42)})], Ref (-1, x)));
   [%expect {| (Ok (a (Conj (Empty (Eq a "fun(() -> 42)") Empty)))) |}];
 
+  let ref_f = LocalFun {function_name="f"; arity=1} in
+  let ref_g = LocalFun {function_name="g"; arity=1} in
   print
     Context.empty
     (Letrec
       (-1, [
-        ("f", {args=["X"]; body=App (4, Ref (4, LocalFun {function_name="g"; arity=1}), [Ref (1, Var "X")])});
-        ("g", {args=["X"]; body=App (5, Ref (5, LocalFun {function_name="f"; arity=1}), [Ref (2, Var "X")])})
+        (ref_f, {args=["X"]; body=App (4, Ref (4, ref_g), [Ref (1, Var "X")])});
+        (ref_g, {args=["X"]; body=App (5, Ref (5, ref_f), [Ref (2, Var "X")])})
       ], App (6, Ref (6, LocalFun {function_name="f"; arity=1}), [Constant (3, (Number 42))])));
   [%expect {|
     (Ok (

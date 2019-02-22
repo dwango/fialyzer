@@ -110,7 +110,7 @@ let%expect_test "from_erlang" =
   ]});
   [%expect {|
     (Letrec 1
-      ((F ((args (X)) (body (App 1 (Ref 1 (Var F)) ((Ref 1 (Var X))))))))
+      (((Var F) ((args (X)) (body (App 1 (Ref 1 (Var F)) ((Ref 1 (Var X))))))))
       (Ref 1 (Var F)))
   |}];
 

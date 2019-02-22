@@ -17,7 +17,7 @@ type t =
     | App of line * t * t list
     | Abs of line * fun_abst
     | Let of line * string * t * t
-    | Letrec of line * (string * fun_abst) list * t
+    | Letrec of line * (reference * fun_abst) list * t
     | Case of t * (pattern * t) list
     | ListCons of t * t
     | ListNil
