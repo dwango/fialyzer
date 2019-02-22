@@ -89,8 +89,17 @@ let rec derive context = function
      let new_tyvars = List.map ~f:(fun (v, f) -> (v, f, (new_tyvar ()))) lets in
      let added_context =
        List.fold_left
-         ~f:(fun ctx (fname, {args; _}, tyvar) ->
-           let key = Context.Key.LocalFun {function_name=fname; arity=List.length args} in
+         ~f:(fun ctx (ref_, {args; _}, tyvar) ->
+           let key =
+             begin match ref_ with
+             | Var v ->
+                Context.Key.Var v
+             | LocalFun {function_name; arity} ->
+                Context.Key.LocalFun {function_name; arity}
+             | MFA _ ->
+                failwith "cannot reach here"
+             end
+           in
            Context.add key tyvar ctx)
          ~init:context
          new_tyvars

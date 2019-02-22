@@ -252,7 +252,7 @@ and expr_of_erlang_expr' = function
      let fun_abst = function_of_clauses clauses in
      (* If name is omitted, don't create Letrec *)
      (match name with
-     | Some name -> Letrec (line, [(name, fun_abst)], Ref (line, Var name))
+     | Some name -> Letrec (line, [(Var name, fun_abst)], Ref (line, Var name))
      | None -> Abs (line, fun_abst)
      )
   | ExprLocalCall {line; function_expr=ExprLit {lit=LitAtom {atom=function_name; _}}; args} ->
@@ -412,11 +412,14 @@ let code_to_module (F.AbstractCode form) =
 
 let module_to_expr m =
   let funs =
-    m.functions |> List.map ~f:(fun {specs; fun_name; fun_abst} -> (fun_name, fun_abst))
+    m.functions
+    |> List.map ~f:(fun {specs; fun_name; fun_abst} ->
+                  let arity = List.length fun_abst.args in
+                  (LocalFun {function_name=fun_name; arity}, fun_abst))
   in
   let body =
-    funs
-    |> List.map ~f:(fun (name, ({args; body}: fun_abst)) ->
+    m.functions
+    |> List.map ~f:(fun {specs; fun_name=name; fun_abst={args; body}} ->
                   Tuple (-1, [Constant (-1, Atom name);
                               Ref (-1, LocalFun {function_name=name; arity=List.length args})]))
     |> (fun es -> Tuple (-1, es))
