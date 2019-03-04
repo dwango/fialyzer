@@ -348,6 +348,56 @@ let%expect_test "derivation" =
       "[a | 1]" (
         Conj ((Eq "[b | 2]" [a]) Empty (Conj ((Eq "[none()]" [b]) Empty Empty)))))) |}];
 
+  (* [] *)
+  print Context.empty (ListNil);
+  [%expect {| (Ok ("[none()]" Empty)) |}];
+
+
+  (*
+   * case [] of
+   *   [] when true -> 1
+   * end
+   *)
+  print Context.empty (Case (ListNil, [(PatNil, Constant (-1, Atom "true")), Constant(-1, Number 1)])); 
+  [%expect {|
+     (Ok (
+       a (
+         Conj (
+           (Disj ((
+             Conj (
+               (Subtype 'true'   "'true' | 'false'")
+               (Eq      a        1)
+               (Eq      "[none()]"
+               "[none()]")
+               Empty
+               Empty
+               Empty))))
+           Empty))))
+  |}];
+
+  (*
+   * case [1] of
+   *   [1] when true -> 1
+   * end
+   *)
+  print Context.empty (Case (ListCons (Constant (-1, Number 1), ListNil), [(PatCons (PatConstant (Number 1), PatNil) , Constant (-1, Atom "true")), Constant(-1, Number 1)])); 
+  [%expect {|
+     (Ok (
+       b (
+         Conj (
+           (Disj ((
+             Conj (
+               (Subtype 'true'  "'true' | 'false'")
+               (Eq      b       1)
+               (Eq      "[a | 1]"
+               "[c | 1]")
+               (Conj ((Eq "[none()]" [c]) Empty Empty))
+               Empty
+               Empty))))
+           (Conj ((Eq "[none()]" [a]) Empty Empty))))))
+  |}];
+  
+
   ()
 
 let%expect_test "pattern_to_expr" =
