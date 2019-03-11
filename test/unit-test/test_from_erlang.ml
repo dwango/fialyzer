@@ -239,7 +239,7 @@ let%expect_test "from_erlang" =
    * fun ("abc") -> ok end
    *)
   print (ExprFun {line=1; name=None; clauses=[
-    ClsFun {line=1; patterns=[PatLit {lit=LitString {line=1; str="abc"}}]; guard_sequence=None; body=ExprLit {lit=LitAtom {line=1; atom="ok"}}}
+    ClsFun {line=1; patterns=[PatLit {lit=LitString {line=1; str=Asciis "abc"}}]; guard_sequence=None; body=ExprLit {lit=LitAtom {line=1; atom="ok"}}}
   ]});
   [%expect {|
     (Abs 1 (
@@ -276,7 +276,7 @@ let%expect_test "from_erlang" =
   (*
    * "abc"
    *)
-  print (ExprLit {lit=LitString {line=1; str="abc"}});
+  print (ExprLit {lit=LitString {line=1; str=Asciis "abc"}});
   [%expect {|
     (ListCons
       (Constant 1 (Number 97))
