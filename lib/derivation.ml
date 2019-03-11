@@ -13,7 +13,7 @@ let rec pattern_to_expr = function
   | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
   | PatConstant c -> Constant (-1, c)
   | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
-  | PatNil -> raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/201"]; message="support nil pattern"}))
+  | PatNil -> ListNil
   | PatMap assocs ->
      (* This is temporary implementation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      assocs
@@ -152,7 +152,6 @@ let rec derive context = function
     let beta = new_tyvar () in
     let results = clauses |> result_map_m ~f:(fun ((p_n, g_n), b_n) ->
       let p_n_tyvars = variables_in_pattern p_n in
-      let p_n_expr = pattern_to_expr p_n in
       (* A ∪ { ... } *)
       let added_context =
         List.fold_left
@@ -160,7 +159,7 @@ let rec derive context = function
         ~init:context
         p_n_tyvars in
       (* |- p_n : alpha_n, c_p *)
-      derive added_context p_n_expr >>= fun(ty_alpha_n, c_p) ->
+      derive_pattern added_context p_n >>= fun(ty_alpha_n, c_p) ->
       (* PAT *)
       derive added_context g_n >>= fun(ty_g_n, c_g) ->
       (* |- b_n : beta_n *)
@@ -173,7 +172,7 @@ let rec derive context = function
            *)
           C.Subtype {lhs=ty_g_n; rhs=Type.bool; link=g_n};
           C.Eq {lhs=beta; rhs=ty_beta_n; link=b_n};
-          C.Eq {lhs=ty_e_t; rhs=ty_alpha_n; link=p_n_expr}; c_p; c_g; c_b
+          C.Eq {lhs=ty_e_t; rhs=ty_alpha_n; link=e}; c_p; c_g; c_b
         ])
     ) in
     results >>= fun(cs) -> Ok (beta, C.Conj [C.Disj cs; c_e])
@@ -181,11 +180,11 @@ let rec derive context = function
     let alpha = new_tyvar() in
     derive context hd >>= fun (ty_hd, c_hd) ->
     derive context tl >>= fun (ty_tl, c_tl) ->
-      Ok (Type.of_elem (TyList (Type.sup alpha ty_hd)), C.Conj [
-        C.Eq {lhs=ty_tl; rhs=Type.of_elem (TyList alpha); link=tl};
-        c_hd;
-        c_tl
-      ])
+    Ok (Type.of_elem (TyList (Type.sup alpha ty_hd)), C.Conj [
+      C.Eq {lhs=ty_tl; rhs=Type.of_elem (TyList alpha); link=tl};
+      c_hd;
+      c_tl
+    ])
   | ListNil ->
     Ok (Type.of_elem (TyList TyBottom), C.Empty)
   | MapCreation _assocs ->
@@ -195,3 +194,10 @@ let rec derive context = function
      (* TODO: fully support map update. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      derive context map >>= fun (ty_map, c_map) ->
      Ok (Type.of_elem TyAnyMap, C.Conj [c_map; C.Subtype {lhs=ty_map; rhs=Type.of_elem TyAnyMap; link=map}])
+and derive_pattern context pattern = 
+    begin match pattern with
+    | PatVar _ | PatTuple _ | PatConstant _ | PatCons (_, _) | PatNil ->
+      derive context (pattern_to_expr pattern)
+    | PatMap _ ->
+      Ok (Type.of_elem TyAnyMap, Empty)
+    end
