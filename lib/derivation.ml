@@ -13,7 +13,7 @@ let rec pattern_to_expr = function
   | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
   | PatConstant c -> Constant (-1, c)
   | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
-  | PatNil -> raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/201"]; message="support nil pattern"}))
+  | PatNil -> ListNil
   | PatMap assocs ->
      (* This is temporary implementation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      assocs
@@ -196,30 +196,8 @@ let rec derive context = function
      Ok (Type.of_elem TyAnyMap, C.Conj [c_map; C.Subtype {lhs=ty_map; rhs=Type.of_elem TyAnyMap; link=map}])
 and derive_pattern context pattern = 
     begin match pattern with
-    | PatVar v -> 
-      begin match Context.find context (Context.Key.Var v) with
-      | Some (ty) ->
-        Ok (ty, C.Empty)
-      | None ->
-        failwith "cannot reach here"
-      end
-    | PatTuple es -> 
-      result_map_m ~f:(derive_pattern context) es
-      >>| List.unzip
-      >>| fun (tys, cs) -> (Type.of_elem (TyTuple tys), C.Conj cs)
-    | PatConstant c -> 
-      Ok (Type.of_elem (TySingleton c), C.Empty)
-    | PatCons (p1, p2) -> 
-      let alpha = new_tyvar() in
-      derive_pattern context p1 >>= fun (ty_hd, c_hd) ->
-      derive_pattern context p2 >>= fun (ty_tl, c_tl) ->
-      Ok (Type.of_elem (TyList (Type.sup alpha ty_hd)), C.Conj [
-        C.Eq {lhs=ty_tl; rhs=Type.of_elem (TyList alpha); link=ListNil (* Dummy *)};
-        c_hd;
-        c_tl
-      ])
-    | PatNil -> 
-      Ok (Type.of_elem (TyList TyBottom), C.Empty)
+    | PatVar _ | PatTuple _ | PatConstant _ | PatCons (_, _) | PatNil ->
+      derive context (pattern_to_expr pattern)
     | PatMap _ ->
       Ok (Type.of_elem TyAnyMap, Empty)
     end
