@@ -19,14 +19,14 @@ let const_of_literal = function
      (* treat in expr_of_literal, etc *)
      failwith "cannot reach here"
 
-let list_of_chars = function
+let rev_list_of_chars = function
   | F.Asciis s -> String.to_list_rev s |> List.map ~f:Char.to_int
-  | F.CharList cs -> cs
+  | F.CharList cs -> List.rev cs
 
 let expr_of_literal = function
   | F.LitString {line; str} ->
      (* string is a list of chars in Erlang *)
-     list_of_chars str
+     rev_list_of_chars str
      |> List.map ~f:(fun i -> Constant (line, Number i))
      |> List.fold_left ~init:ListNil ~f:(fun tl hd -> ListCons (hd, tl))
   | l ->
@@ -36,7 +36,7 @@ let expr_of_literal = function
 let pattern_of_literal = function
   | F.LitString {str; _} ->
      (* string is a list of chars in Erlang *)
-     list_of_chars str
+     rev_list_of_chars str
      |> List.map ~f:(fun i -> PatConstant (Number i))
      |> List.fold_left ~init:PatNil ~f:(fun tl hd -> PatCons (hd, tl))
   | l ->
