@@ -10,7 +10,7 @@ module Make(S : Seed) = struct
     include Comparator.Make(
                 struct
                   include S
-                  let compare = Polymorphic_compare.compare
+                  let compare = Poly.compare
                 end)
   end
   type 'v t = 'v Map.M(Comp).t [@@deriving sexp_of]

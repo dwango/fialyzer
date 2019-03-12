@@ -1,7 +1,7 @@
 open Base
 open Ast
 open Obeam
-open Polymorphic_compare
+open Poly
 module F = Abstract_format
 open Common
 
@@ -10,6 +10,8 @@ let unit : Ast.t = Constant (-1, Number 0)
 let const_of_literal = function
   | F.LitAtom {line; atom} -> (line, Constant.Atom atom)
   | LitChar {line; uchar} -> (line, Constant.Number (Uchar.to_scalar uchar))
+  | LitFloat {line; float} ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/219"]; message="support float literal"}))
   | LitInteger {line; integer} -> (line, Constant.Number integer)
   | LitBigInt _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/93"]; message="support bigint literal"}))
@@ -17,11 +19,16 @@ let const_of_literal = function
      (* treat in expr_of_literal, etc *)
      failwith "cannot reach here"
 
+let rev_list_of_chars = function
+  | F.Asciis s -> String.to_list_rev s |> List.map ~f:Char.to_int
+  | F.CharList cs -> List.rev cs
+
 let expr_of_literal = function
   | F.LitString {line; str} ->
      (* string is a list of chars in Erlang *)
-     let l = String.to_list_rev str in
-     List.fold_left l ~init:ListNil ~f:(fun acc c -> ListCons (Constant (line, Number (Char.to_int c)), acc))
+     rev_list_of_chars str
+     |> List.map ~f:(fun i -> Constant (line, Number i))
+     |> List.fold_left ~init:ListNil ~f:(fun tl hd -> ListCons (hd, tl))
   | l ->
      let (line, c) = const_of_literal l in
      Constant(line, c)
@@ -29,8 +36,9 @@ let expr_of_literal = function
 let pattern_of_literal = function
   | F.LitString {str; _} ->
      (* string is a list of chars in Erlang *)
-     let l = String.to_list_rev str in
-     List.fold_left l ~init:PatNil ~f:(fun acc c -> PatCons (PatConstant (Number (Char.to_int c)), acc))
+     rev_list_of_chars str
+     |> List.map ~f:(fun i -> PatConstant (Number i))
+     |> List.fold_left ~init:PatNil ~f:(fun tl hd -> PatCons (hd, tl))
   | l ->
      let (_, c) = const_of_literal l in
      PatConstant c
@@ -50,6 +58,12 @@ and extract_match_expr e =
     | ClsFun c ->
        let body' = extract_toplevel c.body in
        F.ClsFun {c with body = body'}
+    | ClsCatch _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
+                                                         message="support try expr"}))
+    | ClsIf _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/224"];
+                                                         message="support if expr"}))
   in
   let return_expr is_top acc e =
     if is_top then (e :: acc, e) else (acc, e)
@@ -58,11 +72,23 @@ and extract_match_expr e =
     | F.ExprBody {exprs} ->
        F.ExprBody {exprs = List.(exprs >>= extract_match_expr)}
        |> return_expr is_top acc
+    | ExprBitstr _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/220"];
+                                                         message="support bitstring"}))
+    | ExprBitstrComprehension _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/221"];
+                                                         message="support bitstring comprehension"}))
+    | ExprBlock _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/222"];
+                                                         message="support block expr"}))
     | ExprCase e ->
        let (acc, expr') = extract_match_expr' acc false e.expr in
        let cs' = List.map ~f:extract_clause e.clauses in
        F.ExprCase {e with expr = expr'; clauses = cs'}
        |> return_expr is_top acc
+    | ExprCatch _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
+                                                         message="support catch"}))
     | ExprCons e ->
        let (acc, h') = extract_match_expr' acc false e.head in
        let (acc, t') = extract_match_expr' acc false e.tail in
@@ -105,6 +131,9 @@ and extract_match_expr e =
        in
        F.ExprRemoteCall {e with module_expr = m'; function_expr = f'; args = args'}
        |> return_expr is_top acc
+    | ExprIf _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/224"];
+                                                         message="support if"}))
     | ExprMapCreation e ->
        (* NOTE: Evaluation of match expressions in assocs does not affect each other.
         * e.g., `#{K1 = K2 => V1 = 1, K2 = 1 => V2 = V1}` cannot be compiled.
@@ -139,6 +168,19 @@ and extract_match_expr e =
        let (acc, rhs') = extract_match_expr' acc false e.rhs in
        F.ExprBinOp {e with lhs = lhs'; rhs = rhs'}
        |> return_expr is_top acc
+    | ExprUnaryOp e ->
+       let (acc, operand') = extract_match_expr' acc false e.operand in
+       F.ExprUnaryOp {e with operand = operand'}
+       |> return_expr is_top acc
+    | ExprReceive _ | ExprReceiveAfter _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/226"];
+                                                         message="support receive"}))
+    | ExprRecord _
+      | ExprRecordFieldAccess _
+      | ExprRecordFieldIndex _
+      | ExprRecordUpdate _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
+                                                         message="support record"}))
     | ExprTuple e ->
        (* NOTE: Evaluation of match expression in tuple elements does not affect each other.
         * e.g., `{A = 1, B = A}` cannot be compiled, and `{A = B, B = 1}` also.
@@ -153,6 +195,9 @@ and extract_match_expr e =
        in
        F.ExprTuple {e with elements = es'}
        |> return_expr is_top acc
+    | ExprTry _ ->
+       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
+                                                         message="support try"}))
     | ExprVar _ as e -> return_expr is_top acc e
     | ExprLit _ as e -> return_expr is_top acc e
   and extract_assoc acc = function
@@ -177,6 +222,18 @@ let expr_of_integer_or_var = function
   | IntegerVarVar {line; id} -> Ref (line, Var id)
 
 let rec pattern_of_erlang_pattern = function
+  | F.PatBitstr _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/228"];
+                                                       message="support bitstr pattern"}))
+  | F.PatCompound _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/229"];
+                                                       message="support compound pattern"}))
+  | F.PatBinOp _ | F.PatUnaryOp _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/230"];
+                                                       message="support unary and binary operator pattern"}))
+  | F.PatRecordFieldIndex _ | F.PatRecord _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/231"];
+                                                       message="support record pattern"}))
   | F.PatVar {id; _} -> Ast.PatVar id
   | F.PatUniversal _ -> Ast.PatVar "_"
   | F.PatLit {lit} -> pattern_of_literal lit
@@ -191,29 +248,43 @@ let rec pattern_of_erlang_pattern = function
      PatCons (pattern_of_erlang_pattern head, pattern_of_erlang_pattern tail)
 
 let rec line_number_of_erlang_expr = function
-| F.ExprBody {exprs} -> line_number_of_erlang_expr (List.hd_exn exprs)
-| ExprCase {line; _} -> line
-| ExprCons {line; _} -> line
-| ExprNil {line} -> line
-| ExprListComprehension {line; _} -> line
-| ExprLocalFunRef {line; _} -> line
-| ExprRemoteFunRef {line; _} -> line
-| ExprFun {line; _} -> line
-| ExprLocalCall {line; _} -> line
-| ExprRemoteCall {line; _} -> line
-| ExprMapCreation {line; _} -> line
-| ExprMapUpdate {line; _} -> line
-| ExprMatch {line; _} -> line
-| ExprBinOp {line; _} -> line
-| ExprTuple {line; _} -> line
-| ExprVar {line; _} -> line
-| ExprLit {lit} ->
-    match lit with
-    | LitAtom {line; _} -> line
-    | LitChar {line; _} -> line
-    | LitInteger {line; _} -> line
-    | LitBigInt {line; _} -> line
-    | LitString {line; _} -> line
+  | F.ExprBody {exprs} -> line_number_of_erlang_expr (List.hd_exn exprs)
+  | ExprBitstr {line; _} -> line
+  | ExprBitstrComprehension {line; _} -> line
+  | ExprBlock {line; _} -> line
+  | ExprCase {line; _} -> line
+  | ExprCatch {line; _} -> line
+  | ExprCons {line; _} -> line
+  | ExprNil {line} -> line
+  | ExprListComprehension {line; _} -> line
+  | ExprLocalFunRef {line; _} -> line
+  | ExprRemoteFunRef {line; _} -> line
+  | ExprFun {line; _} -> line
+  | ExprLocalCall {line; _} -> line
+  | ExprRemoteCall {line; _} -> line
+  | ExprIf {line; _} -> line
+  | ExprMapCreation {line; _} -> line
+  | ExprMapUpdate {line; _} -> line
+  | ExprMatch {line; _} -> line
+  | ExprBinOp {line; _} -> line
+  | ExprUnaryOp {line; _} -> line
+  | ExprReceive {line; _} -> line
+  | ExprReceiveAfter {line; _} -> line
+  | ExprRecord {line; _} -> line
+  | ExprRecordFieldAccess {line; _} -> line
+  | ExprRecordFieldIndex {line; _} -> line
+  | ExprRecordUpdate {line; _} -> line
+  | ExprTuple {line; _} -> line
+  | ExprTry {line; _} -> line
+  | ExprVar {line; _} -> line
+  | ExprLit {lit} ->
+     match lit with
+     | LitAtom {line; _} -> line
+     | LitChar {line; _} -> line
+     | LitFloat {line; _} -> line
+     | LitInteger {line; _} -> line
+     | LitBigInt {line; _} -> line
+     | LitString {line; _} -> line
 
 (* converts a secuence of expressions `[e1; e2; ...]` to an expression `let _ = e1 in let _ = e2 in ...` *)
 (* assume `extract_toplevel` is applied to the argument *)
@@ -230,15 +301,27 @@ let rec expr_of_erlang_exprs = function
 and expr_of_erlang_expr' = function
   | F.ExprBody {exprs} ->
      expr_of_erlang_exprs exprs
+  | ExprBitstr _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/220"];
+                                                       message="support bitstr expr"}))
+  | ExprBitstrComprehension _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/221"];
+                                                       message="support bitstr comprehension"}))
+  | ExprBlock {exprs; _} ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/222"];
+                                                       message="support block expr"}))
   | ExprCase {line; expr; clauses} ->
      let cs = clauses |> List.map ~f:(function
        | F.ClsCase {line; pattern; guard_sequence; body; _} ->
           if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
           ((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), expr_of_erlang_expr' body)
-       | F.ClsFun _ ->
+       | F.ClsCatch _ | F.ClsFun _ | F.ClsIf _ ->
           failwith "cannot reach here"
     ) in
     Case (expr_of_erlang_expr' expr, cs)
+  | ExprCatch _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
+                                                       message="support catch expr"}))
   | ExprLocalFunRef {line; function_name; arity} ->
      Ref(line, LocalFun {function_name; arity})
   | ExprRemoteFunRef {line; module_name; function_name; arity} ->
@@ -268,6 +351,9 @@ and expr_of_erlang_expr' = function
        arity=Constant (line, Number (List.length args))}
      in
      App (line, Ref (line, mfa), List.map ~f:expr_of_erlang_expr' args)
+  | ExprIf _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/224"];
+                                                       message="support if expr"}))
   | ExprMatch {line; pattern; body} ->
      (* There is no match expression in `e` by `extract_match_expr`.
       * Futhermore, this match expression is single or the last of expr sequence because
@@ -283,7 +369,19 @@ and expr_of_erlang_expr' = function
         arity=Constant (line, Number 2)
      } in
      App(line, Ref (line, func), List.map ~f:expr_of_erlang_expr' [lhs; rhs])
+  | ExprUnaryOp _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/225"];
+                                                       message="support unary op"}))
+  | ExprReceive _ | ExprReceiveAfter _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/226"];
+                                                       message="support receive"}))
+  | ExprRecord _ | ExprRecordFieldAccess _ | ExprRecordFieldIndex _ | ExprRecordUpdate _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
+                                                       message="support record expr"}))
   | ExprTuple {line; elements} -> Tuple (line, List.map ~f:expr_of_erlang_expr' elements)
+  | ExprTry _ ->
+     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
+                                                       message="support try expr"}))
   | ExprVar {line; id} -> Ref (line, Var id)
   | ExprLit {lit} -> expr_of_literal lit
   | ExprCons {head; tail; _} -> ListCons (expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
@@ -315,7 +413,7 @@ and function_of_clauses clauses =
     )
     in
     let (cs, arities) = clauses |> List.map ~f:(function
-    | F.ClsCase _ -> failwith "cannot reach here"
+    | F.ClsCase _ | F.ClsCatch _ | F.ClsIf _ -> failwith "cannot reach here"
     | F.ClsFun {line; patterns; body; _} ->
       (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
       let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in

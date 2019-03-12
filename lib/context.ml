@@ -1,5 +1,5 @@
 open Base
-open Polymorphic_compare
+open Poly
 module Format = Caml.Format
 
 module Key = struct

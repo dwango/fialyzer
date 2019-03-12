@@ -239,7 +239,7 @@ let%expect_test "from_erlang" =
    * fun ("abc") -> ok end
    *)
   print (ExprFun {line=1; name=None; clauses=[
-    ClsFun {line=1; patterns=[PatLit {lit=LitString {line=1; str="abc"}}]; guard_sequence=None; body=ExprLit {lit=LitAtom {line=1; atom="ok"}}}
+    ClsFun {line=1; patterns=[PatLit {lit=LitString {line=1; str=Asciis "abc"}}]; guard_sequence=None; body=ExprLit {lit=LitAtom {line=1; atom="ok"}}}
   ]});
   [%expect {|
     (Abs 1 (
@@ -276,13 +276,24 @@ let%expect_test "from_erlang" =
   (*
    * "abc"
    *)
-  print (ExprLit {lit=LitString {line=1; str="abc"}});
+  print (ExprLit {lit=LitString {line=1; str=Asciis "abc"}});
   [%expect {|
     (ListCons
       (Constant 1 (Number 97))
       (ListCons
         (Constant 1 (Number 98))
         (ListCons (Constant 1 (Number 99)) ListNil))) |}];
+
+  (*
+   * 日本語文字列
+   *)
+  print (ExprLit {lit=LitString {line=1; str=CharList [(*'い'*)12356; (*'ろ'*)12429; (*'は'*)12399]}});
+  [%expect {|
+    (ListCons
+      (Constant 1 (Number 12356))
+      (ListCons
+        (Constant 1 (Number 12429))
+        (ListCons (Constant 1 (Number 12399)) ListNil))) |}];
 
   (*
    * A = B = 1

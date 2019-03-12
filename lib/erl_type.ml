@@ -3,7 +3,7 @@ module Format = Caml.Format
 module Etf = Obeam.External_term_format
 module E = Etf_util
 open Common
-open Polymorphic_compare
+open Poly
 
 type qualifier = FloatQual | IntegerQual | NonemptyQual | PidQual | PortQual
                  | ReferenceQual | UnknownQual
