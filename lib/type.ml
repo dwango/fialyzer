@@ -1,5 +1,5 @@
 open Base
-open Polymorphic_compare
+open Poly
 module F = Obeam.Abstract_format
 open Common
 

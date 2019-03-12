@@ -1,5 +1,5 @@
 open Base
-open Base.Polymorphic_compare
+open Base.Poly
 open Common
 
 type t =

@@ -1,7 +1,7 @@
 open Base
 open Ast
 open Obeam
-open Polymorphic_compare
+open Poly
 module F = Abstract_format
 open Common
 
