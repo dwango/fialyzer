@@ -178,15 +178,6 @@ but extended by remote call, local call, list, etc.
     +small-block<
       +math(
         ${
-          \derive?:{\paren{\mathsc{PATLISTNIL}}}{||}{
-            \judgement{A}{\mathtt!{\[\]}}{\mathtt!{list\(} \alpha \mathtt!{\)}}{\emptyset}
-          }
-        }
-      );
-    >
-    +small-block<
-      +math(
-        ${
           \derive?:{\text!{if ${m} and ${f} is atom literal, ${a} is non_neg_integer literal}\ \paren{\mathsc{MFA}}}{||}{
             \judgement{A \cup \{\mathtt!{fun}\ \mfa{m}{f}{a} \mapsto \tau\}}{\mathtt!{fun}\ \mfa{m}{f}{a}}{\tau}{\emptyset}
           }
