@@ -10,6 +10,7 @@ let fun1 ty1 ty = fun_ [ty1] ty
 let fun2 ty1 ty2 ty = fun_ [ty1; ty2] ty
 let any_tuple = Type.TyAny (*TODO*)
 let tuple ts = Type.(of_elem (TyTuple ts))
+let any_map = Type.(of_elem TyAnyMap)
 
 let type_sigs = [
     ({module_name="erlang"; function_name="+"; arity=2},
@@ -143,4 +144,20 @@ let type_sigs = [
      Type.(of_elem (TyFun ([fun2 TyAny TyAny TyAny; list TyAny; list TyAny], list TyAny))));
     ({module_name="lists"; function_name="zipwith3"; arity=4},
      Type.(of_elem (TyFun ([fun_ [TyAny; TyAny; TyAny] TyAny; list TyAny; list TyAny; list TyAny], list TyAny))));
+
+    (* -------- maps -------------- *)
+    ({module_name="maps"; function_name="from_list"; arity=1},
+     Type.(of_elem (TyFun ([list (tuple [TyAny; TyAny])], any_map))));
+    ({module_name="maps"; function_name="get"; arity=2},
+     Type.(of_elem (TyFun ([TyAny; of_elem TyAnyMap], TyAny))));
+    ({module_name="maps"; function_name="is_key"; arity=2},
+     Type.(of_elem (TyFun ([TyAny; of_elem TyAnyMap], Type.bool))));
+    ({module_name="maps"; function_name="merge"; arity=2},
+     Type.(of_elem (TyFun ([any_map; any_map], any_map))));
+    ({module_name="maps"; function_name="put"; arity=3},
+     Type.(of_elem (TyFun ([TyAny; TyAny; of_elem TyAnyMap], of_elem TyAnyMap))));
+    ({module_name="maps"; function_name="size"; arity=1},
+     Type.(of_elem (TyFun ([of_elem TyAnyMap], number))));
+    ({module_name="maps"; function_name="update"; arity=3},
+     Type.(of_elem (TyFun ([TyAny; TyAny; any_map], any_map))));
   ]
