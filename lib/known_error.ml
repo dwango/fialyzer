@@ -10,6 +10,8 @@ type t =
   | InvalidBeam of {beam_filename: string; message: string}
   | UnboundVariable of {filename: string; line: int; variable: Context.Key.t}
   | TypeError of type_error list
+  | TypeSpecUnmatch of {filename: string; line: int; module_name: string; function_name: string;
+                        type_spec: Type.t; success_type: Type.t}
   | NotImplemented of {issue_links: string list; message: string}
 [@@deriving sexp_of]
 
@@ -37,6 +39,9 @@ let to_message = function
        err.message
      in
      List.map ~f errs |> String.concat ~sep:"\n"
+  | TypeSpecUnmatch e ->
+     !%"%s:%d: %s: Type spec unmatch;\n  success type: %s\n  type spec   : %s" e.filename e.line e.function_name
+       (Type.pp e.success_type) (Type.pp e.type_spec)
   | NotImplemented {issue_links; message} ->
      let links = List.map ~f:(!%"- %s") issue_links |> String.concat ~sep:"\n" in
      !%"Not implemented: %s: See the issues:\n%s" message links
