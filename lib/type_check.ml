@@ -52,17 +52,22 @@ let check_module_spec module_ infered_types =
     match Type.inf expected_type infered_type with
     | Type.TyBottom ->
        let line = -1 in (*TODO*)
-       let err = Known_error.(TypeSpecUnmatch {
-                                  filename=module_.Ast.file; module_name=module_.Ast.name; line;
-                                  function_name=f.Ast.fun_name; type_spec=expected_type; success_type=infered_type;
-                 })
-       in
-       Error Known_error.(FialyzerError err)
+       Known_error.{
+         filename=module_.Ast.file; module_name=module_.Ast.name; line;
+         function_name=f.Ast.fun_name; type_spec=expected_type; success_type=infered_type;
+       }
+       |> Result.fail
     | _ ->
+
        Ok ()
   in
   module_.Ast.functions
-  |> result_map_m ~f:check_function_spec
+  |> List.filter_map ~f:(check_function_spec >>> Result.error)
+  |> function
+    | [] -> Ok ()
+    | errors ->
+       Error Known_error.(FialyzerError (TypeSpecUnmatch errors))
+
 
 
 let check_module plt ctx m =
