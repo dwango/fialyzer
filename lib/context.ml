@@ -11,6 +11,7 @@ module MapOnKey = Poly_map.Make(Key)
 
 (*type t = typ Map.M(Key).t*)
 type t = Type.t MapOnKey.t
+[@@deriving sexp_of]
 
 let empty : t = MapOnKey.empty
 let find = Map.find

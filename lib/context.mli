@@ -7,6 +7,7 @@ module Key : sig
 end
 
 type t
+[@@deriving sexp_of]
 
 val empty : t
 val find : t -> Key.t -> Type.t option

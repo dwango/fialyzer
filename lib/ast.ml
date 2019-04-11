@@ -1,5 +1,6 @@
 open Base
 module Format = Caml.Format
+open Common
 
 module Z = struct
   type t = Z.t
@@ -66,3 +67,19 @@ type module_ = {
     functions : decl_fun list;
   }
 [@@deriving sexp_of]
+
+let specs_of_module mod_ : (Mfa.t * Type.t) list =
+  let module_name = mod_.name in
+  let specs_of_decl fun_decl =
+    let function_name = fun_decl.fun_name in
+    let mfa arity = Mfa.{module_name; function_name; arity} in
+    fun_decl.specs
+    |> list_of_option
+    |> List.concat
+    |> list_group_by ~f:(fun (args, range) -> List.length args)
+    |> List.map ~f:(fun (arity, specs) -> (mfa arity, specs))
+    |> List.Assoc.map ~f:(List.map ~f:(fun (args, range) -> Type.(of_elem (TyFun (args, range)))))
+    |> List.Assoc.map ~f:Type.union_list
+  in
+  mod_.functions
+  |> List.concat_map ~f:specs_of_decl
