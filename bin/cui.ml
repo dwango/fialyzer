@@ -3,9 +3,11 @@ open Fialyzer
 module Arg = Caml.Arg
 
 type param = {
-    beam_file : string;
+    beam_files : string list;
     plt_file : string option;
   }
+
+let beam_files_ref = ref []
 
 let plt_file_ref = ref None
 
@@ -22,9 +24,8 @@ let work f =
   in
   Arg.parse specs
             (begin fun beam_file ->
-             f {
-                 beam_file;
-                 plt_file = !plt_file_ref;
-               }
+		   beam_files_ref := beam_file :: !beam_files_ref;
              end)
-            usage_msg
+            usage_msg;
+  let param = {beam_files = !beam_files_ref; plt_file = !plt_file_ref} in
+  f param

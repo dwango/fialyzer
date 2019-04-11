@@ -65,7 +65,7 @@ let () =
   Cui.work (fun param ->
       try
         Log.debug [%here] "=== start fialyzer ===";
-        let files = [param.Cui.beam_file] in
+        let files = param.Cui.beam_files in
         Result.ok_exn begin
             read_plt param.Cui.plt_file >>= fun plt ->
             result_map_m ~f:module_of_file files >>= fun modules ->
