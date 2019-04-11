@@ -27,3 +27,17 @@ let map_add_if_not_exists key data map =
     Map.add_exn ~key ~data map
   else
     map
+
+let list_of_option o =
+  o |> Option.map ~f:(fun x -> [x]) |> Option.value ~default:[]
+
+let list_group_by ~f xs =
+  let open Poly in
+  let rec iter store = function
+    | []  -> List.rev store
+    | x :: xs ->
+      let y = f x in
+      let (xs', rest) = List.partition_tf ~f:(fun x' -> f x' = y) xs in
+      iter ((y, x::xs') :: store) rest
+  in
+  iter [] xs

@@ -10,3 +10,7 @@ val (<<<) : ('b -> 'c) -> ('a -> 'b) -> 'a -> 'c
 val (>>>) : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c
 
 val map_add_if_not_exists : 'a -> 'b -> ('a, 'b, 'c) Map.t -> ('a, 'b, 'c) Map.t
+
+val list_of_option : 'a option -> 'a list
+
+val list_group_by : f:('a -> 'b) -> 'a list -> ('b * 'a list) list
