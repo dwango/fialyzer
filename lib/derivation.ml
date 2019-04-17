@@ -12,8 +12,8 @@ let rec pattern_to_expr = function
   | PatVar v -> Ref (-1, Var v)
   | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
   | PatConstant c -> Constant (-1, c)
-  | PatCons (p1, p2) -> ListCons (pattern_to_expr p1, pattern_to_expr p2)
-  | PatNil -> ListNil
+  | PatCons (p1, p2) -> ListCons (-1, pattern_to_expr p1, pattern_to_expr p2)
+  | PatNil -> ListNil (-1)
   | PatMap assocs ->
      (* This is temporary implementation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      assocs
@@ -147,7 +147,7 @@ let rec derive context = function
        ]
      in
      Ok (tyvar_mfa, C.Conj cs)
-  | Case (e, clauses) ->
+  | Case (line, e, clauses) ->
     derive context e >>= fun (ty_e_t, c_e) ->
     let beta = new_tyvar () in
     let results = clauses |> result_map_m ~f:(fun ((p_n, g_n), b_n) ->
@@ -176,7 +176,7 @@ let rec derive context = function
         ])
     ) in
     results >>= fun(cs) -> Ok (beta, C.Conj [C.Disj cs; c_e])
-  | ListCons (hd, tl) ->
+  | ListCons (line, hd, tl) ->
     let alpha = new_tyvar() in
     derive context hd >>= fun (ty_hd, c_hd) ->
     derive context tl >>= fun (ty_tl, c_tl) ->
@@ -185,7 +185,7 @@ let rec derive context = function
       c_hd;
       c_tl
     ])
-  | ListNil ->
+  | ListNil line ->
     Ok (Type.of_elem (TyList TyBottom), C.Empty)
   | MapCreation _assocs ->
      (* TODO: fully support map creation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
