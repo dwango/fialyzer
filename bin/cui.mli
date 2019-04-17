@@ -1,5 +1,5 @@
 type param = {
-    beam_file : string;
+    beam_files : string list;
     plt_file : string option;
   }
 
