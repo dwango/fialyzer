@@ -51,7 +51,7 @@ let%expect_test "derivation" =
    *   X when true -> X
    * end
    *)
-  print Context.empty (Case (Constant (-1, Number 42), [(PatVar "X", Constant (-1, Atom "true")), Ref (-1, Var "X")]));
+  print Context.empty (Case (-1, Constant (-1, Number 42), [(PatVar "X", Constant (-1, Atom "true")), Ref (-1, Var "X")]));
   [%expect {|
      (Ok (
        a (
@@ -73,7 +73,7 @@ let%expect_test "derivation" =
    *   {X, Y} when true -> {X, Y}
    * end
    *)
-  print Context.empty (Case (Tuple (-1, [Constant (-1, Number 41); Constant (-1, Number 42)]), [(PatTuple [PatVar "X"; PatVar "Y"], Constant (-1, Atom "true")), Tuple (-1, [Ref (-1, Var "X"); Ref (-1, Var "Y")])]));
+  print Context.empty (Case (-1, Tuple (-1, [Constant (-1, Number 41); Constant (-1, Number 42)]), [(PatTuple [PatVar "X"; PatVar "Y"], Constant (-1, Atom "true")), Tuple (-1, [Ref (-1, Var "X"); Ref (-1, Var "Y")])]));
   [%expect {|
      (Ok (
        a (
@@ -97,7 +97,7 @@ let%expect_test "derivation" =
    * end
    *)
   print Context.empty (Case
-    (Constant (-1, Number 42),
+    (-1, Constant (-1, Number 42),
       [(PatVar "X", Constant (-1, Atom "false")), Ref (-1, Var "X");
        (PatVar "X", Constant (-1, Atom "true")), Ref (-1, Var "X")]));
   [%expect {|
@@ -128,7 +128,7 @@ let%expect_test "derivation" =
    * end
    *)
   print Context.empty (Case
-    (Constant (-1, Number 42),
+    (-1, Constant (-1, Number 42),
       [(PatConstant (Number 1), Constant (-1, Atom "true")), Constant (-1, Number 1)]));
   [%expect {|
     (Ok (
@@ -151,7 +151,7 @@ let%expect_test "derivation" =
    * end
    *)
   print Context.empty (Case
-    (Constant (-1, Atom "a"),
+    (-1, Constant (-1, Atom "a"),
       [(PatConstant (Atom "b"), Constant (-1, Atom "true")), Constant (-1, Atom "c")]));
   [%expect {|
     (Ok (
@@ -176,7 +176,7 @@ let%expect_test "derivation" =
    *)
   let ctx = Context.empty |> Context.add (Context.Key.Var "X") (Type.of_elem TyNumber) in
   print ctx (Case
-    (Constant (2, (Number 123)),
+    (-1, Constant (2, (Number 123)),
       [(PatVar "X", Constant (3, Atom "true")), Ref(4, Var "X")]));
   [%expect {|
     (Ok (
@@ -333,23 +333,23 @@ let%expect_test "derivation" =
   |}];
 
   (* [] *)
-  print Context.empty (ListNil);
+  print Context.empty (ListNil (-1));
   [%expect {| (Ok ("[none()]" Empty)) |}];
 
   (* [1|[]] *)
-  print Context.empty (ListCons (Constant(-1, Number 1), ListNil));
+  print Context.empty (ListCons (-1, Constant(-1, Number 1), ListNil (-1)));
   [%expect {|
     (Ok ("[a | 1]" (Conj ((Eq "[none()]" [a]) Empty Empty)))) |}];
 
   (* [1|2|[]] *)
-  print Context.empty (ListCons (Constant(-1, Number 1), ListCons(Constant(-1, Number 2), ListNil)));
+  print Context.empty (ListCons (-1, Constant(-1, Number 1), ListCons(-1, Constant(-1, Number 2), ListNil (-1))));
   [%expect {|
     (Ok (
       "[a | 1]" (
         Conj ((Eq "[b | 2]" [a]) Empty (Conj ((Eq "[none()]" [b]) Empty Empty)))))) |}];
 
   (* [] *)
-  print Context.empty (ListNil);
+  print Context.empty (ListNil (-1));
   [%expect {| (Ok ("[none()]" Empty)) |}];
 
 
@@ -358,7 +358,7 @@ let%expect_test "derivation" =
    *   [] when true -> 1
    * end
    *)
-  print Context.empty (Case (ListNil, [(PatNil, Constant (-1, Atom "true")), Constant(-1, Number 1)])); 
+  print Context.empty (Case (-1, ListNil (-1), [(PatNil, Constant (-1, Atom "true")), Constant(-1, Number 1)])); 
   [%expect {|
      (Ok (
        a (
@@ -380,7 +380,7 @@ let%expect_test "derivation" =
    *   [1] when true -> 1
    * end
    *)
-  print Context.empty (Case (ListCons (Constant (-1, Number 1), ListNil), [(PatCons (PatConstant (Number 1), PatNil) , Constant (-1, Atom "true")), Constant(-1, Number 1)])); 
+  print Context.empty (Case (-1, ListCons (-1, Constant (-1, Number 1), ListNil (-1)), [(PatCons (PatConstant (Number 1), PatNil) , Constant (-1, Atom "true")), Constant(-1, Number 1)])); 
   [%expect {|
      (Ok (
        b (

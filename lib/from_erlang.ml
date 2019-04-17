@@ -28,7 +28,7 @@ let expr_of_literal = function
      (* string is a list of chars in Erlang *)
      rev_list_of_chars str
      |> List.map ~f:(fun i -> Constant (line, Number i))
-     |> List.fold_left ~init:ListNil ~f:(fun tl hd -> ListCons (hd, tl))
+     |> List.fold_left ~init:(ListNil line) ~f:(fun tl hd -> ListCons (line, hd, tl))
   | l ->
      let (line, c) = const_of_literal l in
      Constant(line, c)
@@ -295,7 +295,7 @@ let rec expr_of_erlang_exprs = function
      (* no match expression in `e` by extract_match_expr *)
      let body' = expr_of_erlang_expr' body in
      let es' = expr_of_erlang_exprs es in
-     Case (body', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), es')])
+     Case (line, body', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), es')])
   | e :: es ->
      Let (line_number_of_erlang_expr e, "_", expr_of_erlang_expr' e, expr_of_erlang_exprs es)
 and expr_of_erlang_expr' = function
@@ -318,7 +318,7 @@ and expr_of_erlang_expr' = function
        | F.ClsCatch _ | F.ClsFun _ | F.ClsIf _ ->
           failwith "cannot reach here"
     ) in
-    Case (expr_of_erlang_expr' expr, cs)
+    Case (line, expr_of_erlang_expr' expr, cs)
   | ExprCatch _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
                                                        message="support catch expr"}))
@@ -361,7 +361,7 @@ and expr_of_erlang_expr' = function
       * Therefore, we can put right-hand side expr of match expression to the return value of case expr.
       *)
      let e' = expr_of_erlang_expr' body in
-     Case (e', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), e')])
+     Case (line, e', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), e')])
   | ExprBinOp {line; op; lhs; rhs} ->
      let func = Ast.MFA {
         module_name = Constant (line, Atom "erlang");
@@ -384,8 +384,8 @@ and expr_of_erlang_expr' = function
                                                        message="support try expr"}))
   | ExprVar {line; id} -> Ref (line, Var id)
   | ExprLit {lit} -> expr_of_literal lit
-  | ExprCons {head; tail; _} -> ListCons (expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
-  | ExprNil _line_t -> ListNil
+  | ExprCons {line; head; tail; _} -> ListCons (line, expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
+  | ExprNil {line} -> ListNil (line)
   | ExprListComprehension _ ->
      (* TODO: support list comprehension *)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"]; message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
@@ -437,7 +437,7 @@ and function_of_clauses clauses =
          fresh_variables |> List.map ~f:(fun v -> Ref (line, Var v))
        ) in
        (* letrec $name = fun $name(A1, A2, ...) -> b1; $name(B1, B2, ...)-> b2; ... end in $name *)
-       Case (fresh_tuple, cs)
+       Case (line, fresh_tuple, cs)
      in
      match cs with
      | ((PatTuple patterns, Constant (_line, Atom ("true"))), body)::[] ->

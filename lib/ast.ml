@@ -18,9 +18,9 @@ type t =
     | Abs of line * fun_abst
     | Let of line * string * t * t
     | Letrec of line * (reference * fun_abst) list * t
-    | Case of t * (pattern * t) list
-    | ListCons of t * t
-    | ListNil
+    | Case of line * t * (pattern * t) list
+    | ListCons of line * t * t
+    | ListNil of line
     | MapCreation of (t * t) list                  (* #{k1 => v1, ...} *)
     | MapUpdate of {map: t; assocs: (t * t) list; exact_assocs: (t * t) list} (* M#{k1 => v1, ..., ke1 := ve1, ...} *)
 and fun_abst = {args: string list; body: t}
@@ -45,10 +45,10 @@ let line_number_of_t = function
 | App (line, _, _) -> line
 | Abs (line, _) -> line
 | Let (line, _, _, _) -> line
-| Letrec (_) -> -1
-| Case (_, _) -> -1
-| ListCons (_, _) -> -1
-| ListNil -> -1
+| Letrec (line, _, _) -> line
+| Case (line, _, _) -> line
+| ListCons (line, _, _) -> line
+| ListNil line -> line
 | MapCreation _ -> -1
 | MapUpdate _ -> -1
 
