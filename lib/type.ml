@@ -237,6 +237,16 @@ let rec of_absform = function
      of_elem TyNumber
   | F.TyPredef {name="boolean"; args=[]; _} ->
      bool
+  | F.TyPredef {name="nil"; args=[]; _} ->
+     of_elem (TyList TyBottom)
+  | F.TyPredef {name="list"; args=[]; _}
+  | F.TyPredef {name="maybe_improper_list"; args=[]; _}
+  | F.TyPredef {name="nonempty_list"; args=[]; _} ->
+     of_elem (TyList TyAny)
+  | F.TyPredef {name="list"; args=[ty]; _}
+  | F.TyPredef {name="maybe_improper_list"; args=[ty; _]; _}
+  | F.TyPredef {name="nonempty_list"; args=[ty]; _} ->
+     of_elem (TyList (of_absform ty))
   | F.TyVar {id; _} -> of_elem (TyVar (Type_variable.of_string id))
   | F.TyFun {params; ret; _} ->
      of_elem (TyFun(List.map ~f:of_absform params, of_absform ret))
@@ -267,7 +277,8 @@ let rec of_absform = function
      List.map ~f:of_absform elements
      |> union_list
   | F.TyAnyMap _ -> of_elem TyAnyMap
-  | F.TyPredef {name="string"; args=[]; _} ->
+  | F.TyPredef {name="string"; args=[]; _}
+  | F.TyPredef {name="nonempty_string"; args=[]; _} ->
      of_elem (TyList (of_elem TyNumber))
   | F.TyPredef {name="pid"; args=[]; _}
   | F.TyPredef {name="port"; args=[]; _}
@@ -276,13 +287,6 @@ let rec of_absform = function
   | F.TyPredef {name="bitstring"; args=[]; _}
   | F.TyPredef {name="byte"; args=[]; _}
   | F.TyPredef {name="char"; args=[]; _}
-  | F.TyPredef {name="nil"; args=[]; _}
-  | F.TyPredef {name="list"; args=[]; _}
-  | F.TyPredef {name="list"; args=[_]; _}
-  | F.TyPredef {name="maybe_improper_list"; args=[]; _}
-  | F.TyPredef {name="maybe_improper_list"; args=[_; _]; _}
-  | F.TyPredef {name="non_empty_list"; args=[]; _}
-  | F.TyPredef {name="non_empty_list"; args=[_]; _}
   | F.TyPredef {name="iodata"; args=[]; _}
   | F.TyPredef {name="iolist"; args=[]; _}
   | F.TyPredef {name="function"; args=[]; _}
