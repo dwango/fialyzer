@@ -39,22 +39,24 @@ let function_types sol ty =
   | _ -> failwith "cannot reach here"
 
 let check_module_spec module_ infered_types =
+  let module_name = module_.Ast.name in
+  let specs = Ast.specs_of_module module_ in
   let check_function_spec f =
+    let function_name = f.Ast.fun_name in
+    let arity = List.length f.Ast.fun_abst.args in
     let infered_type = List.Assoc.find_exn infered_types ~equal:(=) f.Ast.fun_name in
     let expected_type =
-      match f.Ast.specs with
+      let mfa = Mfa.{module_name; function_name; arity} in
+      match List.Assoc.find specs ~equal:(=) mfa with
       | None -> Type.TyAny
-      | Some specs ->
-         specs
-         |> List.map ~f:(fun (args,range) -> Type.(of_elem (TyFun (args, range))))
-         |> Type.union_list
+      | Some spec -> spec
     in
     match Type.inf expected_type infered_type with
     | Type.TyBottom ->
        let line = -1 in (*TODO*)
        Known_error.{
-         filename=module_.Ast.file; module_name=module_.Ast.name; line;
-         function_name=f.Ast.fun_name; type_spec=expected_type; success_type=infered_type;
+         filename=module_.Ast.file; module_name; line;
+         function_name; type_spec=expected_type; success_type=infered_type;
        }
        |> Result.fail
     | _ ->
