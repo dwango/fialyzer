@@ -1,6 +1,9 @@
 -module(spec_error).
 
--export([foo/1, int1/0, int2/0, int3/0, bar/2]).
+-export([foo/1, int1/0, int2/0, int3/0, int4/0,
+         list1/0, list2/0, list3/0, list4/0, list5/0, string1/0, string2/0,
+         map1/0, map2/0,
+         bar/2]).
 
 
 -spec foo(number()) -> boolean().
@@ -38,6 +41,12 @@ string1() -> ok.
 
 -spec string2() -> nonempty_string().
 string2() -> ok.
+
+-spec map1() -> map().
+map1() -> ok.
+
+-spec map2() -> #{hoge := atom(), number() := atom()}.
+map2() -> ok.
 
 -spec bar(boolean(), number()) -> ok.
 bar(M, N) ->

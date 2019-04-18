@@ -34,6 +34,12 @@ test-cases/spec_error.erl:-1: string1: Type spec unmatch;
 test-cases/spec_error.erl:-1: string2: Type spec unmatch;
   success type: fun(() -> 'ok')
   type spec   : fun(() -> [number()])
+test-cases/spec_error.erl:-1: map1: Type spec unmatch;
+  success type: fun(() -> 'ok')
+  type spec   : fun(() -> map())
+test-cases/spec_error.erl:-1: map2: Type spec unmatch;
+  success type: fun(() -> 'ok')
+  type spec   : fun(() -> map())
 test-cases/spec_error.erl:-1: bar: Type spec unmatch;
   success type: fun((number(), number()) -> 'ok')
   type spec   : fun(('true' | 'false', number()) -> 'ok')
