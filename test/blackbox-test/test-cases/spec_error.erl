@@ -15,6 +15,9 @@ int2() -> ok.
 -spec int3() -> neg_integer().
 int3() -> ok.
 
+-spec int4() -> integer().
+int4() -> ok.
+
 -spec bar(boolean(), number()) -> ok.
 bar(M, N) ->
     _ = M + N,
