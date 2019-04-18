@@ -313,7 +313,7 @@ let rec of_absform = function
      Log.debug [%here] "not implemented conversion from type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
      of_elem (TySingleton (Atom (!%"not_implemented %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))))
   | F.TyPredef {line; name; args} ->
-     failwith (!%"Prease report: line:%d: unexpected predef type: '%s/%d'" line name (List.length args))
+     failwith (!%"Please report: line:%d: unexpected predef type: '%s/%d'" line name (List.length args))
 
 let rec of_erl_type = function
   | Erl_type.Any -> TyAny
