@@ -1,0 +1,6 @@
+test-cases/spec_error.erl:-1: foo: Type spec unmatch;
+  success type: fun((111) -> 'ok')
+  type spec   : fun((number()) -> 'true' | 'false')
+test-cases/spec_error.erl:-1: bar: Type spec unmatch;
+  success type: fun((number(), number()) -> 'ok')
+  type spec   : fun(('true' | 'false', number()) -> 'ok')
