@@ -507,25 +507,3 @@ let code_to_module (F.AbstractCode form) =
      forms_to_module forms
   | _ ->
      failwith "except for module decl, it is out of support"
-
-let module_to_expr m =
-  let funs =
-    m.functions
-    |> List.map ~f:(fun {specs; fun_name; fun_abst} ->
-                  let arity = List.length fun_abst.args in
-                  (LocalFun {function_name=fun_name; arity}, fun_abst))
-  in
-  let body =
-    m.functions
-    |> List.map ~f:(fun {specs; fun_name=name; fun_abst={args; body}} ->
-                  Tuple (-1, [Constant (-1, Atom name);
-                              Ref (-1, LocalFun {function_name=name; arity=List.length args})]))
-    |> (fun es -> Tuple (-1, es))
-  in
-  Letrec(-1, funs, body)
-  |> Result.return
-
-let code_to_expr code =
-  let open Result in
-  code_to_module code >>= fun m ->
-  module_to_expr m

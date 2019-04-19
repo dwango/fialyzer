@@ -2,6 +2,7 @@
 
 -export([fac/1]).
 
+-spec fac(number()) -> number().
 fac(N) ->
     case N of
         0 -> 1;

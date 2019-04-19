@@ -1,8 +1,9 @@
 -module(list_case_expr_error).
 
--export([main/1]).
+-export([main/0]).
 
-main(Xs) ->
+-spec main() -> boolean().
+main() ->
   (fun (Xs) ->
      case Xs of
        [X]  -> X and X

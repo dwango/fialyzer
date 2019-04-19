@@ -2,6 +2,7 @@
 
 -export([main/0]).
 
+-spec main() -> fun((number()) -> number()).
 main() ->
     F = fun Fact(N) ->
                 case N of

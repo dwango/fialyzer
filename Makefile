@@ -41,6 +41,6 @@ reinstall: uninstall reinstall
 
 clean:
 	rm -rf _build
-	rm $(MINIMAL_PLT)
+	rm -f $(MINIMAL_PLT)
 
 .PHONY: default install beam test unit-test blackbox-test promote doc uninstall reinstall clean
