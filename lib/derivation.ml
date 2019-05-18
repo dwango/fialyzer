@@ -194,6 +194,9 @@ let rec derive context = function
      (* TODO: fully support map update. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      derive context map >>= fun (ty_map, c_map) ->
      Ok (Type.of_elem TyAnyMap, C.Conj [c_map; C.Subtype {lhs=ty_map; rhs=Type.of_elem TyAnyMap; link=map}])
+  | Catch (line, body) ->
+     derive context body >>= fun (_, c) ->
+     Ok (Type.TyAny, c)
 and derive_pattern context pattern = 
     begin match pattern with
     | PatVar _ | PatTuple _ | PatConstant _ | PatCons (_, _) | PatNil ->

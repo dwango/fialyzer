@@ -24,6 +24,7 @@ type t =
     | ListNil of line
     | MapCreation of (t * t) list                  (* #{k1 => v1, ...} *)
     | MapUpdate of {map: t; assocs: (t * t) list; exact_assocs: (t * t) list} (* M#{k1 => v1, ..., ke1 := ve1, ...} *)
+    | Catch of line * t
 and fun_abst = {args: string list; body: t}
 and pattern = pattern' * t
 and pattern' =
@@ -52,6 +53,7 @@ let line_number_of_t = function
 | ListNil line -> line
 | MapCreation _ -> -1
 | MapUpdate _ -> -1
+| Catch (line, _) -> line
 
 let string_of_t t =
   [%sexp_of: t] t |> Sexplib.Sexp.to_string_hum ~indent:2

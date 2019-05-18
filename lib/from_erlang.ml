@@ -320,9 +320,9 @@ and expr_of_erlang_expr' = function
           failwith "cannot reach here"
     ) in
     Case (line, expr_of_erlang_expr' expr, cs)
-  | ExprCatch _ ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
-                                                       message="support catch expr"}))
+  | ExprCatch {line; expr} ->
+     let e = expr_of_erlang_expr' expr in
+     Catch (line, e)
   | ExprLocalFunRef {line; function_name; arity} ->
      Ref(line, LocalFun {function_name; arity})
   | ExprRemoteFunRef {line; module_name; function_name; arity} ->
