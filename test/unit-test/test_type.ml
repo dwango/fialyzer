@@ -75,16 +75,16 @@ let%expect_test "inf" =
         (TyUnion [TySingleton (Number (Int 2)); TySingleton (Number (Int 3)); TySingleton (Number (Int 4)); ]);
   [%expect {|
     (TyUnion (
-      (TySingleton (Number 3))
-      (TySingleton (Number 2))))
+      (TySingleton (Number (Int 3)))
+      (TySingleton (Number (Int 2)))))
  |}];
 
   print (TyUnion [TySingleton (Number (Int 1)); TySingleton (Number (Int 2)); TySingleton (Number (Int 3));]) (of_elem TyNumber);
   [%expect {|
     (TyUnion (
-      (TySingleton (Number 3))
-      (TySingleton (Number 2))
-      (TySingleton (Number 1))))
+      (TySingleton (Number (Int 3)))
+      (TySingleton (Number (Int 2)))
+      (TySingleton (Number (Int 1)))))
             |}]
 
 let%expect_test "sup" =
@@ -166,7 +166,7 @@ let%expect_test "of_erl_type" =
           (TySingleton (Atom bar))
           (TySingleton (Atom foo))
           (TyFun ((TyUnion (TyNumber))) (TyUnion (TyNumber)))
-          (TySingleton (Number 42))
+          (TySingleton (Number (Int 42)))
           (TyTuple ((TyUnion (TyNumber))))
           (TyTuple (
             (TyUnion (TyNumber))
