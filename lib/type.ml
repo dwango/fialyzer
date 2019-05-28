@@ -214,7 +214,9 @@ let rec of_absform = function
      TyBottom
   | F.TyPredef {name="atom"; args=[]; _} ->
      of_elem TyAtom
-  | F.TyPredef {name="number"; args=[]; _} ->
+  | F.TyPredef {name="number"; args=[]; _}
+  | F.TyPredef {name="float"; args=[]; _}
+  | F.TyPredef {name="integer"; args=[]; _} ->
      of_elem TyNumber
   | F.TyPredef {name="boolean"; args=[]; _} ->
      bool
@@ -232,8 +234,6 @@ let rec of_absform = function
   | F.TyPredef {name="pid"; args=[]; _}
   | F.TyPredef {name="port"; args=[]; _}
   | F.TyPredef {name="reference"; args=[]; _}
-  | F.TyPredef {name="float"; args=[]; _}
-  | F.TyPredef {name="integer"; args=[]; _}
   | F.TyPredef {name="binary"; args=[]; _}
   | F.TyPredef {name="bitstring"; args=[]; _}
   | F.TyPredef {name="byte"; args=[]; _}
