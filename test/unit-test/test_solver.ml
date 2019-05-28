@@ -82,8 +82,8 @@ let%expect_test "solver" =
   let [a; b] = create_vars 2 in
   print (Disj [
              Conj [eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Atom "foo")));
-                   eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 0)))];
-             Conj [eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Number 123)));
+                   eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number (Int 0))))];
+             Conj [eq (Type.of_elem (TyVar b), Type.of_elem (TySingleton (Number (Int 123))));
                    eq (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Atom "ok")))];
         ]);
   [%expect {|
@@ -100,8 +100,8 @@ let%expect_test "solver" =
   print (Conj [
              subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber);
              Disj [
-                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 1)));
-                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 2)));
+                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number (Int 1))));
+                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number (Int 2))));
                ]
            ]);
   [%expect {| (Ok ((a "1 | 2"))) |}];
@@ -110,8 +110,8 @@ let%expect_test "solver" =
   print (Conj [
              subtype (Type.of_elem (TyVar a), Type.of_elem TyNumber);
              Disj [
-                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 1)));
-                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number 2)));
+                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number (Int 1))));
+                 subtype (Type.of_elem (TyVar a), Type.of_elem (TySingleton (Number (Int 2))));
              ];
              subtype (Type.of_elem (TyVar b), Type.of_elem (TyList (Type.of_elem (TyVar a))));
            ]);
