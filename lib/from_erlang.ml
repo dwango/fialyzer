@@ -5,14 +5,15 @@ open Poly
 module F = Abstract_format
 open Common
 
-let unit : Ast.t = Constant (-1, Number 0)
+let unit : Ast.t = Constant (-1, Number (Int 0))
 
 let const_of_literal = function
   | F.LitAtom {line; atom} -> (line, Constant.Atom atom)
-  | LitChar {line; uchar} -> (line, Constant.Number (Uchar.to_scalar uchar))
+  | LitChar {line; uchar} ->
+     (line, Constant.Number (Int (Uchar.to_scalar uchar)))
   | LitFloat {line; float} ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/219"]; message="support float literal"}))
-  | LitInteger {line; integer} -> (line, Constant.Number integer)
+     (line, Constant.Number (Float float))
+  | LitInteger {line; integer} -> (line, Constant.Number (Int integer))
   | LitBigInt _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/93"]; message="support bigint literal"}))
   | LitString _ ->
@@ -27,7 +28,7 @@ let expr_of_literal = function
   | F.LitString {line; str} ->
      (* string is a list of chars in Erlang *)
      rev_list_of_chars str
-     |> List.map ~f:(fun i -> Constant (line, Number i))
+     |> List.map ~f:(fun i -> Constant (line, Number (Int i)))
      |> List.fold_left ~init:(ListNil line) ~f:(fun tl hd -> ListCons (line, hd, tl))
   | l ->
      let (line, c) = const_of_literal l in
@@ -37,7 +38,7 @@ let pattern_of_literal = function
   | F.LitString {str; _} ->
      (* string is a list of chars in Erlang *)
      rev_list_of_chars str
-     |> List.map ~f:(fun i -> PatConstant (Number i))
+     |> List.map ~f:(fun i -> PatConstant (Number (Int i)))
      |> List.fold_left ~init:PatNil ~f:(fun tl hd -> PatCons (hd, tl))
   | l ->
      let (_, c) = const_of_literal l in
@@ -218,7 +219,7 @@ let expr_of_atom_or_var = function
   | AtomVarVar {line; id} -> Ref (line, Var id)
 
 let expr_of_integer_or_var = function
-  | F.IntegerVarInteger {line; integer} -> Constant (line, Number integer)
+  | F.IntegerVarInteger {line; integer} -> Constant (line, Number (Int integer))
   | IntegerVarVar {line; id} -> Ref (line, Var id)
 
 let rec pattern_of_erlang_pattern = function
@@ -348,7 +349,7 @@ and expr_of_erlang_expr' = function
      let mfa = MFA {
        module_name=expr_of_erlang_expr' module_expr;
        function_name=expr_of_erlang_expr' function_expr;
-       arity=Constant (line, Number (List.length args))}
+       arity=Constant (line, Number (Int (List.length args)))}
      in
      App (line, Ref (line, mfa), List.map ~f:expr_of_erlang_expr' args)
   | ExprIf _ ->
@@ -366,7 +367,7 @@ and expr_of_erlang_expr' = function
      let func = Ast.MFA {
         module_name = Constant (line, Atom "erlang");
         function_name = Constant (line, Atom op);
-        arity=Constant (line, Number 2)
+        arity=Constant (line, Number (Int 2))
      } in
      App(line, Ref (line, func), List.map ~f:expr_of_erlang_expr' [lhs; rhs])
   | ExprUnaryOp _ ->
