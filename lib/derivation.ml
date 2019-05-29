@@ -122,7 +122,7 @@ let rec derive context = function
         let line = -1 (*TODO: line*) in
         Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=key}))
      end
-  | Ref (_, MFA {module_name = Constant (_line_m, Atom m); function_name = Constant (_line_f, Atom f); arity = Constant (line_a, Number a)}) ->
+  | Ref (_, MFA {module_name = Constant (_line_m, Atom m); function_name = Constant (_line_f, Atom f); arity = Constant (line_a, Number (Int a))}) ->
      (* find MFA from context *)
      let mfa = Context.Key.MFA {module_name=m; function_name=f; arity=a} in
      begin match Context.find context mfa with

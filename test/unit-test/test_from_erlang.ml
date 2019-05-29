@@ -59,9 +59,9 @@ let%expect_test "code_to_module" =
             Case 111
             (Tuple 111 ((Ref 111 (Var __A__))))
             ((((PatTuple ((PatConstant (Atom a)))) (Constant 111 (Atom true)))
-              (Constant 111 (Number 10)))
+              (Constant 111 (Number (Int 10))))
              (((PatTuple ((PatConstant (Atom b)))) (Constant 111 (Atom true)))
-              (Constant 111 (Number 20))))))))))))
+              (Constant 111 (Number (Int 20)))))))))))))
 
   |}]
 
@@ -130,8 +130,8 @@ let%expect_test "from_erlang" =
       (args (X))
       (body (
         ListCons 3
-        (Constant 4 (Number 100))
-        (ListCons 5 (Constant 6 (Number 200)) (ListNil 7))))))
+        (Constant 4 (Number (Int 100)))
+        (ListCons 5 (Constant 6 (Number (Int 200))) (ListNil 7))))))
   |}];
 
   (*
@@ -207,8 +207,8 @@ let%expect_test "from_erlang" =
         Case 1
         (Tuple 1 ((Ref 1 (Var __A__))))
         ((
-          ((PatTuple ((PatConstant (Number 42)))) (Constant 1 (Atom true)))
-          (Constant 1 (Number 43))))))))
+          ((PatTuple ((PatConstant (Number (Int 42))))) (Constant 1 (Atom true)))
+          (Constant 1 (Number (Int 43)))))))))
   |}];
 
 
@@ -250,10 +250,10 @@ let%expect_test "from_erlang" =
         ((
           ((PatTuple ((
              PatCons
-             (PatConstant (Number 97))
+             (PatConstant (Number (Int 97)))
              (PatCons
-               (PatConstant (Number 98))
-               (PatCons (PatConstant (Number 99)) PatNil)))))
+               (PatConstant (Number (Int 98)))
+               (PatCons (PatConstant (Number (Int 99))) PatNil)))))
            (Constant 1 (Atom true)))
           (Constant 1 (Atom ok)))))))) |}];
 
@@ -266,10 +266,10 @@ let%expect_test "from_erlang" =
                                                  tail=ExprNil {line=1}}}});
   [%expect {|
     (ListCons 1
-      (Constant 1 (Number 1))
+      (Constant 1 (Number (Int 1)))
       (ListCons 1
-        (Constant 1 (Number 2))
-        (ListCons 1 (Constant 1 (Number 3)) (ListNil 1))))
+        (Constant 1 (Number (Int 2)))
+        (ListCons 1 (Constant 1 (Number (Int 3))) (ListNil 1))))
   |}];
 
 
@@ -279,10 +279,10 @@ let%expect_test "from_erlang" =
   print (ExprLit {lit=LitString {line=1; str=Asciis "abc"}});
   [%expect {|
     (ListCons 1
-      (Constant 1 (Number 97))
+      (Constant 1 (Number (Int 97)))
       (ListCons 1
-        (Constant 1 (Number 98))
-        (ListCons 1 (Constant 1 (Number 99)) (ListNil 1)))) |}];
+        (Constant 1 (Number (Int 98)))
+        (ListCons 1 (Constant 1 (Number (Int 99))) (ListNil 1)))) |}];
 
   (*
    * 日本語文字列
@@ -290,10 +290,10 @@ let%expect_test "from_erlang" =
   print (ExprLit {lit=LitString {line=1; str=CharList [(*'い'*)12356; (*'ろ'*)12429; (*'は'*)12399]}});
   [%expect {|
     (ListCons 1
-      (Constant 1 (Number 12356))
+      (Constant 1 (Number (Int 12356)))
       (ListCons 1
-        (Constant 1 (Number 12429))
-        (ListCons 1 (Constant 1 (Number 12399)) (ListNil 1)))) |}];
+        (Constant 1 (Number (Int 12429)))
+        (ListCons 1 (Constant 1 (Number (Int 12399))) (ListNil 1)))) |}];
 
   (*
    * A = B = 1
@@ -301,12 +301,12 @@ let%expect_test "from_erlang" =
   print (ExprMatch {line=1; pattern=PatVar {line=1; id="A"}; body=ExprMatch {line=1; pattern=PatVar {line=1; id="B"}; body=ExprLit {lit=LitInteger {line=1; integer=1}}}});
   [%expect {|
   (Case 1
-    (Constant 1 (Number 1))
+    (Constant 1 (Number (Int 1)))
     ((
       ((PatVar B) (Constant 1 (Atom true)))
       (Case 1
-        (Constant 1 (Number 1))
-        ((((PatVar A) (Constant 1 (Atom true))) (Constant 1 (Number 1)))))))) |}];
+        (Constant 1 (Number (Int 1)))
+        ((((PatVar A) (Constant 1 (Atom true))) (Constant 1 (Number (Int 1))))))))) |}];
 
 
   (*
@@ -322,19 +322,19 @@ let%expect_test "from_erlang" =
       (args ())
       (body (
         Case 1
-        (Constant 1 (Number 1))
+        (Constant 1 (Number (Int 1)))
         ((
           ((PatVar A) (Constant 1 (Atom true)))
           (Case 1
-            (Constant 1 (Number 2))
+            (Constant 1 (Number (Int 2)))
             ((
               ((PatVar B) (Constant 1 (Atom true)))
               (App 1
                 (Ref 1 (
                   MFA
-                  (module_name   (Constant 1 (Atom   erlang)))
-                  (function_name (Constant 1 (Atom   +)))
-                  (arity         (Constant 1 (Number 2)))))
+                  (module_name   (Constant 1 (Atom erlang)))
+                  (function_name (Constant 1 (Atom +)))
+                  (arity (Constant 1 (Number (Int 2))))))
                 ((Ref 1 (Var A))
                  (Ref 1 (Var B)))))))))))))
   |}]

@@ -207,14 +207,16 @@ and subst_elem (v, ty0) = function
 let rec of_absform = function
   | F.TyAnn {tyvar; _} -> of_absform tyvar
   | F.TyLit {lit=LitAtom {atom; _}} -> of_elem (TySingleton (Atom atom))
-  | F.TyLit {lit=LitInteger {integer; _}} -> of_elem (TySingleton (Number integer))
+  | F.TyLit {lit=LitInteger {integer; _}} -> of_elem (TySingleton (Number (Int integer)))
   | F.TyPredef {name="any"; args=[]; _} | F.TyPredef {name="term"; args=[]; _} ->
      TyAny
   | F.TyPredef {name="none"; args=[]; _} ->
      TyBottom
   | F.TyPredef {name="atom"; args=[]; _} ->
      of_elem TyAtom
-  | F.TyPredef {name="number"; args=[]; _} ->
+  | F.TyPredef {name="number"; args=[]; _}
+  | F.TyPredef {name="float"; args=[]; _}
+  | F.TyPredef {name="integer"; args=[]; _} ->
      of_elem TyNumber
   | F.TyPredef {name="boolean"; args=[]; _} ->
      bool
@@ -232,8 +234,6 @@ let rec of_absform = function
   | F.TyPredef {name="pid"; args=[]; _}
   | F.TyPredef {name="port"; args=[]; _}
   | F.TyPredef {name="reference"; args=[]; _}
-  | F.TyPredef {name="float"; args=[]; _}
-  | F.TyPredef {name="integer"; args=[]; _}
   | F.TyPredef {name="binary"; args=[]; _}
   | F.TyPredef {name="bitstring"; args=[]; _}
   | F.TyPredef {name="byte"; args=[]; _}
@@ -286,7 +286,7 @@ and union_of_erl_type = function
   | AnyAtom -> [TyAtom]
   | AtomUnion atoms -> List.map ~f:(fun atom -> TySingleton (Constant.Atom atom)) atoms
   | Function {params; ret} -> [TyFun (params |> List.map ~f:of_erl_type, of_erl_type ret)]
-  | Number (Erl_type.IntSet [n]) -> [TySingleton (Number n)]
+  | Number (Erl_type.IntSet [n]) -> [TySingleton (Number (Int n))]
   | Number _ -> [TyNumber] (* TODO IntSet with multiple integers *)
   | Var (VAtom var_id) -> [TyVar (Type_variable.of_string var_id)]
   | Tuple {types; _} -> [TyTuple (List.map ~f:of_erl_type types)]
