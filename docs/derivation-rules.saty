@@ -224,7 +224,7 @@ but extended by remote call, local call, list, etc.
           \derive?:{\paren{\mathsc{CATCH}}}{
             | \judgement{A}{e}{\tau}{C} |
           }{
-            \judgement{A}{\mathtt!{catch}\(e\)}{\mathtt!{any\(\)}}{C}
+            \judgement{A}{\mathtt!{catch}\ e}{\mathtt!{any\(\)}}{C}
           }
         }
       );
