@@ -218,6 +218,17 @@ but extended by remote call, local call, list, etc.
         }
       );
     >
+    +small-block<
+      +math(
+        ${
+          \derive?:{\paren{\mathsc{CATCH}}}{
+            | \judgement{A}{e}{\tau}{C} |
+          }{
+            \judgement{A}{\mathtt!{catch}\ e}{\mathtt!{any\(\)}}{C}
+          }
+        }
+      );
+    >
     +section{Differences from the original paper}<
       +p{
         The differences from the derivation rules on the original paper are as follows.
