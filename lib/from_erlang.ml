@@ -312,13 +312,7 @@ and expr_of_erlang_expr' = function
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/222"];
                                                        message="support block expr"}))
   | ExprCase {line; expr; clauses} ->
-     let cs = clauses |> List.map ~f:(function
-       | F.ClsCase {line; pattern; guard_sequence; body; _} ->
-          if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
-          ((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), expr_of_erlang_expr' body)
-       | F.ClsCatch _ | F.ClsFun _ | F.ClsIf _ ->
-          failwith "cannot reach here"
-    ) in
+    let cs = case_clauses_of_clauses clauses in
     Case (line, expr_of_erlang_expr' expr, cs)
   | ExprCatch {line; expr} ->
      let e = expr_of_erlang_expr' expr in
@@ -461,6 +455,15 @@ and function_of_clauses clauses =
         let arity = List.nth_exn arities 0 in
         let fresh_variables = (make_fresh_variables arity) in
         {args=fresh_variables; body=make_case cs fresh_variables}
+and case_clauses_of_clauses clauses =
+  let f = function
+    | F.ClsCase {line; pattern; guard_sequence; body; _} ->
+      if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
+      ((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), expr_of_erlang_expr' body)
+    | F.ClsCatch _ | F.ClsFun _ | F.ClsIf _ ->
+      failwith "cannot reach here"
+  in
+  List.map ~f clauses
 
 let expr_of_erlang_expr e = e |> extract_toplevel |> expr_of_erlang_expr'
 
