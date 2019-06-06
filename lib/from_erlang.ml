@@ -374,9 +374,20 @@ and expr_of_erlang_expr' = function
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
                                                        message="support record expr"}))
   | ExprTuple {line; elements} -> Tuple (line, List.map ~f:expr_of_erlang_expr' elements)
-  | ExprTry _ ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
-                                                       message="support try expr"}))
+  | ExprTry {line; exprs; case_clauses; catch_clauses; after} ->
+    (* TODO: ignore catch clauses, see the issue https://github.com/dwango/fialyzer/issues/252 *)
+    let e =
+      if List.is_empty case_clauses then
+        expr_of_erlang_exprs exprs
+      else
+        let cs = case_clauses_of_clauses case_clauses in
+        Case (line, expr_of_erlang_exprs exprs, cs)
+    in
+    if List.is_empty after then
+      e
+    else
+      let e_after = expr_of_erlang_exprs after in
+      Let (line, "_", e, e_after)
   | ExprVar {line; id} -> Ref (line, Var id)
   | ExprLit {lit} -> expr_of_literal lit
   | ExprCons {line; head; tail; _} -> ListCons (line, expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
