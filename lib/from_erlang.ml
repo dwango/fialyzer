@@ -35,14 +35,14 @@ let expr_of_literal = function
      Constant(line, c)
 
 let pattern_of_literal = function
-  | F.LitString {str; _} ->
+  | F.LitString {line; str} ->
      (* string is a list of chars in Erlang *)
      rev_list_of_chars str
-     |> List.map ~f:(fun i -> PatConstant (Number (Int i)))
-     |> List.fold_left ~init:PatNil ~f:(fun tl hd -> PatCons (hd, tl))
+     |> List.map ~f:(fun i -> PatConstant (line, (Number (Int i))))
+     |> List.fold_left ~init:(PatNil line) ~f:(fun tl hd -> PatCons (line, (hd, tl)))
   | l ->
-     let (_, c) = const_of_literal l in
-     PatConstant c
+     let (line, c) = const_of_literal l in
+     PatConstant (line, c)
 
 (* Extracts nested match expressions.
  * e.g.,
@@ -235,18 +235,18 @@ let rec pattern_of_erlang_pattern = function
   | F.PatRecordFieldIndex _ | F.PatRecord _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/231"];
                                                        message="support record pattern"}))
-  | F.PatVar {id; _} -> Ast.PatVar id
-  | F.PatUniversal _ -> Ast.PatVar "_"
+  | F.PatVar {line; id} -> Ast.PatVar (line, id)
+  | F.PatUniversal {line} -> Ast.PatVar (line, "_")
   | F.PatLit {lit} -> pattern_of_literal lit
-  | F.PatMap {assocs; _} ->
+  | F.PatMap {line; assocs} ->
      assocs
      |> List.map ~f:(fun (F.PatAssocExact {key; value; _}) -> (pattern_of_erlang_pattern key, pattern_of_erlang_pattern value))
-     |> (fun assocs -> Ast.PatMap assocs)
-  | F.PatTuple {pats; _} ->
-     PatTuple (pats |> List.map ~f:pattern_of_erlang_pattern)
-  | F.PatNil _ -> PatNil
-  | F.PatCons {head; tail; _} ->
-     PatCons (pattern_of_erlang_pattern head, pattern_of_erlang_pattern tail)
+     |> (fun assocs -> Ast.PatMap (line, assocs))
+     | F.PatTuple {line; pats} ->
+     PatTuple (line, (pats |> List.map ~f:pattern_of_erlang_pattern))
+  | F.PatNil {line} -> PatNil line
+  | F.PatCons {line; head; tail} ->
+     PatCons (line, (pattern_of_erlang_pattern head, pattern_of_erlang_pattern tail))
 
 let rec line_number_of_erlang_expr = function
   | F.ExprBody {exprs} -> line_number_of_erlang_expr (List.hd_exn exprs)
@@ -390,13 +390,13 @@ and expr_of_erlang_expr' = function
   | ExprListComprehension _ ->
      (* TODO: support list comprehension *)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/92"]; message="support list comprehension `[E_0 || Q_1, ..., Q_k]`"}))
-  | ExprMapCreation {assocs; _} ->
+  | ExprMapCreation {line; assocs} ->
      assocs
      |> List.map ~f:(function
                      | F.ExprAssoc {key; value; _} -> (expr_of_erlang_expr' key, expr_of_erlang_expr' value)
                      | ExprAssocExact _ -> failwith "cannot reach here: map creation must not have exact assocs")
-     |> (fun assocs -> MapCreation assocs)
-  | ExprMapUpdate {map; assocs; _} ->
+     |> (fun assocs -> MapCreation (line, assocs))
+  | ExprMapUpdate {line; map; assocs} ->
      let assoc_divide assoc (assocs, exact_assocs) = match assoc with
        | F.ExprAssoc {key; value; _} ->
           ((expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: assocs, exact_assocs)
@@ -405,7 +405,7 @@ and expr_of_erlang_expr' = function
      in
      assocs
      |> List.fold_right ~init:([], []) ~f:assoc_divide
-     |> (fun (assocs, exact_assocs) -> MapUpdate {map=expr_of_erlang_expr' map; assocs; exact_assocs})
+     |> (fun (assocs, exact_assocs) -> MapUpdate {line; map=expr_of_erlang_expr' map; assocs; exact_assocs})
 and function_of_clauses clauses =
     (* Create a list which have n elements *)
     let rec fill e = (function
@@ -419,15 +419,15 @@ and function_of_clauses clauses =
       (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
       let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
       let arity = List.length ps in
-      let tuple_pattern = PatTuple ps in
+      let tuple_pattern = PatTuple (line, ps) in
       (((tuple_pattern, Constant (line, Atom ("true"))), expr_of_erlang_expr' body), arity)
     ) |> List.unzip in
      let line_number_of_clause = function
-     | ((PatTuple _patterns, _), term) -> Ast.line_number_of_t term
-     | ((PatConstant _, _), term) -> Ast.line_number_of_t term
-     | ((PatCons (_, _), _), term) -> Ast.line_number_of_t term
-     | ((PatVar _, _), term) -> Ast.line_number_of_t term
-     | ((PatNil, _), term) -> Ast.line_number_of_t term
+     | ((PatTuple (_, _patterns), _), term) -> Ast.line_number_of_t term
+     | ((PatConstant (_, _constant), _), term) -> Ast.line_number_of_t term
+     | ((PatCons (_hd, _tl), _), term) -> Ast.line_number_of_t term
+     | ((PatVar (_, _v), _), term) -> Ast.line_number_of_t term
+     | ((PatNil _, _), term) -> Ast.line_number_of_t term
      | ((PatMap _, _), term) -> Ast.line_number_of_t term
      in
      let make_fresh_variables length = fill (fun () -> Variable.create()) length |> List.rev in
@@ -441,14 +441,14 @@ and function_of_clauses clauses =
        Case (line, fresh_tuple, cs)
      in
      match cs with
-     | ((PatTuple patterns, Constant (_line, Atom ("true"))), body)::[] ->
+     | ((PatTuple (_, patterns), Constant (_, Atom ("true"))), body)::[] ->
         let all_pattern_is_var = patterns |> List.for_all ~f:(function
-       | PatVar _ -> true
+       | PatVar (_, _) -> true
        | _ -> false
        ) in
        if all_pattern_is_var then
          let args = patterns |> List.map ~f:(function
-         | PatVar v -> v
+         | PatVar (_line, v) -> v
          | _ -> failwith "cannot reach here"
        ) in
          {args; body}

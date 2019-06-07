@@ -22,18 +22,18 @@ type t =
     | Case of line * t * (pattern * t) list
     | ListCons of line * t * t
     | ListNil of line
-    | MapCreation of (t * t) list                  (* #{k1 => v1, ...} *)
-    | MapUpdate of {map: t; assocs: (t * t) list; exact_assocs: (t * t) list} (* M#{k1 => v1, ..., ke1 := ve1, ...} *)
+    | MapCreation of line * (t * t) list                  (* #{k1 => v1, ...} *)
+    | MapUpdate of {line: int; map: t; assocs: (t * t) list; exact_assocs: (t * t) list} (* M#{k1 => v1, ..., ke1 := ve1, ...} *)
     | Catch of line * t
 and fun_abst = {args: string list; body: t}
 and pattern = pattern' * t
 and pattern' =
-    | PatVar of string
-    | PatTuple of pattern' list
-    | PatConstant of Constant.t
-    | PatCons of pattern' * pattern'
-    | PatNil
-    | PatMap of (pattern' * pattern') list
+    | PatVar of line * string
+    | PatTuple of line * pattern' list
+    | PatConstant of line * Constant.t
+    | PatCons of line * (pattern' * pattern')
+    | PatNil of line
+    | PatMap of line * (pattern' * pattern') list
 and reference =
   | Var of string
   | LocalFun of {function_name : string; arity : int}
@@ -51,8 +51,8 @@ let line_number_of_t = function
 | Case (line, _, _) -> line
 | ListCons (line, _, _) -> line
 | ListNil line -> line
-| MapCreation _ -> -1
-| MapUpdate _ -> -1
+| MapCreation (line, _) -> line
+| MapUpdate {line;_} -> line
 | Catch (line, _) -> line
 
 let string_of_t t =
