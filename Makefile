@@ -21,7 +21,7 @@ blackbox-test:
 	dune runtest test/blackbox-test
 
 comparison:
-	dune build test/blackbox-test/run_time_comparison.sh
+	dune build test/blackbox-test/run_time_comparison.svg
 
 promote:
 	dune promote
