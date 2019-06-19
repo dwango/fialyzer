@@ -20,6 +20,9 @@ unit-test:
 blackbox-test:
 	dune runtest test/blackbox-test
 
+comparison:
+	dune build test/blackbox-test/run_time_comparison.sh
+
 promote:
 	dune promote
 
@@ -43,4 +46,4 @@ clean:
 	rm -rf _build
 	rm -f $(MINIMAL_PLT)
 
-.PHONY: default install beam test unit-test blackbox-test promote doc uninstall reinstall clean
+.PHONY: default install beam test unit-test blackbox-test comparison promote doc uninstall reinstall clean

@@ -2,3 +2,8 @@
  (name runtest)
  (deps (:sh test.sh) (:exe ../../bin/main.exe) (:plt minimal.plt) (glob_files test-cases/*.{beam,expected}))
  (action (run %{sh} %{exe} %{plt})))
+
+(rule
+ (targets run_time_comparison.svg)
+ (deps (:sh run_time_comparison.sh) (:exe ../../bin/main.exe) (:plt minimal.plt) (glob_files test-cases/*.beam))
+ (action (run %{sh} %{exe} %{plt})))

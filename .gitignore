@@ -1,6 +1,7 @@
 /_build/
 *.install
 .merlin
+*.plt
 
 # SATySFi
 *.pdf
