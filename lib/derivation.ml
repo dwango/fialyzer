@@ -113,13 +113,12 @@ let rec derive context = function
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, C.Conj (c :: constraints))
-  | Ref (_, LocalFun {function_name; arity}) ->
+  | Ref (line, LocalFun {function_name; arity}) ->
      let key = Context.Key.LocalFun {function_name; arity} in
      begin match Context.find context key with
      | Some ty -> Ok (ty, C.Empty)
      | None ->
         let filename = "TODO:filename" in
-        let line = -1 (*TODO: line*) in
         Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=key}))
      end
   | Ref (_, MFA {module_name = Constant (_line_m, Atom m); function_name = Constant (_line_f, Atom f); arity = Constant (line_a, Number (Int a))}) ->
