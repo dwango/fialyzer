@@ -9,26 +9,26 @@ let new_tyvar () = Type.of_elem (TyVar (Type_variable.create()))
 
 (* translate pattern to expression *)
 let rec pattern_to_expr = function
-  | PatVar v -> Ref (-1, Var v)
-  | PatTuple es -> Tuple (-1 (* TODO: use line number of PatTuple in the future *), es |> List.map ~f:(fun e -> pattern_to_expr e))
-  | PatConstant c -> Constant (-1, c)
-  | PatCons (p1, p2) -> ListCons (-1, pattern_to_expr p1, pattern_to_expr p2)
-  | PatNil -> ListNil (-1)
-  | PatMap assocs ->
+  | PatVar (line, v) -> Ref (line, Var v)
+  | PatTuple (line, es) -> Tuple (line, es |> List.map ~f:(fun e -> pattern_to_expr e))
+  | PatConstant (line, c) -> Constant (line, c)
+  | PatCons (line, (p1, p2)) -> ListCons (line, pattern_to_expr p1, pattern_to_expr p2)
+  | PatNil line -> ListNil line
+  | PatMap (line, assocs) ->
      (* This is temporary implementation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      assocs
      |> List.map ~f:(fun (k, v) -> (pattern_to_expr k, pattern_to_expr v))
-     |> (fun kvs -> MapCreation kvs)
+     |> (fun kvs -> MapCreation (line, kvs))
 
 (* Extracts variables from given pattern and add new type variable *)
 let rec variables_in_pattern = function
-  | PatVar v -> [(v, new_tyvar ())]
-  | PatTuple es -> es |> List.map ~f:(fun e -> variables_in_pattern e)
+  | PatVar (_, v) -> [(v, new_tyvar ())]
+  | PatTuple (_, es) -> es |> List.map ~f:(fun e -> variables_in_pattern e)
                       |> List.fold_left ~init:[] ~f:(fun a b -> List.append a b)
-  | PatConstant _ -> []
-  | PatCons (p1, p2) -> List.append (variables_in_pattern p1) (variables_in_pattern p2)
-  | PatNil -> []
-  | PatMap assocs -> assocs |> List.bind ~f:(fun (k, v) -> List.append (variables_in_pattern k) (variables_in_pattern v))
+  | PatConstant (_, _) -> []
+  | PatCons (_, (p1, p2)) -> List.append (variables_in_pattern p1) (variables_in_pattern p2)
+  | PatNil _ -> []
+  | PatMap (_, assocs) -> assocs |> List.bind ~f:(fun (k, v) -> List.append (variables_in_pattern k) (variables_in_pattern v))
 
 let rec derive context = function
   | Constant (_line, c) ->
@@ -113,13 +113,12 @@ let rec derive context = function
      constraints_result >>= fun constraints ->
      derive added_context e >>= fun (ty, c) ->
      Ok (ty, C.Conj (c :: constraints))
-  | Ref (_, LocalFun {function_name; arity}) ->
+  | Ref (line, LocalFun {function_name; arity}) ->
      let key = Context.Key.LocalFun {function_name; arity} in
      begin match Context.find context key with
      | Some ty -> Ok (ty, C.Empty)
      | None ->
         let filename = "TODO:filename" in
-        let line = -1 (*TODO: line*) in
         Error Known_error.(FialyzerError (UnboundVariable {filename; line; variable=key}))
      end
   | Ref (_, MFA {module_name = Constant (_line_m, Atom m); function_name = Constant (_line_f, Atom f); arity = Constant (line_a, Number (Int a))}) ->
@@ -187,7 +186,7 @@ let rec derive context = function
     ])
   | ListNil line ->
     Ok (Type.of_elem (TyList TyBottom), C.Empty)
-  | MapCreation _assocs ->
+  | MapCreation (_line, _assocs) ->
      (* TODO: fully support map creation. see: https://github.com/dwango/fialyzer/issues/102#issuecomment-461787511 *)
      Ok (Type.of_elem TyAnyMap, Empty)
   | MapUpdate {map; _} ->
@@ -199,7 +198,7 @@ let rec derive context = function
      Ok (Type.TyAny, c)
 and derive_pattern context pattern = 
     begin match pattern with
-    | PatVar _ | PatTuple _ | PatConstant _ | PatCons (_, _) | PatNil ->
+    | PatVar (_, _) | PatTuple (_, _) | PatConstant (_, _) | PatCons (_, (_, _)) | PatNil _ ->
       derive context (pattern_to_expr pattern)
     | PatMap _ ->
       Ok (Type.of_elem TyAnyMap, Empty)
