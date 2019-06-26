@@ -230,7 +230,6 @@ let rec of_absform = function
   | F.TyPredef {name="float"; args=[]; _}
   | F.TyPredef {name="integer"; args=[]; _} ->
      of_elem TyNumber
-  | F.TyPredef {name="integer"; args=[]; _}
   | F.TyPredef {name="non_neg_integer"; args=[]; _}
   | F.TyPredef {name="pos_integer"; args=[]; _}
   | F.TyPredef {name="neg_integer"; args=[]; _} ->
