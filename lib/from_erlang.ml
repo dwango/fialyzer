@@ -87,9 +87,10 @@ and extract_match_expr e =
        let cs' = List.map ~f:extract_clause e.clauses in
        F.ExprCase {e with expr = expr'; clauses = cs'}
        |> return_expr is_top acc
-    | ExprCatch _ ->
-       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
-                                                         message="support catch"}))
+    | ExprCatch {line; expr} ->
+       let (acc, expr') = extract_match_expr' acc false expr in
+       F.ExprCatch {line; expr=expr'}
+       |> return_expr is_top acc
     | ExprCons e ->
        let (acc, h') = extract_match_expr' acc false e.head in
        let (acc, t') = extract_match_expr' acc false e.tail in
