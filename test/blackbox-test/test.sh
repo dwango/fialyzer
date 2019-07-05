@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -u
+set -eu
 cd $(dirname $0)
 
 fialyzer=$1
@@ -14,6 +14,6 @@ for beam in $(ls ${dir}/*.beam); do
   testname=$(basename $beam .beam)
   expected="${dir}/${testname}.expected"
   output="${dir}/${testname}.output"
-  time ($fialyzer --plt $plt $beam &> $output) &>> $performance
+  time ($fialyzer --plt $plt $beam &> $output) &>> $performance || true
   diff -u $expected $output
 done
