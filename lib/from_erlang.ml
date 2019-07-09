@@ -292,21 +292,28 @@ let rec line_number_of_erlang_expr = function
      | LitBigInt {line; _} -> line
      | LitString {line; _} -> line
 
+type module_info = {
+  record_decls: (string, F.record_field_t list) List.Assoc.t;
+}
+
+let get_record_decl (record_name: string) (module_info : module_info) =
+  Option.value_exn ~here:[%here] (List.Assoc.find ~equal:Poly.(=) module_info.record_decls record_name)
+
 (* converts a secuence of expressions `[e1; e2; ...]` to an expression `let _ = e1 in let _ = e2 in ...` *)
 (* assume `extract_toplevel` is applied to the argument *)
-let rec expr_of_erlang_exprs = function
+let rec expr_of_erlang_exprs (module_info: module_info) = function
   | [] -> unit
-  | [e] -> expr_of_erlang_expr' e
+  | [e] -> expr_of_erlang_expr' module_info e
   | F.ExprMatch {line; pattern; body} :: es ->
      (* no match expression in `e` by extract_match_expr *)
-     let body' = expr_of_erlang_expr' body in
-     let es' = expr_of_erlang_exprs es in
+     let body' = expr_of_erlang_expr' module_info body in
+     let es' = expr_of_erlang_exprs module_info es in
      Case (line, body', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), es')])
   | e :: es ->
-     Let (line_number_of_erlang_expr e, "_", expr_of_erlang_expr' e, expr_of_erlang_exprs es)
-and expr_of_erlang_expr' = function
+     Let (line_number_of_erlang_expr e, "_", expr_of_erlang_expr' module_info e, expr_of_erlang_exprs module_info es)
+and expr_of_erlang_expr' module_info = function
   | F.ExprBody {exprs} ->
-     expr_of_erlang_exprs exprs
+     expr_of_erlang_exprs module_info exprs
   | ExprBitstr _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/220"];
                                                        message="support bitstr expr"}))
@@ -317,10 +324,10 @@ and expr_of_erlang_expr' = function
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/222"];
                                                        message="support block expr"}))
   | ExprCase {line; expr; clauses} ->
-    let cs = case_clauses_of_clauses clauses in
-    Case (line, expr_of_erlang_expr' expr, cs)
+    let cs = case_clauses_of_clauses module_info clauses in
+    Case (line, expr_of_erlang_expr' module_info expr, cs)
   | ExprCatch {line; expr} ->
-     let e = expr_of_erlang_expr' expr in
+     let e = expr_of_erlang_expr' module_info expr in
      Catch (line, e)
   | ExprLocalFunRef {line; function_name; arity} ->
      Ref(line, LocalFun {function_name; arity})
@@ -332,7 +339,7 @@ and expr_of_erlang_expr' = function
      in
      Ref (line, mfa)
   | ExprFun {line; name; clauses} ->
-     let fun_abst = function_of_clauses' clauses in
+     let fun_abst = function_of_clauses' module_info clauses in
      (* If name is omitted, don't create Letrec *)
      (match name with
      | Some name -> Letrec (line, [(Var name, fun_abst)], Ref (line, Var name))
@@ -341,16 +348,16 @@ and expr_of_erlang_expr' = function
   | ExprLocalCall {line; function_expr=ExprLit {lit=LitAtom {atom=function_name; _}}; args} ->
      let arity = List.length args in
      let local_fun = LocalFun{function_name; arity} in
-     App (line, Ref (line, local_fun), List.map ~f:expr_of_erlang_expr' args)
+     App (line, Ref (line, local_fun), List.map ~f:(expr_of_erlang_expr' module_info) args)
   | ExprLocalCall {line; function_expr; args} ->
-     App (line, expr_of_erlang_expr' function_expr, List.map ~f:expr_of_erlang_expr' args)
+     App (line, expr_of_erlang_expr' module_info function_expr, List.map ~f:(expr_of_erlang_expr' module_info) args)
   | ExprRemoteCall {line; module_expr; function_expr; args; _} ->
      let mfa = MFA {
-       module_name=expr_of_erlang_expr' module_expr;
-       function_name=expr_of_erlang_expr' function_expr;
+       module_name=expr_of_erlang_expr' module_info module_expr;
+       function_name=expr_of_erlang_expr' module_info function_expr;
        arity=Constant (line, Number (Int (List.length args)))}
      in
-     App (line, Ref (line, mfa), List.map ~f:expr_of_erlang_expr' args)
+     App (line, Ref (line, mfa), List.map ~f:(expr_of_erlang_expr' module_info) args)
   | ExprIf _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/224"];
                                                        message="support if expr"}))
@@ -360,7 +367,7 @@ and expr_of_erlang_expr' = function
       * a match expression which has subsequent expressions is caught in `expr_of_erlang_exprs`.
       * Therefore, we can put right-hand side expr of match expression to the return value of case expr.
       *)
-     let e' = expr_of_erlang_expr' body in
+     let e' = expr_of_erlang_expr' module_info body in
      Case (line, e', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), e')])
   | ExprBinOp {line; op; lhs; rhs} ->
      let func = Ast.MFA {
@@ -368,7 +375,7 @@ and expr_of_erlang_expr' = function
         function_name = Constant (line, Atom op);
         arity=Constant (line, Number (Int 2))
      } in
-     App(line, Ref (line, func), List.map ~f:expr_of_erlang_expr' [lhs; rhs])
+     App(line, Ref (line, func), List.map ~f:(expr_of_erlang_expr' module_info) [lhs; rhs])
   | ExprUnaryOp _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/225"];
                                                        message="support unary op"}))
@@ -378,24 +385,24 @@ and expr_of_erlang_expr' = function
   | ExprRecord _ | ExprRecordFieldAccess _ | ExprRecordFieldIndex _ | ExprRecordUpdate _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
                                                        message="support record expr"}))
-  | ExprTuple {line; elements} -> Tuple (line, List.map ~f:expr_of_erlang_expr' elements)
+  | ExprTuple {line; elements} -> Tuple (line, List.map ~f:(expr_of_erlang_expr' module_info) elements)
   | ExprTry {line; exprs; case_clauses; catch_clauses; after} ->
     (* TODO: ignore catch clauses, see the issue https://github.com/dwango/fialyzer/issues/252 *)
     let e =
       if List.is_empty case_clauses then
-        expr_of_erlang_exprs exprs
+        expr_of_erlang_exprs module_info exprs
       else
-        let cs = case_clauses_of_clauses case_clauses in
-        Case (line, expr_of_erlang_exprs exprs, cs)
+        let cs = case_clauses_of_clauses module_info case_clauses in
+        Case (line, expr_of_erlang_exprs module_info exprs, cs)
     in
     if List.is_empty after then
       e
     else
-      let e_after = expr_of_erlang_exprs after in
+      let e_after = expr_of_erlang_exprs module_info after in
       Let (line, "_", e, e_after)
   | ExprVar {line; id} -> Ref (line, Var id)
   | ExprLit {lit} -> expr_of_literal lit
-  | ExprCons {line; head; tail; _} -> ListCons (line, expr_of_erlang_expr' head, expr_of_erlang_expr' tail)
+  | ExprCons {line; head; tail; _} -> ListCons (line, expr_of_erlang_expr' module_info head, expr_of_erlang_expr' module_info tail)
   | ExprNil {line} -> ListNil (line)
   | ExprListComprehension _ ->
      (* TODO: support list comprehension *)
@@ -403,20 +410,20 @@ and expr_of_erlang_expr' = function
   | ExprMapCreation {line; assocs} ->
      assocs
      |> List.map ~f:(function
-                     | F.ExprAssoc {key; value; _} -> (expr_of_erlang_expr' key, expr_of_erlang_expr' value)
+                     | F.ExprAssoc {key; value; _} -> (expr_of_erlang_expr' module_info key, expr_of_erlang_expr' module_info value)
                      | ExprAssocExact _ -> failwith "cannot reach here: map creation must not have exact assocs")
      |> (fun assocs -> MapCreation (line, assocs))
   | ExprMapUpdate {line; map; assocs} ->
      let assoc_divide assoc (assocs, exact_assocs) = match assoc with
        | F.ExprAssoc {key; value; _} ->
-          ((expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: assocs, exact_assocs)
+          ((expr_of_erlang_expr' module_info key, expr_of_erlang_expr' module_info value) :: assocs, exact_assocs)
        | ExprAssocExact {key; value; _} ->
-          (assocs, (expr_of_erlang_expr' key, expr_of_erlang_expr' value) :: exact_assocs)
+          (assocs, (expr_of_erlang_expr' module_info key, expr_of_erlang_expr' module_info value) :: exact_assocs)
      in
      assocs
      |> List.fold_right ~init:([], []) ~f:assoc_divide
-     |> (fun (assocs, exact_assocs) -> MapUpdate {line; map=expr_of_erlang_expr' map; assocs; exact_assocs})
-and function_of_clauses' clauses =
+     |> (fun (assocs, exact_assocs) -> MapUpdate {line; map=expr_of_erlang_expr' module_info map; assocs; exact_assocs})
+and function_of_clauses' module_info clauses =
     (* Create a list which have n elements *)
     let rec fill e = (function
     | 0 -> []
@@ -430,7 +437,7 @@ and function_of_clauses' clauses =
       let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
       let arity = List.length ps in
       let tuple_pattern = PatTuple (line, ps) in
-      (((tuple_pattern, Constant (line, Atom ("true"))), expr_of_erlang_expr' body), arity)
+      (((tuple_pattern, Constant (line, Atom ("true"))), expr_of_erlang_expr' module_info body), arity)
     ) |> List.unzip in
      let line_number_of_clause = function
      | ((PatTuple (_, _patterns), _), term) -> Ast.line_number_of_t term
@@ -471,26 +478,26 @@ and function_of_clauses' clauses =
         let arity = List.nth_exn arities 0 in
         let fresh_variables = (make_fresh_variables arity) in
         {args=fresh_variables; body=make_case cs fresh_variables}
-and case_clauses_of_clauses clauses =
+and case_clauses_of_clauses module_info clauses =
   let f = function
     | F.ClsCase {line; pattern; guard_sequence; body; _} ->
       if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
-      ((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), expr_of_erlang_expr' body)
+      ((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), expr_of_erlang_expr' module_info body)
     | F.ClsCatch _ | F.ClsFun _ | F.ClsIf _ ->
       failwith "cannot reach here"
   in
   List.map ~f clauses
 
-let expr_of_erlang_expr e = e |> extract_toplevel |> expr_of_erlang_expr'
+let expr_of_erlang_expr e = e |> extract_toplevel |> expr_of_erlang_expr' {record_decls=[]}
 
-let function_of_clauses clauses =
+let function_of_clauses module_info clauses =
   List.map ~f:(function
     | F.ClsFun c ->
       F.ClsFun {c with body = extract_toplevel c.body}
     | _ ->
       failwith "cannot reach here")
     clauses
-  |> function_of_clauses'
+  |> function_of_clauses' module_info
 
 let forms_to_functions forms =
   let find_specs fun_name =
@@ -504,6 +511,15 @@ let forms_to_functions forms =
                          |> Option.return
                       | _ -> None) forms
   in
+  let module_info =
+    let record_decls =
+      forms
+      |> List.filter_map ~f:(function
+          | F.DeclRecord {name; fields; _} -> Some (name, fields)
+          | _ -> None)
+    in
+    {record_decls;}
+  in
   forms
   |> List.filter_map ~f:(function
                          | F.DeclFun {line; function_name; arity; clauses} ->
@@ -511,7 +527,7 @@ let forms_to_functions forms =
                          | _ -> None)
   |> List.map ~f:(fun (_line, name, arity, clauses) ->
                 let specs = find_specs name in
-                let fun_abst = function_of_clauses clauses in
+                let fun_abst = function_of_clauses module_info clauses in
                 {specs; fun_name=name; fun_abst})
 
 let forms_to_module forms =
