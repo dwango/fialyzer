@@ -382,7 +382,6 @@ and expr_of_erlang_expr' module_info = function
   | ExprReceive _ | ExprReceiveAfter _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/226"];
                                                        message="support receive"}))
-  | ExprRecord _ | ExprRecordFieldAccess _ | ExprRecordFieldIndex _ | ExprRecordUpdate _ ->
   | ExprRecord {line; name; record_fields} -> (* #name{f1 = e1; ...; fn = en} *)
     let tuple_elements =
       Constant (line, Atom name) ::
@@ -390,6 +389,18 @@ and expr_of_erlang_expr' module_info = function
                        |> List.map ~f:(expr_of_erlang_expr' module_info))
     in
     Tuple (line, tuple_elements)
+  | ExprRecordFieldAccess {line; expr; name; field_name; _} ->
+    let pattern =
+      let true_ = Constant (line, Constant.Atom "true") in
+      get_record_decl name module_info
+      |> List.map ~f:(fun (F.RecordField f) -> PatVar (line, f.field_name))
+      |> (fun vars -> PatTuple (line, vars))
+      |> (fun pat -> (pat, true_))
+    in
+    let var_ = Ref (line, Var field_name) in
+    Case (line, expr_of_erlang_expr' module_info expr, [(pattern, var_)])
+  | ExprRecordFieldIndex _
+  | ExprRecordUpdate _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
                                                        message="support record expr"}))
   | ExprTuple {line; elements} -> Tuple (line, List.map ~f:(expr_of_erlang_expr' module_info) elements)
