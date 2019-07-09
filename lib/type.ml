@@ -314,6 +314,13 @@ let rec of_absform = function
      of_elem (TyBitstring (0, 8))
   | F.TyPredef {name="bitstring"; args=[]; _} ->
      of_elem (TyBitstring (0, 1))
+  | F.TyRecord {name; field_types; _} ->
+    let elem_types =
+      of_elem (TySingleton (Constant.Atom name)) ::
+        (field_types |> List.map ~f:(fun (F.RecordFieldType f) -> f.ty)
+                     |> List.map ~f:of_absform)
+    in
+    of_elem (TyTuple elem_types)
   | F.TyPredef {name="byte"; args=[]; _}
   | F.TyPredef {name="char"; args=[]; _}
   | F.TyPredef {name="iodata"; args=[]; _}
@@ -336,7 +343,6 @@ let rec of_absform = function
   | F.TyAnyTuple _
   | F.TyUser _
   | F.TyLit _
-  | F.TyRecord _
   | F.TyRemote _
     as other ->
      Log.debug [%here] "not implemented conversion from type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
