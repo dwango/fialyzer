@@ -383,6 +383,13 @@ and expr_of_erlang_expr' module_info = function
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/226"];
                                                        message="support receive"}))
   | ExprRecord _ | ExprRecordFieldAccess _ | ExprRecordFieldIndex _ | ExprRecordUpdate _ ->
+  | ExprRecord {line; name; record_fields} -> (* #name{f1 = e1; ...; fn = en} *)
+    let tuple_elements =
+      Constant (line, Atom name) ::
+        (record_fields |> List.map ~f:(fun (F.RecordFieldForExpr f) -> f.value)
+                       |> List.map ~f:(expr_of_erlang_expr' module_info))
+    in
+    Tuple (line, tuple_elements)
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
                                                        message="support record expr"}))
   | ExprTuple {line; elements} -> Tuple (line, List.map ~f:(expr_of_erlang_expr' module_info) elements)
