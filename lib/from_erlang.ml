@@ -399,7 +399,17 @@ and expr_of_erlang_expr' module_info = function
     in
     let var_ = Ref (line, Var field_name) in
     Case (line, expr_of_erlang_expr' module_info expr, [(pattern, var_)])
-  | ExprRecordFieldIndex _
+  | ExprRecordFieldIndex {line; name; field_name; _} ->
+    begin match
+      get_record_decl name module_info
+      |> List.findi ~f:(fun i (F.RecordField f) -> f.field_name = field_name)
+    with
+    | Some (idx, _) -> Constant (line, (Number (Int idx)))
+    | None ->
+      let filename = "TODO:filename" in
+      let variable = Context.Key.Var field_name in
+      raise Known_error.(FialyzerError (UnboundVariable {filename; line; variable}))
+    end
   | ExprRecordUpdate _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
                                                        message="support record expr"}))
