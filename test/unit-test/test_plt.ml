@@ -163,16 +163,16 @@ let%expect_test "Plt.of_file" =
                 Map
                 (map_pairs ())
                 (dict (
-                  (key   None)
-                  (value None))))))
+                  (key   None_)
+                  (value None_))))))
               (ret (AtomUnion (ok)))))
             (constraints ()))))
           (args ((
             Map
             (map_pairs ())
             (dict (
-              (key   None)
-              (value None))))))
+              (key   None_)
+              (value None_))))))
           (forms ())))
         (((module_name   specs)
           (function_name f_identifier)
@@ -204,15 +204,15 @@ let%expect_test "Plt.of_file" =
                   (key (
                     Union (
                       AnyAtom
-                      None
-                      None
-                      None
-                      None
+                      None_
+                      None_
+                      None_
+                      None_
                       (Number AnyInteger)
-                      None
-                      None
-                      None
-                      None)))
+                      None_
+                      None_
+                      None_
+                      None_)))
                   (value (AtomUnion (bar foo))))))))
               (ret (AtomUnion (ok)))))
             (constraints ()))))
@@ -229,15 +229,15 @@ let%expect_test "Plt.of_file" =
               (key (
                 Union (
                   AnyAtom
-                  None
-                  None
-                  None
-                  None
+                  None_
+                  None_
+                  None_
+                  None_
                   (Number AnyInteger)
-                  None
-                  None
-                  None
-                  None)))
+                  None_
+                  None_
+                  None_
+                  None_)))
               (value (AtomUnion (bar foo))))))))
           (forms ())))
         (((module_name   specs)
@@ -272,29 +272,29 @@ let%expect_test "Plt.of_file" =
               (params ((
                 Union (
                   (AtomUnion (bar foo))
-                  None
-                  None
+                  None_
+                  None_
                   (IdentifierUnion (IPid IPort))
-                  None
+                  None_
                   (Number (IntSet (1 2)))
-                  None
-                  None
-                  None
-                  None))))
+                  None_
+                  None_
+                  None_
+                  None_))))
               (ret (AtomUnion (ok)))))
             (constraints ()))))
           (args ((
             Union (
               (AtomUnion (bar foo))
-              None
-              None
+              None_
+              None_
               (IdentifierUnion (IPid IPort))
-              None
+              None_
               (Number (IntSet (1 2)))
-              None
-              None
-              None
-              None))))
+              None_
+              None_
+              None_
+              None_))))
           (forms ())))
         (((module_name   specs)
           (function_name f_union2)
@@ -305,7 +305,7 @@ let%expect_test "Plt.of_file" =
               (params ((
                 Union (
                   (AtomUnion (bar foo))
-                  None
+                  None_
                   (Function
                     (params ((Number (IntSet (0 1 2 3 4 5 6 7 8 9 10 11 12)))))
                     (ret (
@@ -313,8 +313,8 @@ let%expect_test "Plt.of_file" =
                         IntRange
                         (min (Min 0))
                         (max (Max 255))))))
-                  None
-                  None
+                  None_
+                  None_
                   (Number (IntSet (42)))
                   (NTuplesUnion (
                     ((n 1)
@@ -327,15 +327,15 @@ let%expect_test "Plt.of_file" =
                          (Number (IntSet (1 2)))))
                        (arity 2)
                        (tag ())))))))
-                  None
-                  None
-                  None))))
+                  None_
+                  None_
+                  None_))))
               (ret (AtomUnion (ok)))))
             (constraints ()))))
           (args ((
             Union (
               (AtomUnion (bar foo))
-              None
+              None_
               (Function
                 (params ((Number (IntSet (0 1 2 3 4 5 6 7 8 9 10 11 12)))))
                 (ret (
@@ -343,8 +343,8 @@ let%expect_test "Plt.of_file" =
                     IntRange
                     (min (Min 0))
                     (max (Max 255))))))
-              None
-              None
+              None_
+              None_
               (Number (IntSet (42)))
               (NTuplesUnion (
                 ((n 1)
@@ -356,9 +356,9 @@ let%expect_test "Plt.of_file" =
                      (Number (IntSet (1 2)))))
                    (arity 2)
                    (tag ())))))))
-              None
-              None
-              None))))
+              None_
+              None_
+              None_))))
           (forms ())))))
       (callbacks      ())
       (exported_types ()))) |}];
