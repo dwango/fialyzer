@@ -276,13 +276,13 @@ let rec of_absform = function
 
 let rec of_erl_type = function
   | Erl_type.Any -> TyAny
-  | None -> TyBottom
+  | None_ -> TyBottom
   | Unit ->
      Log.debug [%here] "not implemented conversion from erl_type: Unit";
      of_elem (TySingleton (Atom "not_implemented"))
   | erl_type -> TyUnion (union_of_erl_type erl_type)
 and union_of_erl_type = function
-  | Erl_type.None -> []
+  | Erl_type.None_ -> []
   | AnyAtom -> [TyAtom]
   | AtomUnion atoms -> List.map ~f:(fun atom -> TySingleton (Constant.Atom atom)) atoms
   | Function {params; ret} -> [TyFun (params |> List.map ~f:of_erl_type, of_erl_type ret)]

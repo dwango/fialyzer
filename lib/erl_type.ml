@@ -95,7 +95,7 @@ v}
  *)
 type t =
   | Any
-  | None
+  | None_
   | Unit (* no_return *)
   | AnyAtom
   | AtomUnion of string list
@@ -138,7 +138,7 @@ and n_tuples = {
 
 let rec of_etf = function
   | Etf.Atom "any" -> Ok Any
-  | Atom "none" -> Ok None
+  | Atom "none" -> Ok None_
   | Atom "unit" -> Ok Unit
   | SmallTuple(4, [
                  Etf.Atom "c";

@@ -35,7 +35,7 @@ v}
  *)
 type t =
   | Any
-  | None
+  | None_
   | Unit (* no_return *)
   | AnyAtom
   | AtomUnion of string list
