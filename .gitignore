@@ -2,6 +2,7 @@
 *.install
 .merlin
 *.plt
+/benchmark/**/*.beam
 
 # SATySFi
 *.pdf
