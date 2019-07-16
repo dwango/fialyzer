@@ -16,7 +16,7 @@ type t =
     | TyList of t
     | TyFun of t list * t
     | TyAnyMap
-    | TyPid | TyPort | TyReference | TyIdentifier
+    | TyPid | TyPort | TyReference
 [@@deriving sexp_of]
 
 (* ref: http://erlang.org/doc/reference_manual/typespec.html *)
@@ -40,7 +40,6 @@ and pp_t_union_elem = function
   | TyPid -> "pid()"
   | TyPort -> "port()"
   | TyReference -> "reference()"
-  | TyIdentifier -> "identifier()"
 
 let bool = TyUnion [TySingleton (Atom "true"); TySingleton (Atom "false")]
 let of_elem e = TyUnion [e]
@@ -55,7 +54,7 @@ and variables_elem = function
   | TyAtom
   | TySingleton _
   | TyAnyMap
-  | TyPid | TyPort | TyReference | TyIdentifier -> []
+  | TyPid | TyPort | TyReference -> []
   | TyList t ->
     variables t
   | TyTuple ts ->
@@ -87,42 +86,14 @@ and sup_elems_to_list store = function
      let is_not_number = function TySingleton (Number _) -> false | _ -> true in
      let store' = TyNumber :: List.filter ~f:is_not_number store in
      sup_elems_to_list store' ty1s
-  | TyIdentifier :: ty1s ->
-     let store' = List.filter ~f:(function TyIdentifier -> false | _ -> true) store in
-     let store' = TyIdentifier :: store' in
-     sup_elems_to_list store' ty1s
   | TyPid :: ty1s ->
      let store' = List.filter ~f:(function TyPid -> false | _ -> true) store in
-     let store' =
-       if List.exists ~f:((=) TyIdentifier) store' then
-         store'
-       else if (List.exists ~f:((=) TyPort) store') && (List.exists ~f:((=) TyReference) store') then
-         TyIdentifier :: (List.filter ~f:(function TyPort -> false | TyReference -> false | _ -> true) store')
-       else
-         TyPid :: store
-     in
      sup_elems_to_list store' ty1s
   | TyPort :: ty1s ->
      let store' = List.filter ~f:(function TyPort -> false | _ -> true) store in
-     let store' =
-       if List.exists ~f:((=) TyIdentifier) store' then
-         store'
-       else if (List.exists ~f:((=) TyPid) store') && (List.exists ~f:((=) TyReference) store') then
-         TyIdentifier :: (List.filter ~f:(function TyPid -> false | TyReference -> false | _ -> true) store')
-       else
-         TyPort :: store
-     in
      sup_elems_to_list store' ty1s
   | TyReference :: ty1s ->
      let store' = List.filter ~f:(function TyReference -> false | _ -> true) store in
-     let store' =
-       if List.exists ~f:((=) TyIdentifier) store' then
-         store'
-       else if (List.exists ~f:((=) TyPort) store') && (List.exists ~f:((=) TyPid) store') then
-         TyIdentifier :: (List.filter ~f:(function TyPort -> false | TyPid -> false | _ -> true) store')
-       else
-         TyReference :: store
-     in
      sup_elems_to_list store' ty1s
   | TySingleton (Number n) :: ty1s when List.exists ~f:((=) TyNumber) store ->
      sup_elems_to_list store ty1s
@@ -249,7 +220,6 @@ and subst_elem (v, ty0) = function
   | TyPid -> TyUnion [TyPid]
   | TyPort -> TyUnion [TyPort]
   | TyReference -> TyUnion [TyReference]
-  | TyIdentifier -> TyUnion [TyIdentifier]
 
 let rec of_absform = function
   | F.TyAnn {tyvar; _} -> of_absform tyvar
