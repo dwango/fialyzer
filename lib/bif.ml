@@ -168,12 +168,18 @@ let type_sigs = [
     (* pid *)
     ({module_name="erlang"; function_name="self"; arity=0},
      Type.(of_elem (TyFun ([], pid))));
+    ({module_name="erlang"; function_name="is_process_alive"; arity=1},
+     Type.(of_elem (TyFun ([pid], bool))));
 
     (* port *)
     ({module_name="erlang"; function_name="list_to_port"; arity=1},
      Type.(of_elem (TyFun ([string], port))));
+    ({module_name="erlang"; function_name="port_to_list"; arity=1},
+     Type.(of_elem (TyFun ([port], string))));
 
     (* reference *)
     ({module_name="erlang"; function_name="make_ref"; arity=0},
      Type.(of_elem (TyFun ([], reference))));
+    ({module_name="erlang"; function_name="ref_to_list"; arity=1},
+     Type.(of_elem (TyFun ([reference], string))));
   ]
