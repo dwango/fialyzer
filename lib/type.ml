@@ -204,6 +204,18 @@ and subst_elem (v, ty0) = function
      of_elem (TyVar x)
   | TyAnyMap -> TyUnion [TyAnyMap]
 
+let solve_constraints_map map =
+  let subst_all (v, expr) l =
+    List.Assoc.map ~f:(subst (v, expr)) l
+  in
+  let rec iter store = function
+    | [] -> List.rev store
+    | (v, expr) :: rest ->
+      let store' = (v, expr) :: subst_all (v, expr) store in
+      iter store' (subst_all (v, expr) rest)
+  in
+  iter [] map
+
 let rec of_absform = function
   | F.TyAnn {tyvar; _} -> of_absform tyvar
   | F.TyLit {lit=LitAtom {atom; _}} -> of_elem (TySingleton (Atom atom))
@@ -223,6 +235,27 @@ let rec of_absform = function
   | F.TyVar {id; _} -> of_elem (TyVar (Type_variable.of_string id))
   | F.TyFun {params; ret; _} ->
      of_elem (TyFun(List.map ~f:of_absform params, of_absform ret))
+  | F.TyContFun {function_type; constraints; _} ->
+     let map_of_constraints = function
+       | F.TyCont {constraints=cs} ->
+         let f = function
+           | F.TyContRel {constraint_kind=F.TyContIsSubType _; lhs=TyVar v; rhs; _} ->
+             Log.debug [%here] "CONSTRAINT: '%s' -> %s" v.id (F.sexp_of_type_t rhs |> Sexp.to_string_hum);
+             (Type_variable.of_string v.id, rhs)
+           | F.TyContRel _ | F.TyCont _ | F.TyContIsSubType _ ->
+             failwith "cannot rearch here"
+         in
+         List.map ~f cs
+       | F.TyContRel _ | F.TyContIsSubType _ ->
+         failwith "cannot rearch here"
+     in
+     let map =
+       map_of_constraints constraints
+       |> List.Assoc.map ~f:of_absform
+       |> solve_constraints_map
+     in
+     let ty0 = of_absform function_type in
+     List.fold_left ~f:(fun ty (v, t) -> subst (v, t) ty) ~init:ty0 map
   | F.TyTuple {elements=ts; _} ->
      of_elem (TyTuple (List.map ~f:of_absform ts))
   | F.TyUnion {elements; _} ->
@@ -262,7 +295,6 @@ let rec of_absform = function
   | F.TyMap _
   | F.TyFunAny _
   | F.TyFunAnyArity _
-  | F.TyContFun _
   | F.TyAnyTuple _
   | F.TyUser _
   | F.TyLit _
@@ -270,7 +302,7 @@ let rec of_absform = function
   | F.TyRemote _
     as other ->
      Log.debug [%here] "not implemented conversion from type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
-     of_elem (TySingleton (Atom "not_implemented"))
+     of_elem (TySingleton (Atom (!%"not_implemented %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))))
   | F.TyPredef {line; name; args} ->
      failwith (!%"Prease report: line:%d: unexpected predef type: '%s/%d'" line name (List.length args))
 
