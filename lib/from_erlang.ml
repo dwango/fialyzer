@@ -59,9 +59,9 @@ and extract_match_expr e =
     | ClsFun c ->
        let body' = extract_toplevel c.body in
        F.ClsFun {c with body = body'}
-    | ClsCatch _ ->
-       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
-                                                         message="support try expr"}))
+    | ClsCatch c ->
+       let body' = extract_toplevel c.body in
+       F.ClsCatch {c with body = body'}
     | ClsIf _ ->
        raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/224"];
                                                          message="support if expr"}))
