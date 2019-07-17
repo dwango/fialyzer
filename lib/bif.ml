@@ -170,6 +170,8 @@ let type_sigs = [
      Type.(of_elem (TyFun ([], pid))));
     ({module_name="erlang"; function_name="is_process_alive"; arity=1},
      Type.(of_elem (TyFun ([pid], bool))));
+    ({module_name="erlang"; function_name="unlink"; arity=1},
+     Type.(of_elem (TyFun ([TyUnion [TyPid; TyPort]], of_elem (TySingleton (Atom "true"))))));
 
     (* port *)
     ({module_name="erlang"; function_name="list_to_port"; arity=1},
