@@ -59,9 +59,9 @@ and extract_match_expr e =
     | ClsFun c ->
        let body' = extract_toplevel c.body in
        F.ClsFun {c with body = body'}
-    | ClsCatch _ ->
-       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
-                                                         message="support try expr"}))
+    | ClsCatch c ->
+       let body' = extract_toplevel c.body in
+       F.ClsCatch {c with body = body'}
     | ClsIf _ ->
        raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/224"];
                                                          message="support if expr"}))
@@ -197,9 +197,13 @@ and extract_match_expr e =
        in
        F.ExprTuple {e with elements = es'}
        |> return_expr is_top acc
-    | ExprTry _ ->
-       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
-                                                         message="support try"}))
+    | ExprTry e ->
+      let exprs = List.(e.exprs >>= extract_match_expr) in
+      let case_clauses  = List.map ~f:extract_clause e.case_clauses  in
+      let catch_clauses = List.map ~f:extract_clause e.catch_clauses in
+      let after = List.(e.after >>= extract_match_expr) in
+       F.ExprTry {e with exprs; case_clauses; catch_clauses; after}
+       |> return_expr is_top acc
     | ExprVar _ as e -> return_expr is_top acc e
     | ExprLit _ as e -> return_expr is_top acc e
   and extract_assoc acc = function
