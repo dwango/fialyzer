@@ -88,13 +88,13 @@ and sup_elems_to_list store = function
      sup_elems_to_list store' ty1s
   | TyPid :: ty1s ->
      let store' = List.filter ~f:(function TyPid -> false | _ -> true) store in
-     sup_elems_to_list store' ty1s
+     sup_elems_to_list (TyPid :: store') ty1s
   | TyPort :: ty1s ->
      let store' = List.filter ~f:(function TyPort -> false | _ -> true) store in
-     sup_elems_to_list store' ty1s
+     sup_elems_to_list (TyPort :: store') ty1s
   | TyReference :: ty1s ->
      let store' = List.filter ~f:(function TyReference -> false | _ -> true) store in
-     sup_elems_to_list store' ty1s
+     sup_elems_to_list (TyReference :: store') ty1s
   | TySingleton (Number n) :: ty1s when List.exists ~f:((=) TyNumber) store ->
      sup_elems_to_list store ty1s
   | TySingleton (Number n) :: ty1s ->
