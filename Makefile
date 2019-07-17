@@ -4,6 +4,8 @@ INSTALL_ARGS := $(if $(PREFIX),--prefix $(PREFIX),)
 default:
 	dune build @install
 
+beam: test_beam benchmark_beam
+
 test_beam:
 	test/blackbox-test/compile.sh
 
@@ -47,4 +49,4 @@ clean:
 	rm -rf _build
 	rm -f $(MINIMAL_PLT)
 
-.PHONY: default install test_beam test unit-test blackbox-test comparison benchmark promote doc uninstall reinstall clean
+.PHONY: default install beam test_beam benchmark_beam test unit-test blackbox-test comparison benchmark promote doc uninstall reinstall clean
