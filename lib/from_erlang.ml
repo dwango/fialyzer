@@ -87,9 +87,10 @@ and extract_match_expr e =
        let cs' = List.map ~f:extract_clause e.clauses in
        F.ExprCase {e with expr = expr'; clauses = cs'}
        |> return_expr is_top acc
-    | ExprCatch _ ->
-       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/223"];
-                                                         message="support catch"}))
+    | ExprCatch {line; expr} ->
+       let (acc, expr') = extract_match_expr' acc false expr in
+       F.ExprCatch {line; expr=expr'}
+       |> return_expr is_top acc
     | ExprCons e ->
        let (acc, h') = extract_match_expr' acc false e.head in
        let (acc, t') = extract_match_expr' acc false e.tail in
@@ -333,7 +334,7 @@ and expr_of_erlang_expr' = function
      in
      Ref (line, mfa)
   | ExprFun {line; name; clauses} ->
-     let fun_abst = function_of_clauses clauses in
+     let fun_abst = function_of_clauses' clauses in
      (* If name is omitted, don't create Letrec *)
      (match name with
      | Some name -> Letrec (line, [(Var name, fun_abst)], Ref (line, Var name))
@@ -406,7 +407,7 @@ and expr_of_erlang_expr' = function
      assocs
      |> List.fold_right ~init:([], []) ~f:assoc_divide
      |> (fun (assocs, exact_assocs) -> MapUpdate {line; map=expr_of_erlang_expr' map; assocs; exact_assocs})
-and function_of_clauses clauses =
+and function_of_clauses' clauses =
     (* Create a list which have n elements *)
     let rec fill e = (function
     | 0 -> []
@@ -463,6 +464,15 @@ and function_of_clauses clauses =
         {args=fresh_variables; body=make_case cs fresh_variables}
 
 let expr_of_erlang_expr e = e |> extract_toplevel |> expr_of_erlang_expr'
+
+let function_of_clauses clauses =
+  List.map ~f:(function
+    | F.ClsFun c ->
+      F.ClsFun {c with body = extract_toplevel c.body}
+    | _ ->
+      failwith "cannot reach here")
+    clauses
+  |> function_of_clauses'
 
 let forms_to_functions forms =
   let find_specs fun_name =
