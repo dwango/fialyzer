@@ -172,3 +172,48 @@ let%expect_test "of_erl_type" =
             (TyUnion (TyNumber))
             (TyUnion (TyNumber)))))))
       (TyUnion ((TySingleton (Atom ok))))))) |}];
+
+  ()
+
+let%expect_test "of_absform" =
+  let module F = Obeam.Abstract_format in
+  let print type_absform =
+    of_absform type_absform
+    |> [%sexp_of: Type.t]
+    |> Expect_test_helpers_kernel.print_s
+  in
+
+  let line = 111 in
+  let a = F.(TyVar {line; id="A"}) in
+  let b = F.(TyVar {line; id="B"}) in
+  let c = F.(TyVar {line; id="C"}) in
+  let ok = F.(TyLit {lit=LitAtom {atom="ok"; line}}) in
+  let atom =  F.(TyPredef {name="atom"; args=[]; line}) in
+
+  (*
+     (A) -> B when A = {'ok', C}, B = atom(), C = B
+     -->
+     ({'ok', atom()}) -> atom()
+  *)
+  let constraints = F.(
+      let constraint_kind = TyContIsSubType {line} in
+      TyCont {constraints = [
+          TyContRel {line; constraint_kind; lhs=a; rhs=TyTuple {line; elements=[ok; c]}};
+          TyContRel {line; constraint_kind; lhs=b; rhs=atom};
+          TyContRel {line; constraint_kind; lhs=c; rhs=b};
+        ]}
+    )
+  in
+  let function_type =
+    F.(TyFun {line; line_params=line; params=[a]; ret=b})
+  in
+  print F.(TyContFun {line; function_type; constraints});
+  [%expect {|
+    (TyUnion ((
+      TyFun
+      ((
+        TyUnion ((
+          TyTuple ((TyUnion ((TySingleton (Atom ok)))) (TyUnion (TyAtom)))))))
+      (TyUnion (TyAtom))))) |}];
+
+  ()

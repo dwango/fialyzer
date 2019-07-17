@@ -99,3 +99,16 @@ workflows:
           filters:
             branches:
               only: master
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *" # 12:00am UTC
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - beam
+      - build:
+          requires:
+            - beam
