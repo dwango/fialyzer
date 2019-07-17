@@ -248,9 +248,12 @@ let rec of_absform = function
   | F.TyAnyMap _ -> of_elem TyAnyMap
   | F.TyPredef {name="string"; args=[]; _} ->
      of_elem (TyList (of_elem TyNumber))
-  | F.TyPredef {name="pid"; args=[]; _}
-  | F.TyPredef {name="port"; args=[]; _}
-  | F.TyPredef {name="reference"; args=[]; _}
+  | F.TyPredef {name="pid"; args=[]; _} ->
+     of_elem TyPid
+  | F.TyPredef {name="port"; args=[]; _} ->
+     of_elem TyPort
+  | F.TyPredef {name="reference"; args=[]; _} ->
+     of_elem TyReference
   | F.TyPredef {name="binary"; args=[]; _}
   | F.TyPredef {name="bitstring"; args=[]; _}
   | F.TyPredef {name="byte"; args=[]; _}
