@@ -304,7 +304,8 @@ let rec of_absform = function
   | F.TyPredef {name="module"; args=[]; _}
   | F.TyPredef {name="mfa"; args=[]; _}
   | F.TyPredef {name="arity"; args=[]; _}
-  | F.TyPredef {name="identifier"; args=[]; _}
+  | F.TyPredef {name="identifier"; args=[]; _} ->
+     TyUnion [TyPid; TyPort; TyReference]
   | F.TyPredef {name="node"; args=[]; _}
   | F.TyPredef {name="timeout"; args=[]; _}
   | F.TyPredef {name="no_return"; args=[]; _}
