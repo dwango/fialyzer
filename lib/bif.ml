@@ -1,6 +1,10 @@
 open Mfa
 
 let number = Type.(of_elem TyNumber)
+let string = Type.(of_elem (TyList (of_elem TyNumber)))
+let pid = Type.(of_elem TyPid)
+let port = Type.(of_elem TyPort)
+let reference = Type.(of_elem TyReference)
 let pos_integer = Type.(of_elem TyNumber) (*TODO*)
 let non_neg_integer = Type.(of_elem TyNumber) (*TODO*)
 let atom s = Type.(of_elem (TySingleton (Atom s)))
@@ -160,4 +164,24 @@ let type_sigs = [
      Type.(of_elem (TyFun ([of_elem TyAnyMap], number))));
     ({module_name="maps"; function_name="update"; arity=3},
      Type.(of_elem (TyFun ([TyAny; TyAny; any_map], any_map))));
+
+    (* pid *)
+    ({module_name="erlang"; function_name="self"; arity=0},
+     Type.(of_elem (TyFun ([], pid))));
+    ({module_name="erlang"; function_name="is_process_alive"; arity=1},
+     Type.(of_elem (TyFun ([pid], bool))));
+    ({module_name="erlang"; function_name="unlink"; arity=1},
+     Type.(of_elem (TyFun ([TyUnion [TyPid; TyPort]], of_elem (TySingleton (Atom "true"))))));
+
+    (* port *)
+    ({module_name="erlang"; function_name="list_to_port"; arity=1},
+     Type.(of_elem (TyFun ([string], port))));
+    ({module_name="erlang"; function_name="port_to_list"; arity=1},
+     Type.(of_elem (TyFun ([port], string))));
+
+    (* reference *)
+    ({module_name="erlang"; function_name="make_ref"; arity=0},
+     Type.(of_elem (TyFun ([], reference))));
+    ({module_name="erlang"; function_name="ref_to_list"; arity=1},
+     Type.(of_elem (TyFun ([reference], string))));
   ]

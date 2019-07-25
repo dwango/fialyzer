@@ -16,6 +16,7 @@ type t =
     | TyList of t
     | TyFun of t list * t
     | TyAnyMap
+    | TyPid | TyPort | TyReference
 [@@deriving sexp_of]
 
 (* ref: http://erlang.org/doc/reference_manual/typespec.html *)
@@ -36,6 +37,9 @@ and pp_t_union_elem = function
      let ret_str = pp ret in
      "fun(" ^ args_str ^ " -> " ^ ret_str ^ ")"
   | TyAnyMap -> "map()"
+  | TyPid -> "pid()"
+  | TyPort -> "port()"
+  | TyReference -> "reference()"
 
 let bool = TyUnion [TySingleton (Atom "true"); TySingleton (Atom "false")]
 let of_elem e = TyUnion [e]
@@ -49,7 +53,8 @@ and variables_elem = function
   | TyNumber
   | TyAtom
   | TySingleton _
-  | TyAnyMap -> []
+  | TyAnyMap
+  | TyPid | TyPort | TyReference -> []
   | TyList t ->
     variables t
   | TyTuple ts ->
@@ -81,6 +86,15 @@ and sup_elems_to_list store = function
      let is_not_number = function TySingleton (Number _) -> false | _ -> true in
      let store' = TyNumber :: List.filter ~f:is_not_number store in
      sup_elems_to_list store' ty1s
+  | TyPid :: ty1s ->
+     let store' = List.filter ~f:(function TyPid -> false | _ -> true) store in
+     sup_elems_to_list (TyPid :: store') ty1s
+  | TyPort :: ty1s ->
+     let store' = List.filter ~f:(function TyPort -> false | _ -> true) store in
+     sup_elems_to_list (TyPort :: store') ty1s
+  | TyReference :: ty1s ->
+     let store' = List.filter ~f:(function TyReference -> false | _ -> true) store in
+     sup_elems_to_list (TyReference :: store') ty1s
   | TySingleton (Number n) :: ty1s when List.exists ~f:((=) TyNumber) store ->
      sup_elems_to_list store ty1s
   | TySingleton (Number n) :: ty1s ->
@@ -203,6 +217,9 @@ and subst_elem (v, ty0) = function
   | TyVar x ->
      of_elem (TyVar x)
   | TyAnyMap -> TyUnion [TyAnyMap]
+  | TyPid -> TyUnion [TyPid]
+  | TyPort -> TyUnion [TyPort]
+  | TyReference -> TyUnion [TyReference]
 
 let solve_constraints_map map =
   let subst_all (v, expr) l =
@@ -264,9 +281,12 @@ let rec of_absform = function
   | F.TyAnyMap _ -> of_elem TyAnyMap
   | F.TyPredef {name="string"; args=[]; _} ->
      of_elem (TyList (of_elem TyNumber))
-  | F.TyPredef {name="pid"; args=[]; _}
-  | F.TyPredef {name="port"; args=[]; _}
-  | F.TyPredef {name="reference"; args=[]; _}
+  | F.TyPredef {name="pid"; args=[]; _} ->
+     of_elem TyPid
+  | F.TyPredef {name="port"; args=[]; _} ->
+     of_elem TyPort
+  | F.TyPredef {name="reference"; args=[]; _} ->
+     of_elem TyReference
   | F.TyPredef {name="binary"; args=[]; _}
   | F.TyPredef {name="bitstring"; args=[]; _}
   | F.TyPredef {name="byte"; args=[]; _}
@@ -284,7 +304,8 @@ let rec of_absform = function
   | F.TyPredef {name="module"; args=[]; _}
   | F.TyPredef {name="mfa"; args=[]; _}
   | F.TyPredef {name="arity"; args=[]; _}
-  | F.TyPredef {name="identifier"; args=[]; _}
+  | F.TyPredef {name="identifier"; args=[]; _} ->
+     TyUnion [TyPid; TyPort; TyReference]
   | F.TyPredef {name="node"; args=[]; _}
   | F.TyPredef {name="timeout"; args=[]; _}
   | F.TyPredef {name="no_return"; args=[]; _}
