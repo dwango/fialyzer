@@ -247,8 +247,22 @@ let rec of_absform = function
   | F.TyPredef {name="float"; args=[]; _}
   | F.TyPredef {name="integer"; args=[]; _} ->
      of_elem TyNumber
+  | F.TyPredef {name="non_neg_integer"; args=[]; _}
+  | F.TyPredef {name="pos_integer"; args=[]; _}
+  | F.TyPredef {name="neg_integer"; args=[]; _} ->
+     of_elem TyNumber
   | F.TyPredef {name="boolean"; args=[]; _} ->
      bool
+  | F.TyPredef {name="nil"; args=[]; _} ->
+     of_elem (TyList TyBottom)
+  | F.TyPredef {name="list"; args=[]; _}
+  | F.TyPredef {name="maybe_improper_list"; args=[]; _}
+  | F.TyPredef {name="nonempty_list"; args=[]; _} ->
+     of_elem (TyList TyAny)
+  | F.TyPredef {name="list"; args=[ty]; _}
+  | F.TyPredef {name="maybe_improper_list"; args=[ty; _]; _}
+  | F.TyPredef {name="nonempty_list"; args=[ty]; _} ->
+     of_elem (TyList (of_absform ty))
   | F.TyVar {id; _} -> of_elem (TyVar (Type_variable.of_string id))
   | F.TyFun {params; ret; _} ->
      of_elem (TyFun(List.map ~f:of_absform params, of_absform ret))
@@ -278,8 +292,10 @@ let rec of_absform = function
   | F.TyUnion {elements; _} ->
      List.map ~f:of_absform elements
      |> union_list
+  | F.TyMap _
   | F.TyAnyMap _ -> of_elem TyAnyMap
-  | F.TyPredef {name="string"; args=[]; _} ->
+  | F.TyPredef {name="string"; args=[]; _}
+  | F.TyPredef {name="nonempty_string"; args=[]; _} ->
      of_elem (TyList (of_elem TyNumber))
   | F.TyPredef {name="pid"; args=[]; _} ->
      of_elem TyPid
@@ -291,13 +307,6 @@ let rec of_absform = function
   | F.TyPredef {name="bitstring"; args=[]; _}
   | F.TyPredef {name="byte"; args=[]; _}
   | F.TyPredef {name="char"; args=[]; _}
-  | F.TyPredef {name="nil"; args=[]; _}
-  | F.TyPredef {name="list"; args=[]; _}
-  | F.TyPredef {name="list"; args=[_]; _}
-  | F.TyPredef {name="maybe_improper_list"; args=[]; _}
-  | F.TyPredef {name="maybe_improper_list"; args=[_; _]; _}
-  | F.TyPredef {name="non_empty_list"; args=[]; _}
-  | F.TyPredef {name="non_empty_list"; args=[_]; _}
   | F.TyPredef {name="iodata"; args=[]; _}
   | F.TyPredef {name="iolist"; args=[]; _}
   | F.TyPredef {name="function"; args=[]; _}
@@ -313,7 +322,6 @@ let rec of_absform = function
   | F.TyBinOp _
   | F.TyUnaryOp _
   | F.TyRange _
-  | F.TyMap _
   | F.TyFunAny _
   | F.TyFunAnyArity _
   | F.TyAnyTuple _
@@ -325,7 +333,7 @@ let rec of_absform = function
      Log.debug [%here] "not implemented conversion from type: %s" (F.sexp_of_type_t other |> Sexp.to_string_hum);
      of_elem (TySingleton (Atom (!%"not_implemented %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))))
   | F.TyPredef {line; name; args} ->
-     failwith (!%"Prease report: line:%d: unexpected predef type: '%s/%d'" line name (List.length args))
+     failwith (!%"Please report: line:%d: unexpected predef type: '%s/%d'" line name (List.length args))
 
 let rec of_erl_type = function
   | Erl_type.Any -> TyAny
