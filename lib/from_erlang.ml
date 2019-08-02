@@ -177,12 +177,30 @@ and extract_match_expr e =
     | ExprReceive _ | ExprReceiveAfter _ ->
        raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/226"];
                                                          message="support receive"}))
-    | ExprRecord _
-      | ExprRecordFieldAccess _
-      | ExprRecordFieldIndex _
-      | ExprRecordUpdate _ ->
-       raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
-                                                         message="support record"}))
+    | ExprRecord {line; name; record_fields } ->
+      let (acc, fields') =
+        record_fields
+        |> List.fold_map ~init:acc ~f:(fun acc (F.RecordFieldForExpr f) ->
+            let (acc, e') = extract_match_expr' acc false f.value in
+            (acc, F.RecordFieldForExpr {f with value=e'}))
+      in
+      F.ExprRecord {line; name; record_fields=fields'}
+      |> return_expr is_top acc
+    | ExprRecordFieldAccess _ as e ->
+      return_expr is_top acc e
+    | ExprRecordFieldIndex _ as e ->
+      return_expr is_top acc e
+    | ExprRecordUpdate {line; expr; name; update_fields} ->
+      let (acc, expr') = extract_match_expr' acc false expr in
+      let (acc, update_fields') =
+        update_fields
+        |> List.fold_map ~init:acc ~f:(fun acc (F.RecordFieldForExpr f) ->
+            let (acc, e') = extract_match_expr' acc false f.value in
+            (acc, F.RecordFieldForExpr {f with value=e'})
+          )
+      in
+      F.ExprRecordUpdate {line; expr=expr'; name; update_fields=update_fields'}
+      |> return_expr is_top acc
     | ExprTuple e ->
        (* NOTE: Evaluation of match expression in tuple elements does not affect each other.
         * e.g., `{A = 1, B = A}` cannot be compiled, and `{A = B, B = 1}` also.
