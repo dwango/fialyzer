@@ -317,6 +317,24 @@ type module_info = {
 let get_record_decl (record_name: string) (module_info : module_info) =
   Option.value_exn ~here:[%here] (List.Assoc.find ~equal:Poly.(=) module_info.record_decls record_name)
 
+let generate_temporary_var_name =
+  let count = ref 0 in
+  fun prefix ->
+    count := 1 + !count;
+    !%"%s_%d" prefix (!count)
+
+let destruct_record record_name record_decl expr body_of_vars =
+  (* destruct `<expr>` as a record and convert a Case expression `case <expr> of {<var_1>, .. ,  <var_n>} -> <body>` *)
+  let line = line_number_of_t expr in
+  let var_names = record_decl |> List.map ~f:(fun (F.RecordField f) -> generate_temporary_var_name f.field_name) in
+  let pattern =
+    let label = PatConstant (line, Constant.Atom record_name) in
+    let vars = List.map ~f:(fun v -> PatVar (line, v)) var_names in
+    let true_ = Constant (line, Constant.Atom "true") in
+    (PatTuple (line, label :: vars), true_)
+  in
+  Case (line, expr, [(pattern, body_of_vars var_names)])
+
 (* converts a secuence of expressions `[e1; e2; ...]` to an expression `let _ = e1 in let _ = e2 in ...` *)
 (* assume `extract_toplevel` is applied to the argument *)
 let rec expr_of_erlang_exprs (module_info: module_info) = function
