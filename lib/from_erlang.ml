@@ -426,15 +426,16 @@ and expr_of_erlang_expr' module_info = function
     in
     Tuple (line, tuple_elements)
   | ExprRecordFieldAccess {line; expr; name; field_name; _} ->
-    let pattern =
-      let true_ = Constant (line, Constant.Atom "true") in
-      get_record_decl name module_info
-      |> List.map ~f:(fun (F.RecordField f) -> PatVar (line, f.field_name))
-      |> (fun vars -> PatTuple (line, vars))
-      |> (fun pat -> (pat, true_))
-    in
-    let var_ = Ref (line, Var field_name) in
-    Case (line, expr_of_erlang_expr' module_info expr, [(pattern, var_)])
+    let record_decl = get_record_decl name module_info in
+    begin match List.findi ~f:(fun i (F.RecordField f) -> f.field_name = field_name) record_decl with
+      | None ->
+        let filename = "TODO:filename" in
+        let variable = Context.Key.Var field_name in
+        raise Known_error.(FialyzerError (UnboundVariable {filename; line; variable}))
+      | Some (idx, _) ->
+        destruct_record name record_decl (expr_of_erlang_expr' module_info expr) (fun vars ->
+            Ref (line, Var (List.nth_exn vars idx)))
+    end
   | ExprRecordFieldIndex {line; name; field_name; _} ->
     begin match
       get_record_decl name module_info
