@@ -17,6 +17,7 @@ type t =
     | TyFun of t list * t
     | TyAnyMap
     | TyPid | TyPort | TyReference
+    | TyBitstring of int * int (* TODO: change to non_neg_int * non_neg_int *)
 [@@deriving sexp_of]
 
 (* ref: http://erlang.org/doc/reference_manual/typespec.html *)
@@ -40,6 +41,7 @@ and pp_t_union_elem = function
   | TyPid -> "pid()"
   | TyPort -> "port()"
   | TyReference -> "reference()"
+  | TyBitstring (m, n) -> Printf.sprintf "<<_:%d, _:_*%d>>" m n
 
 let bool = TyUnion [TySingleton (Atom "true"); TySingleton (Atom "false")]
 let of_elem e = TyUnion [e]
@@ -54,7 +56,8 @@ and variables_elem = function
   | TyAtom
   | TySingleton _
   | TyAnyMap
-  | TyPid | TyPort | TyReference -> []
+  | TyPid | TyPort | TyReference
+  | TyBitstring _ -> []
   | TyList t ->
     variables t
   | TyTuple ts ->
@@ -95,6 +98,9 @@ and sup_elems_to_list store = function
   | TyReference :: ty1s ->
      let store' = List.filter ~f:(function TyReference -> false | _ -> true) store in
      sup_elems_to_list (TyReference :: store') ty1s
+  | TyBitstring (m, n) :: ty1s ->
+     let store' = List.filter ~f:(function TyBitstring (m', n') -> m = m' && n = n' | _ -> true) store in
+     sup_elems_to_list (TyBitstring (m, n) :: store') ty1s
   | TySingleton (Number n) :: ty1s when List.exists ~f:((=) TyNumber) store ->
      sup_elems_to_list store ty1s
   | TySingleton (Number n) :: ty1s ->
@@ -220,6 +226,7 @@ and subst_elem (v, ty0) = function
   | TyPid -> TyUnion [TyPid]
   | TyPort -> TyUnion [TyPort]
   | TyReference -> TyUnion [TyReference]
+  | TyBitstring (m, n) -> TyUnion [TyBitstring (m, n)]
 
 let solve_constraints_map map =
   let subst_all (v, expr) l =
@@ -303,8 +310,10 @@ let rec of_absform = function
      of_elem TyPort
   | F.TyPredef {name="reference"; args=[]; _} ->
      of_elem TyReference
-  | F.TyPredef {name="binary"; args=[]; _}
-  | F.TyPredef {name="bitstring"; args=[]; _}
+  | F.TyPredef {name="binary"; args=[]; _} ->
+     of_elem (TyBitstring (0, 8))
+  | F.TyPredef {name="bitstring"; args=[]; _} ->
+     of_elem (TyBitstring (0, 1))
   | F.TyPredef {name="byte"; args=[]; _}
   | F.TyPredef {name="char"; args=[]; _}
   | F.TyPredef {name="iodata"; args=[]; _}
