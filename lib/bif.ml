@@ -5,6 +5,9 @@ let string = Type.(of_elem (TyList (of_elem TyNumber)))
 let pid = Type.(of_elem TyPid)
 let port = Type.(of_elem TyPort)
 let reference = Type.(of_elem TyReference)
+let binary = Type.(of_elem (TyBitstring (0, 8)))
+let bitstring = Type.(of_elem (TyBitstring (0, 1)))
+let integer = Type.(of_elem TyNumber) (*TODO*)
 let pos_integer = Type.(of_elem TyNumber) (*TODO*)
 let non_neg_integer = Type.(of_elem TyNumber) (*TODO*)
 let atom s = Type.(of_elem (TySingleton (Atom s)))
@@ -184,4 +187,12 @@ let type_sigs = [
      Type.(of_elem (TyFun ([], reference))));
     ({module_name="erlang"; function_name="ref_to_list"; arity=1},
      Type.(of_elem (TyFun ([reference], string))));
+
+    (* binary *)
+    ({module_name="erlang"; function_name="binary_to_integer"; arity=1},
+     Type.(of_elem (TyFun ([binary], integer))));
+
+    (* bitstring *)
+    ({module_name="erlang"; function_name="bit_size"; arity=1},
+     Type.(of_elem (TyFun ([bitstring], pos_integer))));
   ]
