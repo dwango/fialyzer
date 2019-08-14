@@ -447,9 +447,19 @@ and expr_of_erlang_expr' module_info = function
       let variable = Context.Key.Var field_name in
       raise Known_error.(FialyzerError (UnboundVariable {filename; line; variable}))
     end
-  | ExprRecordUpdate _ ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/227"];
-                                                       message="support record expr"}))
+  | ExprRecordUpdate {line; name; expr; update_fields} ->
+    let record_decl = get_record_decl name module_info in
+    destruct_record name record_decl (expr_of_erlang_expr' module_info expr) (fun vars ->
+        let fields =
+          List.zip_exn record_decl vars
+          |> List.map ~f:(fun (F.RecordField field, v) ->
+              match List.find ~f:(fun (RecordFieldForExpr updated) -> field.field_name = updated.name) update_fields with
+              | Some (RecordFieldForExpr updated) -> expr_of_erlang_expr' module_info updated.value
+              | None -> Ref(line, Var v)
+            )
+        in
+        let label = Constant (line, Atom name) in
+        Tuple(line, label :: fields))
   | ExprTuple {line; elements} -> Tuple (line, List.map ~f:(expr_of_erlang_expr' module_info) elements)
   | ExprTry {line; exprs; case_clauses; catch_clauses; after} ->
     (* TODO: ignore catch clauses, see the issue https://github.com/dwango/fialyzer/issues/252 *)
