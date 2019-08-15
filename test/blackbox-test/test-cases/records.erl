@@ -1,6 +1,6 @@
 -module(records).
 
--export([create/0, field/1, field_index/0, update/1]).
+-export([create/0, field/1, field_index/0, update/1, record_pattern/1]).
 
 -record(rec, {foo :: integer(), bar :: string()}).
 
@@ -19,3 +19,10 @@ field_index() ->
 -spec update(#rec{}) -> #rec{}.
 update(Rec) ->
     Rec#rec{bar = "BAR2"}.
+
+-spec record_pattern(#rec{}) -> {ok, integer()} | {error, string()}.
+record_pattern(Rec) ->
+    case Rec of
+        #rec{foo = Foo, bar = "YES"} -> {ok, Foo};
+        #rec{foo = Foo, bar = Bar} -> {error, Bar}
+    end.
