@@ -40,6 +40,8 @@ and reference =
   | MFA of {module_name : t; function_name : t; arity : t}
 [@@deriving sexp_of]
 
+let universal_pattern line = PatVar (line, "_")
+
 let line_number_of_t = function
 | Constant (line, _) -> line
 | Ref (line, _) -> line

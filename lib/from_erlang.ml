@@ -272,7 +272,7 @@ let rec pattern_of_erlang_pattern = function
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/231"];
                                                        message="support record pattern"}))
   | F.PatVar {line; id} -> Ast.PatVar (line, id)
-  | F.PatUniversal {line} -> Ast.PatVar (line, "_")
+  | F.PatUniversal {line} -> Ast.universal_pattern line
   | F.PatLit {lit} -> pattern_of_literal lit
   | F.PatMap {line; assocs} ->
      assocs
