@@ -7,6 +7,19 @@ open Common
 
 let unit : Ast.t = Constant (-1, Number (Int 0))
 
+type module_info = {
+  record_decls: (string, F.record_field_t list) List.Assoc.t;
+}
+
+let get_record_decl line (record_name: string) (module_info : module_info) =
+  match List.Assoc.find ~equal:Poly.(=) module_info.record_decls record_name with
+  | Some record_decl -> record_decl
+  | None ->
+    let filename = "TODO_FILENAME" in
+    let message = !%"The record '%s' does not found" record_name in
+    let position = [%here] in
+    raise Known_error.(FialyzerError (InputError {filename; line; message; position}))
+
 let const_of_literal = function
   | F.LitAtom {line; atom} -> (line, Constant.Atom atom)
   | LitChar {line; uchar} ->
@@ -310,13 +323,6 @@ let rec line_number_of_erlang_expr = function
      | LitBigInt {line; _} -> line
      | LitString {line; _} -> line
 
-type module_info = {
-  record_decls: (string, F.record_field_t list) List.Assoc.t;
-}
-
-let get_record_decl (record_name: string) (module_info : module_info) =
-  Option.value_exn ~here:[%here] (List.Assoc.find ~equal:Poly.(=) module_info.record_decls record_name)
-
 let generate_temporary_var_name =
   let count = ref 0 in
   fun prefix ->
@@ -426,7 +432,7 @@ and expr_of_erlang_expr' module_info = function
     in
     Tuple (line, tuple_elements)
   | ExprRecordFieldAccess {line; expr; name; field_name; _} ->
-    let record_decl = get_record_decl name module_info in
+    let record_decl = get_record_decl line name module_info in
     begin match List.findi ~f:(fun i (F.RecordField f) -> f.field_name = field_name) record_decl with
       | None ->
         let filename = "TODO:filename" in
@@ -438,7 +444,7 @@ and expr_of_erlang_expr' module_info = function
     end
   | ExprRecordFieldIndex {line; name; field_name; _} ->
     begin match
-      get_record_decl name module_info
+      get_record_decl line name module_info
       |> List.findi ~f:(fun i (F.RecordField f) -> f.field_name = field_name)
     with
     | Some (idx, _) -> Constant (line, (Number (Int idx)))
@@ -448,7 +454,7 @@ and expr_of_erlang_expr' module_info = function
       raise Known_error.(FialyzerError (UnboundVariable {filename; line; variable}))
     end
   | ExprRecordUpdate {line; name; expr; update_fields} ->
-    let record_decl = get_record_decl name module_info in
+    let record_decl = get_record_decl line name module_info in
     destruct_record name record_decl (expr_of_erlang_expr' module_info expr) (fun vars ->
         let fields =
           List.zip_exn record_decl vars
