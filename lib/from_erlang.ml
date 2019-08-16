@@ -268,9 +268,17 @@ let rec pattern_of_erlang_pattern module_info = function
   | F.PatBinOp _ | F.PatUnaryOp _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/230"];
                                                        message="support unary and binary operator pattern"}))
-  | F.PatRecordFieldIndex _ ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/231"];
-                                                       message="support record pattern"}))
+  | F.PatRecordFieldIndex {line; name; field_name; line_field_name} ->
+    begin match
+      get_record_decl line name module_info
+      |> List.findi ~f:(fun i (F.RecordField f) -> f.field_name = field_name)
+      with
+      | Some (idx, _) -> PatConstant (line_field_name, (Number (Int idx)))
+      | None ->
+        let filename = "TODO:filename" in
+        let message = !%"record '%s' does not have a field '%s'." name field_name in
+        raise Known_error.(FialyzerError (InputError {filename; line=line_field_name; message; position=[%here]}))
+    end
   | F.PatRecord {line; name; record_fields} ->
     let pattern_of_field (F.RecordField f) =
       let find_field_name = function
