@@ -258,7 +258,7 @@ let expr_of_integer_or_var = function
   | F.IntegerVarInteger {line; integer} -> Constant (line, Number (Int integer))
   | IntegerVarVar {line; id} -> Ref (line, Var id)
 
-let rec pattern_of_erlang_pattern = function
+let rec pattern_of_erlang_pattern module_info = function
   | F.PatBitstr _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/228"];
                                                        message="support bitstr pattern"}))
@@ -276,13 +276,14 @@ let rec pattern_of_erlang_pattern = function
   | F.PatLit {lit} -> pattern_of_literal lit
   | F.PatMap {line; assocs} ->
      assocs
-     |> List.map ~f:(fun (F.PatAssocExact {key; value; _}) -> (pattern_of_erlang_pattern key, pattern_of_erlang_pattern value))
+     |> List.map ~f:(fun (F.PatAssocExact {key; value; _}) ->
+         (pattern_of_erlang_pattern module_info key, pattern_of_erlang_pattern module_info value))
      |> (fun assocs -> Ast.PatMap (line, assocs))
      | F.PatTuple {line; pats} ->
-     PatTuple (line, (pats |> List.map ~f:pattern_of_erlang_pattern))
+     PatTuple (line, (pats |> List.map ~f:(pattern_of_erlang_pattern module_info)))
   | F.PatNil {line} -> PatNil line
   | F.PatCons {line; head; tail} ->
-     PatCons (line, (pattern_of_erlang_pattern head, pattern_of_erlang_pattern tail))
+     PatCons (line, (pattern_of_erlang_pattern module_info head, pattern_of_erlang_pattern module_info tail))
 
 let rec line_number_of_erlang_expr = function
   | F.ExprBody {exprs} -> line_number_of_erlang_expr (List.hd_exn exprs)
@@ -350,7 +351,7 @@ let rec expr_of_erlang_exprs (module_info: module_info) = function
      (* no match expression in `e` by extract_match_expr *)
      let body' = expr_of_erlang_expr' module_info body in
      let es' = expr_of_erlang_exprs module_info es in
-     Case (line, body', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), es')])
+     Case (line, body', [((pattern_of_erlang_pattern module_info pattern, Constant (line, Atom "true")), es')])
   | e :: es ->
      Let (line_number_of_erlang_expr e, "_", expr_of_erlang_expr' module_info e, expr_of_erlang_exprs module_info es)
 and expr_of_erlang_expr' module_info = function
@@ -410,7 +411,7 @@ and expr_of_erlang_expr' module_info = function
       * Therefore, we can put right-hand side expr of match expression to the return value of case expr.
       *)
      let e' = expr_of_erlang_expr' module_info body in
-     Case (line, e', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), e')])
+     Case (line, e', [((pattern_of_erlang_pattern module_info pattern, Constant (line, Atom "true")), e')])
   | ExprBinOp {line; op; lhs; rhs} ->
      let func = Ast.MFA {
         module_name = Constant (line, Atom "erlang");
@@ -515,7 +516,7 @@ and function_of_clauses' module_info clauses =
     | F.ClsCase _ | F.ClsCatch _ | F.ClsIf _ -> failwith "cannot reach here"
     | F.ClsFun {line; patterns; body; _} ->
       (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
-      let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
+      let ps = patterns |> List.map ~f:(pattern_of_erlang_pattern module_info) in
       let arity = List.length ps in
       let tuple_pattern = PatTuple (line, ps) in
       (((tuple_pattern, Constant (line, Atom ("true"))), expr_of_erlang_expr' module_info body), arity)
@@ -563,7 +564,7 @@ and case_clauses_of_clauses module_info clauses =
   let f = function
     | F.ClsCase {line; pattern; guard_sequence; body; _} ->
       if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
-      ((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), expr_of_erlang_expr' module_info body)
+      ((pattern_of_erlang_pattern module_info pattern, Constant (line, Atom "true")), expr_of_erlang_expr' module_info body)
     | F.ClsCatch _ | F.ClsFun _ | F.ClsIf _ ->
       failwith "cannot reach here"
   in
