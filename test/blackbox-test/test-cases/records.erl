@@ -22,7 +22,15 @@ update(Rec) ->
 
 -spec record_pattern(#rec{}) -> {ok, integer()} | {error, string()}.
 record_pattern(Rec) ->
-    case Rec of
+    case update(Rec) of
         #rec{foo = Foo, bar = "YES"} -> {ok, Foo};
-        #rec{foo = Foo, bar = Bar} -> {error, Bar}
+        #rec{bar = Bar} -> {error, Bar}
+    end.
+
+-spec record_field_index_pattern(integer()) -> atom().
+record_field_index_pattern(N) ->
+    case N of
+        #rec.foo -> 'foo';
+        #rec.bar -> 'bar';
+        _ -> 'other'
     end.
