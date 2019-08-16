@@ -268,9 +268,24 @@ let rec pattern_of_erlang_pattern module_info = function
   | F.PatBinOp _ | F.PatUnaryOp _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/230"];
                                                        message="support unary and binary operator pattern"}))
-  | F.PatRecordFieldIndex _ | F.PatRecord _ ->
+  | F.PatRecordFieldIndex _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/231"];
                                                        message="support record pattern"}))
+  | F.PatRecord {line; name; record_fields} ->
+    let pattern_of_field (F.RecordField f) =
+      let find_field_name = function
+        | (_, F.AtomWildcardAtom fname, _) -> Some fname.atom
+        | (_, F.AtomWildcardWildcard _, _) -> None
+      in
+      begin match List.find ~f:(fun rf -> find_field_name rf = Some f.field_name) record_fields with
+        | Some (line_f, _, pat) -> pattern_of_erlang_pattern module_info pat
+        | None -> Ast.universal_pattern line
+      end
+    in
+    let record_decl = get_record_decl line name module_info in
+    let patterns = List.map ~f:pattern_of_field record_decl in
+    let record_label = PatConstant(line, Constant.Atom name) in
+    PatTuple (line, record_label :: patterns)
   | F.PatVar {line; id} -> Ast.PatVar (line, id)
   | F.PatUniversal {line} -> Ast.universal_pattern line
   | F.PatLit {lit} -> pattern_of_literal lit
