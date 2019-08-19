@@ -1,4 +1,4 @@
-TODO:filename:5: Type error: type mismatch;
+test-cases/discrep1.erl:5: Type error: type mismatch;
   found   : 'you'
   required: number()
 there is no solution that satisfies subtype constraints
