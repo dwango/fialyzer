@@ -60,7 +60,7 @@ and unify_elem elem inf =
      |> List.concat
   | _ -> []
 
-let solve_sub expr sol ty1 ty2 =
+let solve_sub filename expr sol ty1 ty2 =
   let ty1' = lookup_type sol ty1 in
   let ty2' = lookup_type sol ty2 in
   let inf = inf ty1' ty2' in
@@ -71,7 +71,6 @@ let solve_sub expr sol ty1 ty2 =
   if is_subtype ty1' ty2' then
     Ok sol'
   else if inf = TyBottom then
-    let filename = "TODO:filename" in
     let line = Ast.line_number_of_t expr in
     let actual = ty1' in
     let expected = ty2' in
@@ -82,10 +81,10 @@ let solve_sub expr sol ty1 ty2 =
     |> List.fold_left ~f:(fun sol (v,ty) -> set (v, ty) sol) ~init:sol'
     |> Result.return
 
-let solve_eq expr sol ty1 ty2 =
+let solve_eq filename expr sol ty1 ty2 =
   let open Result in
-  solve_sub expr sol ty1 ty2 >>= fun sol' ->
-  solve_sub expr sol' ty2 ty1
+  solve_sub filename expr sol ty1 ty2 >>= fun sol' ->
+  solve_sub filename expr sol' ty2 ty1
 
 let merge_solutions sol1 sol2 =
   let f ~key = function
@@ -96,31 +95,31 @@ let merge_solutions sol1 sol2 =
   in
   Map.merge sol1 sol2 ~f
 
-let rec solve1 sol = function
+let rec solve1 filename sol = function
   | C.Empty -> Ok sol
   | C.Eq {lhs=ty1; rhs=ty2; link} ->
-     solve_eq link sol ty1 ty2
+     solve_eq filename link sol ty1 ty2
   | C.Subtype {lhs=ty1; rhs=ty2; link} ->
-     solve_sub link sol ty1 ty2
+     solve_sub filename link sol ty1 ty2
   | C.Conj cs ->
-     solve_conj sol cs
+     solve_conj filename sol cs
   | C.Disj cs ->
-     solve_disj sol cs
-and solve_conj sol = function
+     solve_disj filename sol cs
+and solve_conj filename sol = function
   | [] -> Ok sol
   | c :: cs ->
      let open Result in
-     solve1 sol c >>= fun sol' ->
-     solve_conj sol' cs
-and solve_disj sol cs =
+     solve1 filename sol c >>= fun sol' ->
+     solve_conj filename sol' cs
+and solve_disj filename sol cs =
   let open Result in
-  result_map_m ~f:(solve1 sol) cs >>= fun sols ->
+  result_map_m ~f:(solve1 filename sol) cs >>= fun sols ->
   Ok (List.reduce_exn ~f:merge_solutions sols)
 
-let rec solve sol cs =
+let rec solve ~filename sol cs =
   let open Result in
-  solve1 sol cs >>= fun sol' ->
+  solve1 filename sol cs >>= fun sol' ->
   if Map.equal (=) sol sol' then
     Ok sol'
   else
-    solve sol' cs
+    solve ~filename sol' cs

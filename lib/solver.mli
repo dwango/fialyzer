@@ -6,6 +6,6 @@ val string_of_sol : solution -> string
 
 val init : solution
 
-val solve : solution -> Constraint.t -> (solution, exn) result
+val solve : filename:string -> solution -> Constraint.t -> (solution, exn) result
 
 val lookup_type : solution -> Type.t -> Type.t

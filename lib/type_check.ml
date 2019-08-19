@@ -78,7 +78,7 @@ let check_module plt ctx m =
   expr_of_module m >>= fun expr ->
   Derivation.derive ctx expr >>= fun (ty, c) ->
   Log.debug [%here] "Constraints:\n%s" (Constraint.show c);
-  Solver.solve Solver.init c >>= fun sol ->
+  Solver.solve ~filename:m.Ast.file Solver.init c >>= fun sol ->
   Log.debug [%here] "Types:\n%s" (Solver.lookup_type sol ty |> Type.pp);
   check_module_spec m (function_types sol ty) >>= fun _ ->
   Ok ()
