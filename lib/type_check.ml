@@ -53,7 +53,7 @@ let check_module_spec module_ infered_types =
     in
     match Type.inf expected_type infered_type with
     | Type.TyBottom ->
-       let line = -1 in (*TODO*)
+       let line = Ast.line_number_of_t f.Ast.fun_abst.body in
        Known_error.{
          filename=module_.Ast.file; module_name; line;
          function_name; type_spec=expected_type; success_type=infered_type;
