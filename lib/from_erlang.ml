@@ -7,6 +7,19 @@ open Common
 
 let unit : Ast.t = Constant (-1, Number (Int 0))
 
+type module_info = {
+  record_decls: (string, F.record_field_t list) List.Assoc.t;
+}
+
+let get_record_decl line (record_name: string) (module_info : module_info) =
+  match List.Assoc.find ~equal:Poly.(=) module_info.record_decls record_name with
+  | Some record_decl -> record_decl
+  | None ->
+    let filename = "TODO_FILENAME" in
+    let message = !%"The record '%s' does not found" record_name in
+    let position = [%here] in
+    raise Known_error.(FialyzerError (InputError {filename; line; message; position}))
+
 let const_of_literal = function
   | F.LitAtom {line; atom} -> (line, Constant.Atom atom)
   | LitChar {line; uchar} ->
@@ -245,7 +258,7 @@ let expr_of_integer_or_var = function
   | F.IntegerVarInteger {line; integer} -> Constant (line, Number (Int integer))
   | IntegerVarVar {line; id} -> Ref (line, Var id)
 
-let rec pattern_of_erlang_pattern = function
+let rec pattern_of_erlang_pattern module_info = function
   | F.PatBitstr _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/228"];
                                                        message="support bitstr pattern"}))
@@ -255,21 +268,45 @@ let rec pattern_of_erlang_pattern = function
   | F.PatBinOp _ | F.PatUnaryOp _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/230"];
                                                        message="support unary and binary operator pattern"}))
-  | F.PatRecordFieldIndex _ | F.PatRecord _ ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/231"];
-                                                       message="support record pattern"}))
+  | F.PatRecordFieldIndex {line; name; field_name; line_field_name} ->
+    begin match
+      get_record_decl line name module_info
+      |> List.findi ~f:(fun i (F.RecordField f) -> f.field_name = field_name)
+      with
+      | Some (idx, _) -> PatConstant (line_field_name, (Number (Int idx)))
+      | None ->
+        let filename = "TODO:filename" in
+        let message = !%"record '%s' does not have a field '%s'." name field_name in
+        raise Known_error.(FialyzerError (InputError {filename; line=line_field_name; message; position=[%here]}))
+    end
+  | F.PatRecord {line; name; record_fields} ->
+    let pattern_of_field (F.RecordField f) =
+      let find_field_name = function
+        | (_, F.AtomWildcardAtom fname, _) -> Some fname.atom
+        | (_, F.AtomWildcardWildcard _, _) -> None
+      in
+      begin match List.find ~f:(fun rf -> find_field_name rf = Some f.field_name) record_fields with
+        | Some (line_f, _, pat) -> pattern_of_erlang_pattern module_info pat
+        | None -> Ast.universal_pattern line
+      end
+    in
+    let record_decl = get_record_decl line name module_info in
+    let patterns = List.map ~f:pattern_of_field record_decl in
+    let record_label = PatConstant(line, Constant.Atom name) in
+    PatTuple (line, record_label :: patterns)
   | F.PatVar {line; id} -> Ast.PatVar (line, id)
-  | F.PatUniversal {line} -> Ast.PatVar (line, "_")
+  | F.PatUniversal {line} -> Ast.universal_pattern line
   | F.PatLit {lit} -> pattern_of_literal lit
   | F.PatMap {line; assocs} ->
      assocs
-     |> List.map ~f:(fun (F.PatAssocExact {key; value; _}) -> (pattern_of_erlang_pattern key, pattern_of_erlang_pattern value))
+     |> List.map ~f:(fun (F.PatAssocExact {key; value; _}) ->
+         (pattern_of_erlang_pattern module_info key, pattern_of_erlang_pattern module_info value))
      |> (fun assocs -> Ast.PatMap (line, assocs))
      | F.PatTuple {line; pats} ->
-     PatTuple (line, (pats |> List.map ~f:pattern_of_erlang_pattern))
+     PatTuple (line, (pats |> List.map ~f:(pattern_of_erlang_pattern module_info)))
   | F.PatNil {line} -> PatNil line
   | F.PatCons {line; head; tail} ->
-     PatCons (line, (pattern_of_erlang_pattern head, pattern_of_erlang_pattern tail))
+     PatCons (line, (pattern_of_erlang_pattern module_info head, pattern_of_erlang_pattern module_info tail))
 
 let rec line_number_of_erlang_expr = function
   | F.ExprBody {exprs} -> line_number_of_erlang_expr (List.hd_exn exprs)
@@ -310,13 +347,6 @@ let rec line_number_of_erlang_expr = function
      | LitBigInt {line; _} -> line
      | LitString {line; _} -> line
 
-type module_info = {
-  record_decls: (string, F.record_field_t list) List.Assoc.t;
-}
-
-let get_record_decl (record_name: string) (module_info : module_info) =
-  Option.value_exn ~here:[%here] (List.Assoc.find ~equal:Poly.(=) module_info.record_decls record_name)
-
 let generate_temporary_var_name =
   let count = ref 0 in
   fun prefix ->
@@ -344,7 +374,7 @@ let rec expr_of_erlang_exprs (module_info: module_info) = function
      (* no match expression in `e` by extract_match_expr *)
      let body' = expr_of_erlang_expr' module_info body in
      let es' = expr_of_erlang_exprs module_info es in
-     Case (line, body', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), es')])
+     Case (line, body', [((pattern_of_erlang_pattern module_info pattern, Constant (line, Atom "true")), es')])
   | e :: es ->
      Let (line_number_of_erlang_expr e, "_", expr_of_erlang_expr' module_info e, expr_of_erlang_exprs module_info es)
 and expr_of_erlang_expr' module_info = function
@@ -404,7 +434,7 @@ and expr_of_erlang_expr' module_info = function
       * Therefore, we can put right-hand side expr of match expression to the return value of case expr.
       *)
      let e' = expr_of_erlang_expr' module_info body in
-     Case (line, e', [((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), e')])
+     Case (line, e', [((pattern_of_erlang_pattern module_info pattern, Constant (line, Atom "true")), e')])
   | ExprBinOp {line; op; lhs; rhs} ->
      let func = Ast.MFA {
         module_name = Constant (line, Atom "erlang");
@@ -426,7 +456,7 @@ and expr_of_erlang_expr' module_info = function
     in
     Tuple (line, tuple_elements)
   | ExprRecordFieldAccess {line; expr; name; field_name; _} ->
-    let record_decl = get_record_decl name module_info in
+    let record_decl = get_record_decl line name module_info in
     begin match List.findi ~f:(fun i (F.RecordField f) -> f.field_name = field_name) record_decl with
       | None ->
         let filename = "TODO:filename" in
@@ -438,7 +468,7 @@ and expr_of_erlang_expr' module_info = function
     end
   | ExprRecordFieldIndex {line; name; field_name; _} ->
     begin match
-      get_record_decl name module_info
+      get_record_decl line name module_info
       |> List.findi ~f:(fun i (F.RecordField f) -> f.field_name = field_name)
     with
     | Some (idx, _) -> Constant (line, (Number (Int idx)))
@@ -448,7 +478,7 @@ and expr_of_erlang_expr' module_info = function
       raise Known_error.(FialyzerError (UnboundVariable {filename; line; variable}))
     end
   | ExprRecordUpdate {line; name; expr; update_fields} ->
-    let record_decl = get_record_decl name module_info in
+    let record_decl = get_record_decl line name module_info in
     destruct_record name record_decl (expr_of_erlang_expr' module_info expr) (fun vars ->
         let fields =
           List.zip_exn record_decl vars
@@ -509,7 +539,7 @@ and function_of_clauses' module_info clauses =
     | F.ClsCase _ | F.ClsCatch _ | F.ClsIf _ -> failwith "cannot reach here"
     | F.ClsFun {line; patterns; body; _} ->
       (* Ignore guards currently since guard is complex and it's not needed for simple examples *)
-      let ps = patterns |> List.map ~f:pattern_of_erlang_pattern in
+      let ps = patterns |> List.map ~f:(pattern_of_erlang_pattern module_info) in
       let arity = List.length ps in
       let tuple_pattern = PatTuple (line, ps) in
       (((tuple_pattern, Constant (line, Atom ("true"))), expr_of_erlang_expr' module_info body), arity)
@@ -557,7 +587,7 @@ and case_clauses_of_clauses module_info clauses =
   let f = function
     | F.ClsCase {line; pattern; guard_sequence; body; _} ->
       if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
-      ((pattern_of_erlang_pattern pattern, Constant (line, Atom "true")), expr_of_erlang_expr' module_info body)
+      ((pattern_of_erlang_pattern module_info pattern, Constant (line, Atom "true")), expr_of_erlang_expr' module_info body)
     | F.ClsCatch _ | F.ClsFun _ | F.ClsIf _ ->
       failwith "cannot reach here"
   in

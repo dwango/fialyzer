@@ -15,6 +15,7 @@ type t =
   | UnboundVariable of {filename: string; line: int; variable: Context.Key.t}
   | TypeError of type_error list
   | TypeSpecUnmatch of type_spec_unmatch list
+  | InputError of {filename: string; line: int; message: string; position: Source_code_position.t}
   | NotImplemented of {issue_links: string list; message: string}
 [@@deriving sexp_of]
 
@@ -48,6 +49,8 @@ let to_message = function
          (Type.pp e.success_type) (Type.pp e.type_spec)
      in
      List.map ~f errs |> String.concat ~sep:"\n"
+  | InputError {filename; line; message; position} ->
+    !%"%s:%d: %s (in Fialyzer %s)" filename line message (Source_code_position.to_string position)
   | NotImplemented {issue_links; message} ->
      let links = List.map ~f:(!%"- %s") issue_links |> String.concat ~sep:"\n" in
      !%"Not implemented: %s: See the issues:\n%s" message links

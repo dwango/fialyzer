@@ -1,3 +1,5 @@
+open Base
+
 type type_error = {filename: string; line: int; actual : Type.t; expected: Type.t; message: string}
 [@@deriving sexp_of]
 
@@ -12,6 +14,7 @@ type t =
   | UnboundVariable of {filename: string; line: int; variable: Context.Key.t}
   | TypeError of type_error list
   | TypeSpecUnmatch of type_spec_unmatch list
+  | InputError of {filename: string; line: int; message: string; position: Source_code_position.t}
   | NotImplemented of {issue_links: string list; message: string}
 [@@deriving sexp_of]
 
