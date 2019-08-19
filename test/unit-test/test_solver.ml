@@ -15,9 +15,11 @@ let subtype (ty1, ty2) =
   let link = Ast.Ref (-1, Var "__dummy_expr__") in
   Constraint.Subtype {lhs=ty1; rhs=ty2; link}
 
+let filename = "__unit_test_filename__"
+
 let%expect_test "solver" =
   let print c =
-    solve init c
+    solve ~filename init c
     |> Result.map ~f:sexp_of_solution
     |> [%sexp_of: (Sexp.t, exn) Result.t]
     |> Expect_test_helpers_kernel.print_s in
@@ -70,7 +72,7 @@ let%expect_test "solver" =
     (Error (
       lib/known_error.ml.FialyzerError (
         TypeError ((
-          (filename TODO:filename)
+          (filename __unit_test_filename__)
           (line     -1)
           (actual   (TyUnion (TyNumber)))
           (expected (TyUnion (TyAtom)))
