@@ -589,11 +589,22 @@ and function_of_clauses' module_info clauses =
         let fresh_variables = (make_fresh_variables arity) in
         {args=fresh_variables; body=make_case cs fresh_variables}
 and case_clauses_of_clauses module_info clauses =
-  let f = function
+  let rec f = function
     | F.ClsCase {line; pattern; guard_sequence; body; _} ->
       if Option.is_some guard_sequence then Log.debug [%here] "line:%d %s" line "Guard (when clauses) are not supported";
       ((pattern_of_erlang_pattern module_info pattern, Constant (line, Atom "true")), expr_of_erlang_expr' module_info body)
-    | F.ClsCatch _ | F.ClsFun _ | F.ClsIf _ ->
+    (* vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv *)
+    (* This is a temporary patch for the obeam bug: https://github.com/yutopp/obeam/issues/101 *)
+    | F.ClsCatch {line; exception_class; pattern; stacktrace; guard_sequence; body; _}  ->
+      let atom_or_var = function
+        | F.AtomVarAtom {line; atom} -> F.PatLit {lit = LitAtom {line; atom}}
+        | F.AtomVarVar {line; id} -> F.PatVar {line; id}
+      in
+      let pattern = F.PatTuple {line; pats=[atom_or_var exception_class; pattern; F.PatVar {line; id=stacktrace}]} in
+      f (F.ClsCase {line; pattern; guard_sequence; body})
+    (* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ *)
+    | F.ClsFun _ | F.ClsIf _ as cl ->
+      Log.debug [%here] "case_clauses_of_clauses ERROR: %s" (F.sexp_of_clause_t cl |> Sexplib.Sexp.to_string_hum);
       failwith "cannot reach here"
   in
   List.map ~f clauses
@@ -652,6 +663,9 @@ let forms_to_module forms =
   let open Result in
   take_file forms >>= fun (_line, file, line2) ->
   take_module_name forms >>= fun (_line, name) ->
+  Log.debug [%here] "-------------------------------------";
+  Log.debug [%here] "-- MODULE NAME: '%s' --" name;
+  Log.debug [%here] "-------------------------------------";
   let functions = forms_to_functions forms in
   let export = [] in (* TODO : take export functions *)
   Result.return {file; name; export; functions }
