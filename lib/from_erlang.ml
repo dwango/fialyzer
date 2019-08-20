@@ -442,9 +442,14 @@ and expr_of_erlang_expr' module_info = function
         arity=Constant (line, Number (Int 2))
      } in
      App(line, Ref (line, func), List.map ~f:(expr_of_erlang_expr' module_info) [lhs; rhs])
-  | ExprUnaryOp _ ->
-     raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/225"];
-                                                       message="support unary op"}))
+  | ExprUnaryOp {line; op; operand} ->
+     let func = Ast.MFA {
+        module_name = Constant (line, Atom "erlang");
+        function_name = Constant (line, Atom op);
+        arity=Constant (line, Number (Int 1))
+     } in
+     App(line, Ref (line, func), List.map ~f:(expr_of_erlang_expr' module_info) [operand])
+
   | ExprReceive _ | ExprReceiveAfter _ ->
      raise Known_error.(FialyzerError (NotImplemented {issue_links=["https://github.com/dwango/fialyzer/issues/226"];
                                                        message="support receive"}))

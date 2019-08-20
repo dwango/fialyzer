@@ -54,10 +54,18 @@ let type_sigs = [
      Type.(of_elem (TyFun ([Type.bool; Type.bool], Type.bool))));
     ({module_name="erlang"; function_name="xor"; arity=2},
      Type.(of_elem (TyFun ([Type.bool; Type.bool], Type.bool))));
-    ({module_name="erlang"; function_name="not"; arity=1},
-     Type.(of_elem (TyFun ([Type.bool], Type.bool))));
     ({module_name="erlang"; function_name="abs"; arity=1},
      Type.(of_elem (TyFun ([number], number))));
+
+    (* -------- unary op ----------- *)
+    ({module_name="erlang"; function_name="+"; arity=1},
+     Type.(of_elem (TyFun ([number], number))));
+    ({module_name="erlang"; function_name="-"; arity=1},
+     Type.(of_elem (TyFun ([number], number))));
+    ({module_name="erlang"; function_name="not"; arity=1},
+     Type.(of_elem (TyFun ([bool], bool))));
+    ({module_name="erlang"; function_name="bnot"; arity=1},
+     Type.(of_elem (TyFun ([integer], integer))));
 
     (* -------- lists -------------- *)
     ({module_name="lists"; function_name="all"; arity=2},

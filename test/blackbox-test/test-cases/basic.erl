@@ -1,6 +1,6 @@
 -module(basic).
 
--export([ok/0, id/1, ok2/0, lit_int/0, lit_float/0, match_expr/0]).
+-export([ok/0, id/1, ok2/0, lit_int/0, lit_float/0, match_expr/0, unary_binary_op/0]).
 
 -spec ok() -> ok.
 ok() -> ok.
@@ -21,3 +21,7 @@ lit_float() -> 1.23.
 match_expr() ->
     A = id(B = 123),
     A + B.
+
+-spec unary_binary_op() -> number().
+unary_binary_op() ->
+    -1 + 5.
