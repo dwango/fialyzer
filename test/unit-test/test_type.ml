@@ -177,8 +177,9 @@ let%expect_test "of_erl_type" =
 
 let%expect_test "of_absform" =
   let module F = Obeam.Abstract_format in
+  let type_decls = [] in
   let print type_absform =
-    of_absform type_absform
+    of_absform type_decls type_absform
     |> [%sexp_of: Type.t]
     |> Expect_test_helpers_kernel.print_s
   in

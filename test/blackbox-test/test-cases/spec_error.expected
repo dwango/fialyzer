@@ -43,3 +43,6 @@ test-cases/spec_error.erl:49: map2: Type spec unmatch;
 test-cases/spec_error.erl:53: bar: Type spec unmatch;
   success type: fun((number(), number()) -> 'ok')
   type spec   : fun(('true' | 'false', number()) -> 'ok')
+test-cases/spec_error.erl:63: user_error: Type spec unmatch;
+  success type: fun(({'typ1', 'typ2'}) -> 'ok')
+  type spec   : fun(({'typ2', 'typ1'}) -> 'ok')

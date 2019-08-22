@@ -610,11 +610,20 @@ let function_of_clauses module_info clauses =
   |> function_of_clauses' module_info
 
 let forms_to_functions forms =
+  let type_decls =
+    forms
+    |> List.filter_map ~f:(function
+        | F.DeclType {line; name; tvars; ty} ->
+          Some (name, List.map ~f:snd tvars, ty)
+        | _ -> None)
+    |> List.fold_right ~init:[] ~f:(fun (name, tvars, ty) acc ->
+        (name, Type.decl_of_absform acc tvars ty) :: acc)
+  in
   let find_specs fun_name =
     List.find_map ~f:(function
                       | F.SpecFun {function_name; arity; specs; _} when fun_name = function_name ->
                          List.map ~f:(fun ty ->
-                                    match Type.of_absform ty with
+                                    match Type.of_absform type_decls ty with
                                     | Type.(TyUnion [Type.TyFun (domains, range)]) -> (domains, range)
                                     | other -> failwith (!%"unexpected type spec of %s/%d: %s: %s" function_name arity (Type.pp other) (F.sexp_of_type_t ty |> Sexp.to_string_hum)))
                                   specs

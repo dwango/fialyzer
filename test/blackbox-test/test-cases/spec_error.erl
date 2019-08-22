@@ -3,8 +3,8 @@
 -export([foo/1, int1/0, int2/0, int3/0, int4/0,
          list1/0, list2/0, list3/0, list4/0, list5/0, string1/0, string2/0,
          map1/0, map2/0,
-         bar/2]).
-
+         bar/2,
+         user_success/1, user_error/1]).
 
 -spec foo(number()) -> boolean().
 foo(111) -> ok.
@@ -52,3 +52,12 @@ map2() -> ok.
 bar(M, N) ->
     _ = M + N,
     ok.
+
+-type typ() :: 'typ1'.
+-type typ(A) :: {typ2, A}.
+
+-spec user_success(typ(typ())) -> ok.
+user_success({typ2, typ1}) -> ok.
+
+-spec user_error(typ(typ())) -> ok.
+user_error({typ1, typ2}) -> ok.
