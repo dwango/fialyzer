@@ -20,6 +20,8 @@ type t =
     | TyBitstring of int * int (* TODO: change to non_neg_int * non_neg_int *)
 [@@deriving sexp_of]
 
+type decl = Decl of {type_args: string list; ty: t}
+
 (* ref: http://erlang.org/doc/reference_manual/typespec.html *)
 let rec pp = function
   | TyUnion tys ->
@@ -240,8 +242,8 @@ let solve_constraints_map map =
   in
   iter [] map
 
-let rec of_absform = function
-  | F.TyAnn {tyvar; _} -> of_absform tyvar
+let rec of_absform (type_decls: (string * decl) list) = function
+  | F.TyAnn {tyvar; _} -> of_absform type_decls tyvar
   | F.TyLit {lit=LitAtom {atom; _}} -> of_elem (TySingleton (Atom atom))
   | F.TyLit {lit=LitInteger {integer; _}} -> of_elem (TySingleton (Number (Int integer)))
   | F.TyPredef {name="any"; args=[]; _} | F.TyPredef {name="term"; args=[]; _} ->
@@ -269,10 +271,10 @@ let rec of_absform = function
   | F.TyPredef {name="list"; args=[ty]; _}
   | F.TyPredef {name="maybe_improper_list"; args=[ty; _]; _}
   | F.TyPredef {name="nonempty_list"; args=[ty]; _} ->
-     of_elem (TyList (of_absform ty))
+     of_elem (TyList (of_absform type_decls ty))
   | F.TyVar {id; _} -> of_elem (TyVar (Type_variable.of_string id))
   | F.TyFun {params; ret; _} ->
-     of_elem (TyFun(List.map ~f:of_absform params, of_absform ret))
+     of_elem (TyFun(List.map ~f:(of_absform type_decls) params, of_absform type_decls ret))
   | F.TyContFun {function_type; constraints; _} ->
      let map_of_constraints = function
        | F.TyCont {constraints=cs} ->
@@ -289,15 +291,15 @@ let rec of_absform = function
      in
      let map =
        map_of_constraints constraints
-       |> List.Assoc.map ~f:of_absform
+       |> List.Assoc.map ~f:(of_absform type_decls)
        |> solve_constraints_map
      in
-     let ty0 = of_absform function_type in
+     let ty0 = of_absform type_decls function_type in
      List.fold_left ~f:(fun ty (v, t) -> subst (v, t) ty) ~init:ty0 map
   | F.TyTuple {elements=ts; _} ->
-     of_elem (TyTuple (List.map ~f:of_absform ts))
+     of_elem (TyTuple (List.map ~f:(of_absform type_decls) ts))
   | F.TyUnion {elements; _} ->
-     List.map ~f:of_absform elements
+     List.map ~f:(of_absform type_decls) elements
      |> union_list
   | F.TyMap _
   | F.TyAnyMap _ -> of_elem TyAnyMap
@@ -318,6 +320,19 @@ let rec of_absform = function
     (* TODO: use record declarations *)
     (* NOTE: the field_types are usually empty *)
     TyAny
+  | F.TyUser {name; args; _} ->
+    let find_decl =
+      List.find ~f:(fun (n, Decl decl) -> n = name && List.length decl.type_args = List.length args) type_decls
+    in
+    begin match find_decl with
+    | Some (name, Decl decl) ->
+      List.zip_exn decl.type_args (List.map ~f:(of_absform type_decls) args)
+      |> List.fold_right ~init:decl.ty ~f:(fun (v, ty) acc ->
+          subst (Type_variable.of_string v, ty) acc)
+    | None ->
+      !%"not found type declaration: '%s'" name
+      |> failwith
+    end
   | F.TyPredef {name="byte"; args=[]; _}
   | F.TyPredef {name="char"; args=[]; _}
   | F.TyPredef {name="iodata"; args=[]; _}
@@ -338,7 +353,6 @@ let rec of_absform = function
   | F.TyFunAny _
   | F.TyFunAnyArity _
   | F.TyAnyTuple _
-  | F.TyUser _
   | F.TyLit _
   | F.TyRemote _
     as other ->
@@ -346,6 +360,9 @@ let rec of_absform = function
      of_elem (TySingleton (Atom (!%"not_implemented %s" (F.sexp_of_type_t other |> Sexp.to_string_hum))))
   | F.TyPredef {line; name; args} ->
      failwith (!%"Please report: line:%d: unexpected predef type: '%s/%d'" line name (List.length args))
+
+let decl_of_absform type_decls tvars ty =
+  Decl {type_args=tvars; ty=of_absform type_decls ty}
 
 let rec of_erl_type = function
   | Erl_type.Any -> TyAny
