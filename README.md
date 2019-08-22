@@ -1,12 +1,28 @@
-[WIP] fialyzer
-==============
+# fialyzer
 
 [![CircleCI](https://circleci.com/gh/dwango/fialyzer.svg?style=svg)](https://circleci.com/gh/dwango/fialyzer)
 
 Faster Implementation of Dialyzer
 
-Prerequisite
-------------
+## How to Use
+
+### Using Docker
+
+```console
+docker run --rm -v $(pwd):/home/opam/fialyzer yoshihiro503/fialyzer --plt <plt_file> <beam_files>
+```
+
+### Commandline Options
+
+|Option|Description|
+|---|----|
+|`--plt <plt_file>`|Use the specified plt as the initial plt (optional)|
+|`--debug`|Print debug logs (optional)|
+|`--help`|Display this list of options|
+
+
+## How to Build (for developers)
+### Prerequisite
 
 - ocaml-4.07.0 or higher
 - opam-2.0.0 or higher
@@ -16,8 +32,7 @@ Prerequisite
 - Erlang/OTP (optional, for `make test`)
 - Docker (optional, for `make pdf`)
 
-Build
------
+### Build
 
 ```shell
 # If you prefer to use per-package environment, do:
