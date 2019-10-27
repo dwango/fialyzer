@@ -1,6 +1,8 @@
 /_build/
 *.install
 .merlin
+*.plt
+/benchmark/**/*.beam
 
 # SATySFi
 *.pdf

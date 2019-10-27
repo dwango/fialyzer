@@ -1,24 +1,30 @@
 INSTALL_ARGS := $(if $(PREFIX),--prefix $(PREFIX),)
-MINIMAL_PLT := test/blackbox-test/minimal.plt
 
 # Default rule
 default:
 	dune build @install
 
-beam:
+beam: test_beam benchmark_beam
+
+test_beam:
 	test/blackbox-test/compile.sh
 
-$(MINIMAL_PLT):
-	dialyzer --build_plt --output_plt $(MINIMAL_PLT) \
-	  --apps stdlib
+benchmark_beam:
+	benchmark/compile.sh
 
-test: unit-test beam $(MINIMAL_PLT) blackbox-test
+test: unit-test test_beam $(MINIMAL_PLT) blackbox-test
 
 unit-test:
 	dune runtest test/unit-test
 
 blackbox-test:
 	dune runtest test/blackbox-test
+
+comparison:
+	dune build test/blackbox-test/run_time_comparison.svg
+
+benchmark:
+	dune build benchmark/benchmark.svg
 
 promote:
 	dune promote
@@ -43,4 +49,4 @@ clean:
 	rm -rf _build
 	rm -f $(MINIMAL_PLT)
 
-.PHONY: default install beam test unit-test blackbox-test promote doc uninstall reinstall clean
+.PHONY: default install beam test_beam benchmark_beam test unit-test blackbox-test comparison benchmark promote doc uninstall reinstall clean

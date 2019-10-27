@@ -1,0 +1,12 @@
+(rule
+ (targets benchmark.svg)
+ (deps
+  (:sh run_benchmark.sh)
+  (:exe ../bin/main.exe)
+  (:plt minimal.plt)
+  (glob_files cases/call_mod_func2000/*.beam))
+ (action (run %{sh} %{targets} %{exe} %{plt})))
+
+(rule
+ (targets minimal.plt)
+ (action (run dialyzer --build_plt --output_plt %{targets} --apps stdlib)))
